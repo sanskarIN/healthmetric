@@ -56,7 +56,7 @@ jobs:
 
       - name: Upload lint reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: lint-reports
           path: androidApp/build/reports/lint-results-*.html
@@ -64,7 +64,7 @@ jobs:
 
       - name: Upload debug APK
         if: success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: healthmetric-debug-apk
           path: androidApp/build/outputs/apk/debug/*.apk

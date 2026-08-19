@@ -39,7 +39,7 @@ jobs:
         run: gradle :androidApp:assembleRelease
 
       - name: Upload release artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: healthmetric-${{ github.ref_name }}-unsigned-apk
           path: androidApp/build/outputs/apk/release/*-unsigned.apk
