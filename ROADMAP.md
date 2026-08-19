@@ -10,7 +10,7 @@ The roadmap prioritizes correctness, privacy, accessibility, and maintainability
 - [x] CI, CodeQL, dependency review, secret scanning, Dependabot, and release workflow.
 - [x] Issue/PR templates, release template, support, security, privacy, contribution docs.
 - [x] Architecture decision records and continuation handoff process.
-- [x] Architecture, evidence, design-system, setup, testing, performance, accessibility, release, and troubleshooting documentation.
+- [x] Architecture, desktop, evidence, design-system, setup, testing, performance, accessibility, release, and troubleshooting documentation.
 
 ## Phase 1 — Clean end-to-end MVP
 
@@ -20,10 +20,10 @@ The roadmap prioritizes correctness, privacy, accessibility, and maintainability
 - [x] Input validation and neutral educational explanations.
 - [x] Adult-only onboarding gate.
 - [x] Android Compose calculator screens.
-- [x] Local optional history, disabled by default until explicit opt-in.
-- [x] Delete-history and delete-all-data controls.
+- [x] Android optional local history, disabled by default until explicit opt-in.
+- [x] Android delete-history and delete-all-data controls.
 
-## Phase 2 — Product completeness
+## Phase 2 — Android product completeness
 
 - [x] Light/dark/system theme and Android dynamic color.
 - [x] Shared typography, shape, spacing, elevation, and motion design tokens.
@@ -37,23 +37,31 @@ The roadmap prioritizes correctness, privacy, accessibility, and maintainability
 - [x] Restore confirmation before replacing portable local data.
 - [x] Per-history-entry deletion with immediate undo.
 - [x] User-selectable bounded history retention (50/100/250/500 entries).
-- [x] Defensive backup limits, record validation, malformed-record recovery, and duplicate-ID handling.
+- [x] Defensive backup limits, record validation, malformed-record recovery, duplicate-ID handling, and canonical timestamp ordering.
 - [x] Device-local privacy/adult-gate state excluded from portable backup restore.
+- [x] Collision-resistant UUID identifiers for new local history records.
 - [x] About/support/funding UI.
+- [x] Explicit in-app and system-back return navigation from About.
 - [x] Privacy, data, appearance, accessibility, update, and About settings sections.
 - [x] Localization-ready Android string resources.
 - [x] Reusable validated measurement input component.
 - [x] Locale-aware decimal input parsing and result/history formatting.
-- [ ] Capture real screenshots on an Android device/emulator.
+- [x] Deterministic real-app Android release screenshot capture test implemented.
+- [ ] Human visual/privacy approval of the final CI-generated screenshot artifact for publication.
 
-## Phase 3 — Advanced quality
+## Phase 3 — Multiplatform quality
 
 - [x] Add explicit iOS device/simulator targets to the shared module.
 - [x] Add macOS CI compilation for the shared iOS targets.
 - [x] Add source review date metadata and evidence review workflow documentation.
-- [ ] Add a simple desktop Compose client only if it provides clear user value beyond the tested JVM shared core.
+- [x] Add a focused Compose Multiplatform desktop client using the tested shared calculation core.
+- [x] Keep desktop measurement/session state ephemeral with no HealthMetric persistence layer.
+- [x] Add desktop metric/imperial BMI and waist-to-height journeys.
+- [x] Add desktop parser/calculation tests.
+- [x] Add dedicated Linux/Windows/macOS desktop CI packaging/verification.
+- [x] Document desktop architecture, privacy boundaries, setup, testing, and release expectations.
 - [ ] Add reduced-motion setting only if future animations become substantial.
-- [ ] Evaluate encrypted-at-rest history only if the documented threat model justifies the complexity.
+- [ ] Evaluate encrypted-at-rest Android history only if the documented threat model justifies the complexity.
 
 ## Phase 4 — Verification depth
 
@@ -62,38 +70,49 @@ The roadmap prioritizes correctness, privacy, accessibility, and maintainability
 - [x] Privacy-default and retention-policy unit tests.
 - [x] Backup IO size/UTF-8 unit tests.
 - [x] Locale-aware numeric parsing/formatting unit tests.
+- [x] Desktop parsing/calculation tests.
 - [x] Initial Compose onboarding UI test.
 - [x] Under-18 adult-reference gate instrumentation coverage.
 - [x] Instrumentation coverage for BMI success/error journeys.
 - [x] Instrumentation coverage for waist-ratio success/error journeys.
 - [x] Instrumentation coverage for history deletion and destructive confirmation.
 - [x] Instrumentation coverage for privacy/retention/backup settings actions.
-- [x] DataStore opt-in, retention, export/restore, malformed-record, consent-boundary, deletion, and undo-persistence tests.
+- [x] Instrumentation coverage for About origin/back navigation.
+- [x] DataStore opt-in, retention, export/restore, malformed-record, consent-boundary, chronology, deletion, and undo-persistence tests.
 - [x] Dedicated GitHub Actions Android emulator workflow for connected tests.
-- [ ] Add accessibility scanner/manual TalkBack checklist evidence.
+- [x] Android instrumentation workflow configured to publish eight real-app release screenshots.
+- [x] Repository invariant audit covers Android release evidence and desktop module expectations.
+- [ ] Add manual TalkBack/accessibility evidence for the release candidate.
 - [ ] Add baseline-profile/macrobenchmark module only if profiling shows a meaningful need.
 
 ## Phase 5 — Release readiness
 
 - [x] Tagged unsigned release workflow.
 - [x] Release documentation and release-notes template.
-- [x] CI configured to assemble and upload a debug APK, unsigned release APK, and unsigned release App Bundle.
-- [x] Tagged release workflow configured to publish both unsigned APK and App Bundle artifacts.
-- [ ] Run clean-checkout CI successfully and record the run in `what_changed.md`.
-- [ ] Verify release build on physical Android hardware and emulator.
-- [ ] Capture required screenshots and accessibility evidence.
+- [x] CI configured to assemble/upload debug APK, unsigned release APK, and unsigned release App Bundle.
+- [x] Tagged release workflow configured for unsigned Android APK/App Bundle artifacts.
+- [x] Desktop runnable JAR/native-distribution build configuration.
+- [x] Dedicated desktop workflow across Linux, Windows, and macOS.
+- [x] Local Unix/Windows verification scripts include Android AAB and desktop verification.
+- [ ] Confirm the exact final PR #14 head is green across CI, Android instrumentation, Apple shared core, Desktop, CodeQL, Dependency Review, and Secret Scan.
+- [ ] Confirm the exact final Android instrumentation run publishes all eight required screenshot PNGs.
+- [ ] Verify Android release candidate on physical Android hardware.
+- [ ] Complete manual Android accessibility review and screenshot approval.
+- [ ] Smoke-test release desktop packages on their target host operating systems before promotion.
 - [ ] Configure protected Android signing outside source control.
 - [ ] Publish `v0.1.0` only after all blocker checks pass.
 
 ## Phase 6 — Final audit
 
-- [ ] Verify every README command from a clean clone with Gradle/Android SDK available.
-- [ ] Confirm CI, Android instrumentation, Apple shared-core compilation, CodeQL, dependency review, and secret scan are green on the release commit.
-- [ ] Review dependency advisories and repository security settings.
-- [ ] Check documentation links.
+- [x] Repository-required paths, Android manifest privacy invariants, desktop module configuration, AAB tasks, and screenshot-evidence configuration are machine-checked.
+- [x] Internal Markdown links are machine-checked without network access.
 - [x] Re-review adult-only safety language and evidence references in source/docs.
-- [x] Confirm required documentation files exist and repository structure matches the architecture docs.
-- [ ] Confirm `CHANGELOG.md`, `ROADMAP.md`, and `what_changed.md` match the release immediately before tagging.
+- [x] Remove and forbid accidental `docs/.noop-probe` repository state.
+- [x] Reconcile the Android release-hardening work with the desktop/release-readiness branch.
+- [ ] Confirm every final README/setup/release command against the exact release candidate.
+- [ ] Confirm all configured workflows are green on the exact release commit.
+- [ ] Review dependency advisories and repository security settings immediately before release.
+- [ ] Confirm `CHANGELOG.md`, `ROADMAP.md`, and `what_changed.md` match the exact release immediately before tagging.
 
 ## Non-goals
 
@@ -104,4 +123,5 @@ HealthMetric will not add:
 - medical diagnosis claims;
 - advertising trackers;
 - forced accounts for offline calculations;
-- unnecessary cloud storage of measurement history.
+- unnecessary cloud storage of measurement history;
+- desktop persistence merely to mirror Android when the ephemeral desktop model is simpler and more private.
