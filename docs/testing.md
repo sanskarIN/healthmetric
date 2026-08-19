@@ -2,7 +2,7 @@
 
 ## Objectives
 
-HealthMetric tests focus on deterministic calculations, validation boundaries, privacy-sensitive Android persistence behavior, bounded backup handling, adult-only safety behavior, locale-aware presentation, desktop transient-state behavior, release artifact reproducibility, documentation integrity, and primary adult user journeys.
+HealthMetric tests focus on deterministic calculations, validation boundaries, privacy-sensitive Android persistence behavior, bounded backup handling, adult-only safety behavior, locale-aware presentation, desktop transient-state behavior, release artifact reproducibility, version consistency, documentation integrity, and primary adult user journeys.
 
 ## Current automated coverage
 
@@ -41,6 +41,7 @@ Located in `androidApp/src/test/`:
 - privacy-first preference defaults;
 - supported history-retention normalization;
 - bounded UTF-8 backup read/write round trips;
+- malformed UTF-8 backup rejection before restore parsing;
 - oversized backup read/write rejection;
 - locale-aware decimal input validation;
 - comma/dot decimal parsing across representative locales;
@@ -112,7 +113,7 @@ The dedicated `.github/workflows/desktop.yml` workflow runs desktop formatting/t
 
 Located in `scripts/tests/`:
 
-- `test_check_release_version.py` — stable tag syntax plus Android/desktop version agreement;
+- `test_check_release_version.py` — stable tag syntax, exact `2.0.12` candidate metadata, Android semantic version-code mapping, and Android/desktop/native-package agreement;
 - `test_stage_release_assets.py` — deterministic Android/desktop staging, all target desktop platforms, duplicate-output rejection, empty-output rejection, and invalid-tag rejection;
 - `test_verify_release_assets.py` — exact eight-binary release set, missing/extra/empty rejection, deterministic SHA-256 manifest generation, and invalid-tag rejection.
 
@@ -122,11 +123,17 @@ Run:
 python3 -m unittest discover -s scripts/tests -p "test_*.py"
 ```
 
+The prepared `2.0.12` candidate must also pass:
+
+```bash
+python3 scripts/check_release_version.py v2.0.12
+```
+
 These tests run in main CI, the tagged release preflight, and both local verification scripts.
 
 ### Repository and documentation integrity checks
 
-`scripts/check_repository.py` enforces structural/product invariants that are intentionally broader than unit tests. In addition to required project files and privacy/release configuration, it now checks exhaustive documentation coverage.
+`scripts/check_repository.py` enforces structural/product invariants that are intentionally broader than unit tests. In addition to required project files and privacy/release configuration, it checks exhaustive documentation coverage.
 
 The documentation-coverage rule is deterministic:
 
@@ -215,7 +222,9 @@ Desktop has no persistence layer, so its adult-use choice is process-local and r
 
 Both user-facing clients must keep the under-18 path separate from adult BMI/waist reference results.
 
-## Backup structural regression invariants
+## Backup structural and encoding regression invariants
+
+Backup documents must be bounded and well-formed UTF-8. `BackupIo.readUtf8` must report malformed or unmappable byte sequences rather than silently introducing Unicode replacement characters.
 
 Schema-v1 restore requires a top-level `history` JSON array.
 
@@ -247,11 +256,15 @@ The combined adult height range remains owned by shared validation after the com
 The tagged release pipeline must fail closed unless:
 
 - the tag uses stable `vMAJOR.MINOR.PATCH` form;
-- the tag version matches Android `versionName` and the desktop project version;
+- the tag version matches Android `versionName`;
+- Android `versionCode` matches the repository mapping `MAJOR * 10000 + MINOR * 100 + PATCH`;
+- the tag version matches the desktop project version and desktop native `packageVersion`;
 - the tag commit is the current `main` commit;
 - staging finds exactly one non-empty expected Android APK/AAB and exactly one non-empty JAR/native package per desktop host;
 - the final downloaded binary set contains exactly the eight expected files and no unexpected files;
 - SHA-256 checksums are generated from the verified binary set before publication.
+
+For the current candidate, the invariant is specifically `2.0.12` / Android `20012` / tag `v2.0.12`.
 
 The release workflow remains read-only until the final publish job.
 
@@ -264,6 +277,7 @@ Examples:
 - calculation boundary defect → shared unit test;
 - imperial unit/error regression → shared test plus presentation-layer test when user-visible;
 - malformed backup record crash → DataStore instrumentation test;
+- malformed UTF-8 document → `BackupIoTest`;
 - malformed/all-invalid top-level backup content that could mutate local state → DataStore instrumentation test plus repository invariant when the guard is durable;
 - backup size bypass → `BackupIoTest` plus restore test where relevant;
 - consent/adult-gate restore regression → DataStore instrumentation test;
@@ -276,6 +290,7 @@ Examples:
 - desktop text parsing regression → `DesktopNumbersTest`;
 - desktop split-height component regression → `DesktopCalculationsTest`;
 - desktop shared-core integration regression → `DesktopCalculationsTest`;
+- release version metadata drift → `test_check_release_version.py` plus release preflight;
 - Android screen state regression → Compose UI test;
 - accessibility label regression → Compose semantics test/manual accessibility check;
 - release artifact drift → repository invariant plus release-tooling unit test/workflow verification;
@@ -295,6 +310,7 @@ Test at minimum:
 - reference band thresholds;
 - comma and dot decimal presentation input;
 - desktop scientific/signed/mixed-separator input rejection;
+- malformed UTF-8 Android backup bytes;
 - corrupted/unsupported Android backup schema;
 - missing/non-array top-level Android backup `history`;
 - explicitly empty backup `history`;
@@ -312,6 +328,7 @@ Test at minimum:
 - out-of-order Android backup history;
 - desktop malformed text input;
 - desktop whole-number feet parsing;
+- Android `versionCode` mapping and cross-platform release-version agreement;
 - missing/duplicate/empty/unexpected release artifacts;
 - a newly tracked repository file missing from the exhaustive documentation reference.
 
@@ -319,7 +336,7 @@ Test at minimum:
 
 The shared module uses seeded property-style loops for large sets of valid inputs. Keep seeds deterministic so failures reproduce exactly in CI.
 
-Android backup parsing is intentionally bounded before JSON parsing, validates required top-level structure before persistence mutation, and validates each history record independently once the container is valid. If backup schemas become more complex, add dedicated parser fuzz/property tooling rather than relying only on example tests.
+Android backup parsing is intentionally bounded before JSON parsing, requires well-formed UTF-8, validates required top-level structure before persistence mutation, and validates each history record independently once the container is valid. If backup schemas become more complex, add dedicated parser fuzz/property tooling rather than relying only on example tests.
 
 ## Accessibility verification
 
@@ -381,7 +398,7 @@ Additional workflows fail on:
 - CodeQL analysis failures;
 - high-severity pull-request dependency review findings;
 - repository-history secret scan findings;
-- invalid release tag/version/main-commit preflight;
+- invalid release tag/versionName/versionCode/desktop project version/native packageVersion/current-main preflight;
 - ambiguous or empty release build outputs;
 - incomplete/unexpected/empty final release asset sets.
 
@@ -400,6 +417,12 @@ or the Windows equivalent:
 ```
 
 Both local scripts run repository/docs audits, the Python release-tooling regression suite, Kotlin formatting/tests, desktop JAR packaging, Android unit/lint checks, and Android debug/release APK/AAB assembly.
+
+For the current candidate, explicitly run:
+
+```bash
+python3 scripts/check_release_version.py v2.0.12
+```
 
 Then run Android connected tests:
 
@@ -420,6 +443,6 @@ Before treating documentation as complete, confirm:
 - every tracked path passes the file-reference invariant;
 - local Markdown links pass;
 - the documentation ownership map still points to the current canonical contracts;
-- `CHANGELOG.md`, `ROADMAP.md`, and `what_changed.md` reflect the exact release-candidate behavior.
+- `CHANGELOG.md`, `ROADMAP.md`, `docs/release.md`, and `what_changed.md` reflect the exact `2.0.12` release-candidate behavior.
 
 Finally perform the manual accessibility/device checks documented in [`accessibility.md`](accessibility.md), [`desktop.md`](desktop.md), and the release checklist in [`release.md`](release.md).
