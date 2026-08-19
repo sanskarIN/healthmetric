@@ -28,18 +28,20 @@ The roadmap prioritizes correctness, privacy, accessibility, and maintainability
 - [x] Light/dark/system theme and Android dynamic color.
 - [x] Shared typography, shape, spacing, elevation, and motion design tokens.
 - [x] Branded launch splash treatment.
+- [x] Adaptive, round, and Android 13+ themed launcher icons.
 - [x] Adaptive bounded content width for wider Android windows.
 - [x] Accessible local-history chart.
 - [x] Confirmation before destructive history deletion.
-- [x] JSON export and restore.
+- [x] JSON share export and restore.
+- [x] Storage Access Framework JSON export-to-file.
+- [x] Per-history-entry deletion with immediate undo.
+- [x] User-selectable bounded history retention (50/100/250/500 entries).
+- [x] Defensive backup limits, record validation, malformed-record recovery, and duplicate-ID handling.
 - [x] About/support/funding UI.
 - [x] Privacy, data, appearance, accessibility, update, and About settings sections.
 - [x] Localization-ready Android string resources.
 - [x] Reusable validated measurement input component.
 - [ ] Capture real screenshots on an Android device/emulator.
-- [ ] Add Storage Access Framework export-to-file in addition to share-text export.
-- [ ] Add per-history-entry deletion and optional undo.
-- [ ] Add user-selectable history retention limit if real usage demonstrates a need.
 
 ## Phase 3 — Advanced quality
 
@@ -54,10 +56,15 @@ The roadmap prioritizes correctness, privacy, accessibility, and maintainability
 
 - [x] Domain unit and boundary tests.
 - [x] Deterministic property-style tests.
-- [x] Privacy-default unit test.
+- [x] Privacy-default and retention-policy unit tests.
+- [x] Backup IO size/UTF-8 unit tests.
 - [x] Initial Compose onboarding UI test.
-- [ ] Add instrumentation coverage for calculator success/error journeys.
-- [ ] Add DataStore backup/restore instrumentation tests.
+- [x] Instrumentation coverage for BMI success/error journeys.
+- [x] Instrumentation coverage for waist-ratio success/error journeys.
+- [x] Instrumentation coverage for history deletion and destructive confirmation.
+- [x] Instrumentation coverage for privacy/retention/backup settings actions.
+- [x] DataStore opt-in, retention, export/restore, malformed-record, deletion, and undo-persistence tests.
+- [x] Dedicated GitHub Actions Android emulator workflow for connected tests.
 - [ ] Add accessibility scanner/manual TalkBack checklist evidence.
 - [ ] Add baseline-profile/macrobenchmark module only if profiling shows a meaningful need.
 
@@ -65,6 +72,7 @@ The roadmap prioritizes correctness, privacy, accessibility, and maintainability
 
 - [x] Tagged unsigned release workflow.
 - [x] Release documentation and release-notes template.
+- [x] CI configured to assemble both debug and unsigned release candidates.
 - [ ] Run clean-checkout CI successfully and record the run in `what_changed.md`.
 - [ ] Verify release build on physical Android hardware and emulator.
 - [ ] Capture required screenshots and accessibility evidence.
@@ -74,7 +82,7 @@ The roadmap prioritizes correctness, privacy, accessibility, and maintainability
 ## Phase 6 — Final audit
 
 - [ ] Verify every README command from a clean clone with Gradle/Android SDK available.
-- [ ] Confirm CI, CodeQL, dependency review, and secret scan are green on the release commit.
+- [ ] Confirm CI, Android instrumentation, CodeQL, dependency review, and secret scan are green on the release commit.
 - [ ] Review dependency advisories and repository security settings.
 - [ ] Check documentation links.
 - [x] Re-review adult-only safety language and evidence references in source/docs.
