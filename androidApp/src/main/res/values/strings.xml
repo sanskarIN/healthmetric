@@ -83,6 +83,9 @@
     <string name="save_json_backup">Save JSON backup to a file</string>
     <string name="share_json_backup">Share JSON backup</string>
     <string name="restore_json_backup">Restore from JSON backup</string>
+    <string name="restore_backup_title">Restore this backup?</string>
+    <string name="restore_backup_body">Restoring replaces the current HealthMetric history and settings with the selected backup after validation. You can cancel without changing local data.</string>
+    <string name="restore">Restore</string>
     <string name="delete_all_local_data">Delete all local data</string>
     <string name="appearance">Appearance</string>
     <string name="accessibility">Accessibility</string>
