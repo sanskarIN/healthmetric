@@ -14,6 +14,8 @@ HealthMetric currently has:
 
 A green build is necessary but not sufficient. Physical-device testing, assistive-technology review, screenshot approval, target-host smoke testing, and protected signing/notarization remain human/external gates where documented.
 
+Current release target: **2.0.12** (`v2.0.12`).
+
 ## Versioning
 
 Use Semantic Versioning:
@@ -22,16 +24,30 @@ Use Semantic Versioning:
 - minor: compatible features;
 - major: intentionally incompatible behavior/data contracts.
 
-For a release:
+For the `2.0.12` release candidate:
+
+- Android `versionName` is `2.0.12`;
+- Android `versionCode` is `20012`;
+- desktop project `version` is `2.0.12`;
+- desktop native `packageVersion` is `2.0.12` for Linux, Windows, and macOS;
+- the stable release tag is `v2.0.12`.
+
+The repository maps a public semantic version to Android `versionCode` as:
+
+`MAJOR * 10000 + MINOR * 100 + PATCH`
+
+The mapping reserves two digits each for `MINOR` and `PATCH`. `scripts/check_release_version.py` rejects release preparation when the semantic components cannot be represented by this mapping or when Android/desktop version metadata disagree.
+
+For every release:
 
 - keep Android `versionCode` monotonic;
 - update Android `versionName` to the public release version;
-- update the desktop project version to the public release version;
-- require the release tag to use stable `vMAJOR.MINOR.PATCH` form and match both Android `versionName` and the desktop project version;
+- update the desktop project version and native package version to the public release version;
+- require the release tag to use stable `vMAJOR.MINOR.PATCH` form and match Android `versionName`, the derived Android `versionCode`, the desktop project version, and the desktop native package version;
 - create the release tag only on the current `main` commit; the tagged workflow fails closed when the tag targets any other commit;
-- keep host-native package metadata valid for the target packaging tool while documenting any required platform-specific mapping;
-- for the planned public desktop `0.1.0` release, the macOS DMG uses native package metadata `1.0.0` because the DMG packaging tool requires a positive major component; this does not change the public HealthMetric version/tag;
 - update release notes and changelog consistently.
+
+The previous `0.1.0` development configuration needed a macOS package-version workaround because that package metadata required a positive major component. The `2.0.12` target no longer needs that override; all desktop package metadata now uses `2.0.12` directly.
 
 ## Pre-release checklist
 
@@ -39,27 +55,28 @@ For a release:
 2. Update `ROADMAP.md` and `what_changed.md`.
 3. Confirm [`documentation-map.md`](documentation-map.md) still identifies the canonical current contracts.
 4. Confirm [`repository-file-reference.md`](repository-file-reference.md) contains every exact `git ls-files` path and no tracked file was added without responsibility documentation.
-5. Verify reference source metadata, `reviewedOnIsoDate`, and adult-only copy.
-6. Run repository invariants, repository-tooling regression tests, and internal Markdown-link checks.
-7. Run shared, Android, and desktop formatting/tests.
-8. Run Android release lint, debug assembly, unsigned release APK assembly, and unsigned release App Bundle assembly.
-9. Package the desktop runnable JAR and native installer on every desktop operating-system family being published: DEB on Linux, MSI on Windows, DMG on macOS.
-10. Run connected Android instrumentation on an emulator/device and inspect the generated screenshot evidence set.
-11. Compile the iOS shared-core targets on macOS.
-12. Confirm GitHub CI, Desktop, Android instrumentation, Apple shared core, CodeQL, dependency review, and secret scanning are green for the **exact release PR/commit**.
-13. Manually test Android onboarding, under-18 gate, return-to-age-selection correction path, BMI, ratio, history disabled/enabled, retention changes, entry deletion/undo, erase-all confirmation, file backup, share backup, restore confirmation, restore, delete-all-data, themes, release link, About links/back navigation, and large text.
-14. Test Android backup round trips plus malformed/unsupported/oversized/missing-history/non-array-history/all-invalid-history documents and confirm failure occurs without unintended local mutation.
-15. Confirm imported legacy Android fields cannot alter history opt-in, adult-use confirmation, or onboarding state.
-16. Check Android numeric input/display in at least one dot-decimal and one comma-decimal locale.
-17. Manually test desktop adult gate, under-18 path, metric/imperial BMI, metric/imperial waist-to-height, split imperial remaining-inch rejection, theme toggle, About/evidence links, and process restart.
-18. Confirm desktop measurements/results/adult choice/theme/navigation state are not retained after closing/reopening the application.
-19. Manually launch the JAR and native desktop installer on every platform being published and verify startup, keyboard focus, display scaling, screen-reader naming where available, external-link behavior, install/uninstall behavior, and platform warning/signing expectations.
-20. Capture/review Android release screenshots using fictional/example data only.
-21. Complete the Android TalkBack/accessibility checklist and desktop accessibility checklist and record evidence.
-22. Confirm no secrets/signing material are in Git history.
-23. Configure production Android signing only in a protected distribution environment.
-24. Configure desktop code signing/notarization outside source control if signed installers are being promoted as production assets.
-25. Create the release tag only after all blockers above are closed.
+5. Verify Android `versionName`, `versionCode`, desktop `version`, desktop `packageVersion`, and the proposed tag with `scripts/check_release_version.py`.
+6. Verify reference source metadata, `reviewedOnIsoDate`, and adult-only copy.
+7. Run repository invariants, repository-tooling regression tests, and internal Markdown-link checks.
+8. Run shared, Android, and desktop formatting/tests.
+9. Run Android release lint, debug assembly, unsigned release APK assembly, and unsigned release App Bundle assembly.
+10. Package the desktop runnable JAR and native installer on every desktop operating-system family being published: DEB on Linux, MSI on Windows, DMG on macOS.
+11. Run connected Android instrumentation on an emulator/device and inspect the generated screenshot evidence set.
+12. Compile the iOS shared-core targets on macOS.
+13. Confirm GitHub CI, Desktop, Android instrumentation, Apple shared core, CodeQL, dependency review, and secret scanning are green for the **exact release PR/commit**.
+14. Manually test Android onboarding, under-18 gate, return-to-age-selection correction path, BMI, ratio, history disabled/enabled, retention changes, entry deletion/undo, erase-all confirmation, file backup, share backup, restore confirmation, restore, delete-all-data, themes, release link, About links/back navigation, and large text.
+15. Test Android backup round trips plus malformed UTF-8, unsupported schema, oversized, missing-history, non-array-history, and all-invalid-history documents and confirm failure occurs without unintended local mutation.
+16. Confirm imported legacy Android fields cannot alter history opt-in, adult-use confirmation, or onboarding state.
+17. Check Android numeric input/display in at least one dot-decimal and one comma-decimal locale.
+18. Manually test desktop adult gate, under-18 path, metric/imperial BMI, metric/imperial waist-to-height, split imperial remaining-inch rejection, theme toggle, About/evidence links, and process restart.
+19. Confirm desktop measurements/results/adult choice/theme/navigation state are not retained after closing/reopening the application.
+20. Manually launch the JAR and native desktop installer on every platform being published and verify startup, keyboard focus, display scaling, screen-reader naming where available, external-link behavior, install/uninstall behavior, and platform warning/signing expectations.
+21. Capture/review Android release screenshots using fictional/example data only.
+22. Complete the Android TalkBack/accessibility checklist and desktop accessibility checklist and record evidence.
+23. Confirm no secrets/signing material are in Git history.
+24. Configure production Android signing only in a protected distribution environment.
+25. Configure desktop code signing/notarization outside source control if signed installers are being promoted as production assets.
+26. Create the release tag only after all blockers above are closed.
 
 ## Verification commands
 
@@ -94,11 +111,13 @@ gradle :androidApp:bundleRelease
 
 The repository audit includes an exhaustive documentation-integrity check against `git ls-files`; a tracked file that is missing from `docs/repository-file-reference.md` fails preflight.
 
-To validate a proposed stable tag against project versions before pushing it:
+Validate the current stable release target before pushing a tag:
 
 ```bash
-python3 scripts/check_release_version.py v0.1.0
+python3 scripts/check_release_version.py v2.0.12
 ```
+
+That command validates the tag form plus Android `versionName`, Android semantic `versionCode` mapping, desktop project version, and desktop native package version.
 
 Native desktop packages are host-specific:
 
@@ -150,6 +169,11 @@ The App Bundle is the preferred input for a protected Google Play signing/distri
 
 Neither repository artifact should be represented as a production-store-signed binary. Production signing must happen outside Git source using protected credentials.
 
+For `v2.0.12`, deterministic release staging names the Android binaries:
+
+- `healthmetric-v2.0.12-android-unsigned.apk`;
+- `healthmetric-v2.0.12-android-unsigned.aab`.
+
 ## Desktop release artifacts
 
 The desktop module builds a current-operating-system runnable JAR with:
@@ -164,7 +188,14 @@ It also builds host-specific native installers:
 - Windows: `gradle :desktopApp:packageMsi` → `desktopApp/build/compose/binaries/main/msi/*.msi`;
 - macOS: `gradle :desktopApp:packageDmg` → `desktopApp/build/compose/binaries/main/dmg/*.dmg`.
 
-The public desktop application/release version and platform-native installer metadata are related but not always represented identically by every packaging tool. The current macOS DMG configuration uses a positive-major native package version while the public HealthMetric release remains `0.1.0`; the release tag/file names remain the source of truth for the public release version.
+For `2.0.12`, the public desktop version and native package version are identical on all three hosts. Deterministic staged names are:
+
+- `healthmetric-v2.0.12-desktop-linux.jar`;
+- `healthmetric-v2.0.12-desktop-linux.deb`;
+- `healthmetric-v2.0.12-desktop-windows.jar`;
+- `healthmetric-v2.0.12-desktop-windows.msi`;
+- `healthmetric-v2.0.12-desktop-macos.jar`;
+- `healthmetric-v2.0.12-desktop-macos.dmg`.
 
 The cross-platform Desktop workflow verifies both the runnable JAR and native installer on each matching host. The tagged release workflow stages and publishes both forms for each platform after the build jobs succeed.
 
@@ -185,6 +216,7 @@ Before tagging, verify:
 - file backup uses Android's document picker;
 - share backup uses an explicit chooser;
 - restore asks for confirmation before mutation;
+- restore rejects malformed UTF-8 before JSON parsing;
 - restore rejects unsupported schema versions and oversized payloads;
 - restore rejects missing or non-array top-level `history` before local mutation;
 - explicit `history: []` remains a valid intentional empty-history backup;
@@ -248,7 +280,7 @@ Before tagging:
 - `docs/documentation-map.md` must still identify the canonical owner for each detailed contract;
 - local Markdown links must pass;
 - README/platform/privacy/backup/testing/release documents must agree about persistence, adult-use, supported targets, and artifact status;
-- `CHANGELOG.md`, `ROADMAP.md`, and `what_changed.md` must describe the exact candidate rather than an earlier head;
+- `CHANGELOG.md`, `ROADMAP.md`, and `what_changed.md` must identify `2.0.12` as the candidate rather than an older planned release;
 - manual gates must remain unchecked/unclaimed until actually completed.
 
 ## Tagging
@@ -256,11 +288,11 @@ Before tagging:
 Create an annotated tag only after the release commit is ready:
 
 ```bash
-git tag -a v0.1.0 -m "HealthMetric v0.1.0"
-git push origin v0.1.0
+git tag -a v2.0.12 -m "HealthMetric v2.0.12"
+git push origin v2.0.12
 ```
 
-Tags matching `v*` trigger `.github/workflows/release.yml`. The workflow then independently rejects tags that are not stable `vMAJOR.MINOR.PATCH`, do not match both configured app versions, or do not point to the current `main` commit.
+Tags matching `v*` trigger `.github/workflows/release.yml`. The workflow then independently rejects tags that are not stable `vMAJOR.MINOR.PATCH`, do not match configured Android/desktop version metadata, violate the Android version-code mapping, or do not point to the current `main` commit.
 
 ## Automated tagged release workflow
 
@@ -274,7 +306,7 @@ Before any release artifact is built, preflight:
 - runs repository invariants, including exhaustive tracked-file documentation coverage;
 - runs Markdown-link checks;
 - runs the Python repository-tooling regression suite;
-- validates that the tag matches Android and desktop project versions;
+- validates the tag against Android `versionName`, Android `versionCode`, desktop project version, and desktop native package version;
 - requires the tag commit to equal the current `main` commit.
 
 The workflow defaults to `contents: read`. Only the final publish job receives `contents: write`.
@@ -353,7 +385,7 @@ Include:
 - platform/shared-core target changes;
 - Android APK/App Bundle packaging changes;
 - desktop JAR/native-installer artifact changes;
-- release-integrity/checksum changes;
+- release-integrity/version/checksum changes;
 - documentation/governance changes that materially affect contributors/release process;
 - fixed defects and regression coverage;
 - known limitations;
