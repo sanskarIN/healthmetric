@@ -133,6 +133,9 @@ class HealthMetricDataStore(private val context: Context) {
         require(root.optInt("schemaVersion", -1) == BACKUP_SCHEMA_VERSION) {
             "Unsupported backup schema."
         }
+        val historyArray = requireNotNull(root.optJSONArray("history")) {
+            "Backup history must be a JSON array."
+        }
 
         val restoredTheme = runCatching {
             AppThemeMode.valueOf(root.optString("themeMode", AppThemeMode.SYSTEM.name))
@@ -140,7 +143,7 @@ class HealthMetricDataStore(private val context: Context) {
         val restoredRetentionLimit = HistoryRetentionPolicy.normalize(
             root.optInt("historyRetentionLimit", HistoryRetentionPolicy.DEFAULT_LIMIT),
         )
-        val restoredHistory = decodeHistory(root.optJSONArray("history")?.toString())
+        val restoredHistory = decodeHistory(historyArray.toString())
             .take(restoredRetentionLimit)
 
         context.healthMetricDataStore.edit { preferences ->
