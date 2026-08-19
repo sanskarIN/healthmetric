@@ -3,6 +3,7 @@ package io.github.sanskarin.healthmetric
 import android.graphics.Bitmap
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -36,7 +37,9 @@ class ReleaseScreenshotCaptureTest {
         check(screenshotDirectory.mkdirs() || screenshotDirectory.isDirectory) {
             "Could not create release screenshot directory."
         }
-        composeRule.waitForIdle()
+        composeRule.waitUntil(timeoutMillis = UI_STATE_TIMEOUT_MILLIS) {
+            composeRule.onAllNodesWithText("I am 18 or older").fetchSemanticsNodes().isNotEmpty()
+        }
     }
 
     @After
@@ -110,5 +113,6 @@ class ReleaseScreenshotCaptureTest {
     companion object {
         private const val SCREENSHOT_DIRECTORY = "release-screenshots"
         private const val PNG_QUALITY = 100
+        private const val UI_STATE_TIMEOUT_MILLIS = 5_000L
     }
 }
