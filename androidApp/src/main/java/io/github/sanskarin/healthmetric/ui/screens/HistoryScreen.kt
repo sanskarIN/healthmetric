@@ -43,6 +43,7 @@ import io.github.sanskarin.healthmetric.data.CalculatorKind
 import io.github.sanskarin.healthmetric.data.HistoryEntry
 import io.github.sanskarin.healthmetric.ui.format.ChartScale
 import io.github.sanskarin.healthmetric.ui.format.LocalizedNumbers
+import io.github.sanskarin.healthmetric.ui.state.savedEnumValueOrDefault
 import io.github.sanskarin.healthmetric.ui.testing.HealthMetricTestTags
 import java.text.DateFormat
 import java.util.Date
@@ -56,7 +57,7 @@ fun HistoryScreen(
 ) {
     var selectedKindName by rememberSaveable { mutableStateOf(CalculatorKind.BMI.name) }
     var confirmErase by remember { mutableStateOf(false) }
-    val selectedKind = CalculatorKind.valueOf(selectedKindName)
+    val selectedKind = savedEnumValueOrDefault(selectedKindName, CalculatorKind.BMI)
     val filtered = history.filter { it.calculator == selectedKind }
 
     LazyColumn(
