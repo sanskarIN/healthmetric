@@ -34,22 +34,25 @@ The roadmap prioritizes correctness, privacy, accessibility, and maintainability
 - [x] Confirmation before destructive history deletion.
 - [x] JSON share export and restore.
 - [x] Storage Access Framework JSON export-to-file.
+- [x] Restore confirmation before replacing portable local data.
 - [x] Per-history-entry deletion with immediate undo.
 - [x] User-selectable bounded history retention (50/100/250/500 entries).
 - [x] Defensive backup limits, record validation, malformed-record recovery, and duplicate-ID handling.
+- [x] Device-local privacy/adult-gate state excluded from portable backup restore.
 - [x] About/support/funding UI.
 - [x] Privacy, data, appearance, accessibility, update, and About settings sections.
 - [x] Localization-ready Android string resources.
 - [x] Reusable validated measurement input component.
+- [x] Locale-aware decimal input parsing and result/history formatting.
 - [ ] Capture real screenshots on an Android device/emulator.
 
 ## Phase 3 — Advanced quality
 
-- [ ] Add iOS target to the shared module and validate on macOS CI.
-- [ ] Add a simple desktop Compose client if it provides clear user value.
-- [ ] Add source review dates and review workflow to versioned evidence metadata.
-- [ ] Add locale-aware numeric parsing/formatting beyond the initial English UI.
-- [ ] Add reduced-motion setting if future animations become substantial.
+- [x] Add explicit iOS device/simulator targets to the shared module.
+- [x] Add macOS CI compilation for the shared iOS targets.
+- [x] Add source review date metadata and evidence review workflow documentation.
+- [ ] Add a simple desktop Compose client only if it provides clear user value beyond the tested JVM shared core.
+- [ ] Add reduced-motion setting only if future animations become substantial.
 - [ ] Evaluate encrypted-at-rest history only if the documented threat model justifies the complexity.
 
 ## Phase 4 — Verification depth
@@ -58,12 +61,14 @@ The roadmap prioritizes correctness, privacy, accessibility, and maintainability
 - [x] Deterministic property-style tests.
 - [x] Privacy-default and retention-policy unit tests.
 - [x] Backup IO size/UTF-8 unit tests.
+- [x] Locale-aware numeric parsing/formatting unit tests.
 - [x] Initial Compose onboarding UI test.
+- [x] Under-18 adult-reference gate instrumentation coverage.
 - [x] Instrumentation coverage for BMI success/error journeys.
 - [x] Instrumentation coverage for waist-ratio success/error journeys.
 - [x] Instrumentation coverage for history deletion and destructive confirmation.
 - [x] Instrumentation coverage for privacy/retention/backup settings actions.
-- [x] DataStore opt-in, retention, export/restore, malformed-record, deletion, and undo-persistence tests.
+- [x] DataStore opt-in, retention, export/restore, malformed-record, consent-boundary, deletion, and undo-persistence tests.
 - [x] Dedicated GitHub Actions Android emulator workflow for connected tests.
 - [ ] Add accessibility scanner/manual TalkBack checklist evidence.
 - [ ] Add baseline-profile/macrobenchmark module only if profiling shows a meaningful need.
@@ -82,7 +87,7 @@ The roadmap prioritizes correctness, privacy, accessibility, and maintainability
 ## Phase 6 — Final audit
 
 - [ ] Verify every README command from a clean clone with Gradle/Android SDK available.
-- [ ] Confirm CI, Android instrumentation, CodeQL, dependency review, and secret scan are green on the release commit.
+- [ ] Confirm CI, Android instrumentation, Apple shared-core compilation, CodeQL, dependency review, and secret scan are green on the release commit.
 - [ ] Review dependency advisories and repository security settings.
 - [ ] Check documentation links.
 - [x] Re-review adult-only safety language and evidence references in source/docs.
