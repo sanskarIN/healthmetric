@@ -1,0 +1,34 @@
+name: Feature request
+description: Suggest a focused improvement for HealthMetric
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or opportunity
+      description: Describe the user need without including private health information.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Explain the smallest useful change.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+  - type: checkboxes
+    id: principles
+    attributes:
+      label: Product principles
+      options:
+        - label: This proposal keeps adult health references educational and non-diagnostic.
+          required: true
+        - label: This proposal does not add appearance-shaming, pressure-oriented goals, advertising trackers, or forced sign-in.
+          required: true
+        - label: This proposal can remain usable in privacy-first offline mode where applicable.
+          required: true
