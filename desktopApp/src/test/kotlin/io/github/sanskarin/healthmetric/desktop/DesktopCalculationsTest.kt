@@ -30,6 +30,35 @@ class DesktopCalculationsTest {
     }
 
     @Test
+    fun imperialBmiRejectsTwelveRemainingInches() {
+        val outcome =
+            DesktopCalculations.imperialBmi(
+                weightLb = "180",
+                feet = "5",
+                inches = "12",
+            )
+        val failure = assertIs<DesktopCalculationOutcome.Failure>(outcome)
+
+        assertEquals(
+            "Enter remaining height inches from 0 up to, but not including, 12.",
+            failure.message,
+        )
+    }
+
+    @Test
+    fun imperialBmiRejectsFeetOutsideComponentRange() {
+        val outcome =
+            DesktopCalculations.imperialBmi(
+                weightLb = "180",
+                feet = "9",
+                inches = "0",
+            )
+        val failure = assertIs<DesktopCalculationOutcome.Failure>(outcome)
+
+        assertEquals("Enter height feet from 0 to 8.", failure.message)
+    }
+
+    @Test
     fun imperialBmiReportsWeightRangeInPounds() {
         val outcome =
             DesktopCalculations.imperialBmi(
@@ -53,6 +82,35 @@ class DesktopCalculationsTest {
         assertEquals("Waist-to-height ratio 0.46", success.valueLabel)
         assertEquals("Adult educational screening value", success.contextLabel)
         assertTrue(success.explanation.contains("without appearance rankings"))
+    }
+
+    @Test
+    fun imperialRatioRejectsTwelveRemainingInches() {
+        val outcome =
+            DesktopCalculations.imperialWaistToHeight(
+                waistInches = "32",
+                heightFeet = "5",
+                heightInches = "12",
+            )
+        val failure = assertIs<DesktopCalculationOutcome.Failure>(outcome)
+
+        assertEquals(
+            "Enter remaining height inches from 0 up to, but not including, 12.",
+            failure.message,
+        )
+    }
+
+    @Test
+    fun imperialRatioRejectsFeetOutsideComponentRange() {
+        val outcome =
+            DesktopCalculations.imperialWaistToHeight(
+                waistInches = "32",
+                heightFeet = "9",
+                heightInches = "0",
+            )
+        val failure = assertIs<DesktopCalculationOutcome.Failure>(outcome)
+
+        assertEquals("Enter height feet from 0 to 8.", failure.message)
     }
 
     @Test
