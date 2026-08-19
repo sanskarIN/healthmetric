@@ -12,7 +12,7 @@ The Android format is designed to be:
 - bounded in size;
 - explicit about version compatibility;
 - recoverable when individual history records are damaged;
-- fail-closed when the required top-level history collection is missing or has the wrong JSON type;
+- fail-closed when the required top-level history collection is missing, has the wrong JSON type, or is non-empty but contains no valid records;
 - deterministically ordered after restore;
 - unable to transfer device-local privacy consent or adult-use gate decisions.
 
@@ -52,9 +52,11 @@ Example values are fictional. New locally recorded Android entries use UUID iden
 | `schemaVersion` | integer | Must equal `1`; unsupported versions are rejected before mutation. |
 | `historyRetentionLimit` | integer | Supported values: `50`, `100`, `250`, `500`; unsupported/missing values normalize to `100`. |
 | `themeMode` | string | `SYSTEM`, `LIGHT`, or `DARK`; invalid/missing values normalize to `SYSTEM`. |
-| `history` | array | Required. A missing field or non-array value rejects the backup before any local DataStore mutation. An empty array is valid. |
+| `history` | array | Required. A missing field or non-array value rejects the backup before any local DataStore mutation. An empty array is valid. A non-empty array must contain at least one valid history record after sanitation. |
 
 The top-level `history` container is intentionally stricter than the records inside it. Treating a missing or wrong-type container as a valid empty history could silently erase the user's existing local history after a restore confirmation. HealthMetric therefore rejects that document instead.
+
+An explicitly empty `history: []` is a valid request to restore a backup with no portable history. By contrast, a non-empty array from which every record is invalid is rejected before mutation rather than being interpreted as an intentional empty-history restore.
 
 ## History record fields
 
@@ -66,7 +68,7 @@ The top-level `history` container is intentionally stricter than the records ins
 | `value` | number | Must be finite. |
 | `summary` | string | Optional on import; capped to 240 characters. |
 
-Invalid records inside a valid `history` array are skipped independently so one damaged entry does not discard valid neighboring entries. If multiple valid records normalize to the same ID, the first valid record in the input document is retained.
+Invalid records inside a valid `history` array are skipped independently so one damaged entry does not discard valid neighboring entries. If multiple valid records normalize to the same ID, the first valid record in the input document is retained. At least one valid record must survive when the input array itself is non-empty.
 
 After validation/deduplication, accepted records are sorted by `timestampEpochMillis` descending (newest first). The normalized `historyRetentionLimit` is applied after that sort, and restored history can never exceed the application-wide maximum of 500 records. This means arbitrary JSON array order cannot decide which chronologically newest records survive the cap.
 
@@ -93,9 +95,10 @@ Before opening the DataStore edit transaction, the restore operation validates:
 3. supported `schemaVersion`;
 4. presence and array type of the required `history` field;
 5. portable setting normalization;
-6. individual history records, deduplication, chronology, and retention bounds.
+6. individual history records, deduplication, chronology, and retention bounds;
+7. that a non-empty history array retains at least one valid record after sanitation.
 
-Only after those preconditions are resolved are portable settings and sanitized, deduplicated, newest-first bounded history written together in one DataStore edit. A missing/non-array `history` field therefore cannot clear existing local data or change portable preferences.
+Only after those preconditions are resolved are portable settings and sanitized, deduplicated, newest-first bounded history written together in one DataStore edit. A missing/non-array `history` field or non-empty all-invalid history array therefore cannot clear existing local data or change portable preferences.
 
 Current device-local consent/safety values are left untouched.
 
@@ -110,9 +113,10 @@ When adding a new schema version:
 3. add deterministic migration tests;
 4. retain bounded payload/history protections or document an ADR for any reviewed replacement;
 5. retain required top-level structural validation before mutation;
-6. retain deterministic history ordering or explicitly document a reviewed alternative;
-7. never make consent/adult-gate state portable without a dedicated privacy and safety review;
-8. update `PRIVACY.md`, `CHANGELOG.md`, `docs/release.md`, and `what_changed.md`.
+6. retain the distinction between intentional empty history and non-empty all-invalid history unless a reviewed migration explicitly changes it;
+7. retain deterministic history ordering or explicitly document a reviewed alternative;
+8. never make consent/adult-gate state portable without a dedicated privacy and safety review;
+9. update `PRIVACY.md`, `CHANGELOG.md`, `docs/release.md`, and `what_changed.md`.
 
 ## Privacy note
 
