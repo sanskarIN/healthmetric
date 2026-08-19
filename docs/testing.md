@@ -2,7 +2,7 @@
 
 ## Objectives
 
-HealthMetric tests focus on deterministic calculations, validation boundaries, privacy-sensitive persistence behavior, and primary adult user journeys.
+HealthMetric tests focus on deterministic calculations, validation boundaries, privacy-sensitive persistence behavior, bounded backup handling, and primary adult user journeys.
 
 ## Current automated coverage
 
@@ -24,7 +24,14 @@ Run:
 gradle :shared:desktopTest
 ```
 
-### Android unit checks
+### Android JVM unit checks
+
+Located in `androidApp/src/test/`:
+
+- privacy-first preference defaults;
+- supported history-retention normalization;
+- bounded UTF-8 backup read/write round trips;
+- oversized backup read/write rejection.
 
 Run:
 
@@ -32,17 +39,37 @@ Run:
 gradle :androidApp:testDebugUnitTest
 ```
 
-The initial Android implementation keeps most deterministic business rules in `shared`, so Android local tests should concentrate on future presentation adapters and non-framework utilities rather than duplicate domain tests.
+Most deterministic health calculations remain in `shared`, so Android JVM tests intentionally target Android-module utilities and preference policies rather than duplicating domain tests.
 
 ### Android instrumentation/UI tests
 
-`OnboardingUiTest` verifies the fresh-install adult-use notice and both age-choice actions are visible.
+Located in `androidApp/src/androidTest/`:
+
+- `OnboardingUiTest` — fresh-install adult-use notice and both age-choice actions;
+- `CalculatorUiTest` — metric BMI success result and missing-weight validation;
+- `WaistToHeightUiTest` — ratio success result and missing-waist validation;
+- `SettingsUiTest` — explicit history opt-in, retention selection, save-file, and share-backup actions;
+- `HistoryUiTest` — per-entry deletion and erase-all confirmation;
+- `HealthMetricDataStoreTest` — privacy opt-in, retention trimming, export/restore round trip, unsupported schemas, entry delete/restore, malformed-record recovery, duplicate-ID handling, and invalid entry rejection.
 
 Run with a connected device/emulator:
 
 ```bash
 gradle :androidApp:connectedDebugAndroidTest
 ```
+
+The dedicated `.github/workflows/android-instrumentation.yml` workflow provisions an Android API 35 emulator and runs this connected test suite for pull requests and `main` pushes.
+
+## Stable UI automation tags
+
+Critical controls use constants in `HealthMetricTestTags` rather than brittle text-only selectors where a stable semantic hook improves test reliability. User-visible semantics remain present for accessibility; test tags are not used as a substitute for accessible labels.
+
+Covered tagged journeys include:
+
+- BMI weight, height, calculate, and result;
+- waist/height ratio inputs, calculate, and result;
+- history list;
+- privacy history switch.
 
 ## Required regression policy
 
@@ -51,7 +78,8 @@ Every confirmed defect should receive a regression test at the lowest practical 
 Examples:
 
 - calculation boundary defect → shared unit test;
-- malformed backup crash → persistence instrumentation test;
+- malformed backup crash → DataStore instrumentation test;
+- backup size bypass → `BackupIoTest` plus restore test where relevant;
 - screen state regression → Compose UI test;
 - accessibility label regression → Compose semantics test/manual accessibility check.
 
@@ -59,21 +87,25 @@ Examples:
 
 Test at minimum:
 
-- exact lower/upper supported input boundaries;
+- exact lower/upper supported measurement boundaries;
 - values immediately outside boundaries;
 - zero/negative values;
-- NaN and infinities at domain level;
+- NaN and infinities at domain/persistence boundaries;
 - imperial feet/inches normalization boundaries;
 - reference band thresholds;
 - corrupted/unsupported backup schema;
+- oversized backup payloads;
+- malformed and duplicate history records;
 - empty history;
-- disabled history.
+- disabled history;
+- retention-limit trimming;
+- delete/restore behavior while history saving is disabled.
 
 ## Property/fuzz testing
 
 The shared module uses seeded property-style loops for large sets of valid inputs. Keep seeds deterministic so failures reproduce exactly in CI.
 
-If a parser becomes more complex, add dedicated fuzz/property tooling rather than relying only on example tests.
+Backup parsing is intentionally bounded before JSON parsing and validates each history record independently. If backup schemas become more complex, add dedicated parser fuzz/property tooling rather than relying only on example tests.
 
 ## Accessibility verification
 
@@ -84,21 +116,23 @@ Automated semantics tests are only one layer. Release candidates should also be 
 - dark/light themes;
 - keyboard/DPAD navigation where relevant;
 - chart content descriptions;
+- deletion button labels;
 - non-color-only status interpretation.
 
 See [`accessibility.md`](accessibility.md).
 
 ## CI quality gates
 
-The CI workflow fails on:
+The main CI workflow fails on:
 
 - ktlint style failures;
 - shared JVM test failures;
-- Android unit test failures;
-- Android lint failures;
-- Android debug assembly failures.
+- Android JVM unit test failures;
+- Android release lint failures;
+- Android debug assembly failures;
+- Android unsigned release assembly failures.
 
-Separate workflows perform CodeQL analysis and pull-request dependency review.
+The Android instrumentation workflow fails on connected emulator test failures. Separate workflows perform CodeQL analysis, pull-request dependency review, and full-history secret scanning.
 
 ## Release candidate checklist
 
@@ -109,7 +143,14 @@ gradle :shared:ktlintCheck :androidApp:ktlintCheck
 gradle :shared:desktopTest
 gradle :androidApp:testDebugUnitTest
 gradle :androidApp:lintRelease
+gradle :androidApp:assembleDebug
 gradle :androidApp:assembleRelease
 ```
 
-Then run connected UI tests and manually verify the primary flows on at least one emulator/device.
+Then run:
+
+```bash
+gradle :androidApp:connectedDebugAndroidTest
+```
+
+Finally perform the manual accessibility/device checks documented in [`accessibility.md`](accessibility.md) and the release checklist in [`release.md`](release.md).
