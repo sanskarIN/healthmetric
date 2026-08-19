@@ -6,7 +6,9 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Calculate
 import androidx.compose.material.icons.outlined.History
@@ -29,13 +31,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import io.github.sanskarin.healthmetric.data.CalculatorKind
+import io.github.sanskarin.healthmetric.data.SafeLogger
 import io.github.sanskarin.healthmetric.ui.screens.AboutScreen
 import io.github.sanskarin.healthmetric.ui.screens.AdultOnlyScreen
 import io.github.sanskarin.healthmetric.ui.screens.CalculatorScreen
@@ -94,7 +98,8 @@ fun HealthMetricApp(
             viewModel.restoreData(json) { _, message ->
                 scope.launch { snackbarHostState.showSnackbar(message) }
             }
-        }.onFailure {
+        }.onFailure { error ->
+            SafeLogger.warn(SafeLogger.Event.RESTORE_FAILED, error)
             scope.launch { snackbarHostState.showSnackbar("Could not read the selected backup.") }
         }
     }
@@ -102,7 +107,8 @@ fun HealthMetricApp(
     fun openUri(rawUri: String) {
         runCatching {
             context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(rawUri)))
-        }.onFailure {
+        }.onFailure { error ->
+            SafeLogger.warn(SafeLogger.Event.LINK_OPEN_FAILED, error)
             scope.launch { snackbarHostState.showSnackbar("No app is available to open this link.") }
         }
     }
@@ -117,7 +123,8 @@ fun HealthMetricApp(
                 }
                 runCatching {
                     context.startActivity(Intent.createChooser(intent, "Export HealthMetric data"))
-                }.onFailure {
+                }.onFailure { error ->
+                    SafeLogger.warn(SafeLogger.Event.EXPORT_FAILED, error)
                     scope.launch { snackbarHostState.showSnackbar("No compatible app is available for export.") }
                 }
             },
@@ -171,44 +178,56 @@ fun HealthMetricApp(
         },
         containerColor = MaterialTheme.colorScheme.background,
     ) { paddingValues ->
-        Box(modifier = Modifier.padding(paddingValues)) {
-            when (screen) {
-                AppScreen.CALCULATOR -> CalculatorScreen(
-                    historyEnabled = state.preferences.historyEnabled,
-                    onRecord = { result ->
-                        viewModel.recordCalculation(
-                            kind = CalculatorKind.BMI,
-                            value = result.displayBmi,
-                            summary = result.band.label,
-                        )
-                    },
-                )
-                AppScreen.WAIST -> WaistToHeightScreen(
-                    historyEnabled = state.preferences.historyEnabled,
-                    onRecord = { result ->
-                        viewModel.recordCalculation(
-                            kind = CalculatorKind.WAIST_TO_HEIGHT,
-                            value = result.displayRatio,
-                            summary = "Neutral adult waist-to-height measurement",
-                        )
-                    },
-                )
-                AppScreen.HISTORY -> HistoryScreen(
-                    history = state.history,
-                    historyEnabled = state.preferences.historyEnabled,
-                    onDeleteAll = viewModel::deleteHistory,
-                )
-                AppScreen.SETTINGS -> SettingsScreen(
-                    historyEnabled = state.preferences.historyEnabled,
-                    themeMode = state.preferences.themeMode,
-                    onHistoryEnabledChange = viewModel::setHistoryEnabled,
-                    onThemeModeChange = viewModel::setThemeMode,
-                    onExport = ::exportData,
-                    onImport = { importLauncher.launch(arrayOf("application/json", "text/plain")) },
-                    onDeleteAllData = viewModel::deleteAllLocalData,
-                    onAbout = { screenName = AppScreen.ABOUT.name },
-                )
-                AppScreen.ABOUT -> AboutScreen(onOpenLink = ::openUri)
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues),
+            contentAlignment = Alignment.TopCenter,
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .widthIn(max = 840.dp),
+            ) {
+                when (screen) {
+                    AppScreen.CALCULATOR -> CalculatorScreen(
+                        historyEnabled = state.preferences.historyEnabled,
+                        onRecord = { result ->
+                            viewModel.recordCalculation(
+                                kind = CalculatorKind.BMI,
+                                value = result.displayBmi,
+                                summary = result.band.label,
+                            )
+                        },
+                    )
+                    AppScreen.WAIST -> WaistToHeightScreen(
+                        historyEnabled = state.preferences.historyEnabled,
+                        onRecord = { result ->
+                            viewModel.recordCalculation(
+                                kind = CalculatorKind.WAIST_TO_HEIGHT,
+                                value = result.displayRatio,
+                                summary = "Neutral adult waist-to-height measurement",
+                            )
+                        },
+                    )
+                    AppScreen.HISTORY -> HistoryScreen(
+                        history = state.history,
+                        historyEnabled = state.preferences.historyEnabled,
+                        onDeleteAll = viewModel::deleteHistory,
+                    )
+                    AppScreen.SETTINGS -> SettingsScreen(
+                        historyEnabled = state.preferences.historyEnabled,
+                        themeMode = state.preferences.themeMode,
+                        onHistoryEnabledChange = viewModel::setHistoryEnabled,
+                        onThemeModeChange = viewModel::setThemeMode,
+                        onExport = ::exportData,
+                        onImport = { importLauncher.launch(arrayOf("application/json", "text/plain")) },
+                        onDeleteAllData = viewModel::deleteAllLocalData,
+                        onOpenReleases = { openUri("https://github.com/sanskarIN/healthmetric/releases") },
+                        onAbout = { screenName = AppScreen.ABOUT.name },
+                    )
+                    AppScreen.ABOUT -> AboutScreen(onOpenLink = ::openUri)
+                }
             }
         }
     }
