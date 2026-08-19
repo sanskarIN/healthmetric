@@ -42,7 +42,9 @@ REQUIRED_PATHS = [
     "androidApp/src/main/java/io/github/sanskarin/healthmetric/data/HealthMetricDataStore.kt",
     "androidApp/src/main/java/io/github/sanskarin/healthmetric/ui/HealthMetricApp.kt",
     "androidApp/src/main/java/io/github/sanskarin/healthmetric/ui/HealthMetricViewModel.kt",
+    "androidApp/src/main/java/io/github/sanskarin/healthmetric/ui/format/ChartScale.kt",
     "androidApp/src/main/java/io/github/sanskarin/healthmetric/ui/testing/HealthMetricTestTags.kt",
+    "androidApp/src/test/java/io/github/sanskarin/healthmetric/ui/format/ChartScaleTest.kt",
     "androidApp/src/androidTest/java/io/github/sanskarin/healthmetric/AboutNavigationUiTest.kt",
     "androidApp/src/androidTest/java/io/github/sanskarin/healthmetric/HealthMetricDataStoreTest.kt",
     "androidApp/src/androidTest/java/io/github/sanskarin/healthmetric/ReleaseScreenshotCaptureTest.kt",
@@ -79,6 +81,12 @@ REQUIRED_PATHS = [
     "docs/adr/0005-ephemeral-desktop-client.md",
     "scripts/check_repository.py",
     "scripts/check_markdown_links.py",
+    "scripts/check_release_version.py",
+    "scripts/stage_release_assets.py",
+    "scripts/verify_release_assets.py",
+    "scripts/tests/test_check_release_version.py",
+    "scripts/tests/test_stage_release_assets.py",
+    "scripts/tests/test_verify_release_assets.py",
     "scripts/verify.sh",
     "scripts/verify.ps1",
     ".github/FUNDING.yml",
@@ -164,6 +172,14 @@ def main() -> int:
         if fragment not in desktop_main:
             failures.append(f"desktop Main.kt is missing required safety/product text: {fragment}")
 
+    android_app = read("androidApp/src/main/java/io/github/sanskarin/healthmetric/ui/HealthMetricApp.kt")
+    if "resetAdultUseChoice" not in android_app:
+        failures.append("HealthMetricApp.kt must preserve a safe way to correct the adult-use choice")
+
+    history_screen = read("androidApp/src/main/java/io/github/sanskarin/healthmetric/ui/screens/HistoryScreen.kt")
+    if "ChartScale.normalize" not in history_screen:
+        failures.append("HistoryScreen.kt must use finite-safe chart normalization")
+
     readme = read("README.md")
     required_readme_fragments = [
         "Made by the Sanskar",
@@ -192,7 +208,7 @@ def main() -> int:
         (".github/workflows/ci.yml", ":androidApp:bundleRelease", "App Bundle build task"),
         (".github/workflows/ci.yml", "androidApp/build/outputs/bundle/release/*.aab", "App Bundle artifact"),
         (".github/workflows/release.yml", ":androidApp:bundleRelease", "App Bundle build task"),
-        (".github/workflows/release.yml", "androidApp/build/outputs/bundle/release", "App Bundle release attachment"),
+        ("scripts/stage_release_assets.py", "androidApp/build/outputs/bundle/release/*.aab", "App Bundle release staging"),
         ("scripts/verify.sh", ":androidApp:bundleRelease", "App Bundle verification task"),
         ("scripts/verify.ps1", ":androidApp:bundleRelease", "App Bundle verification task"),
     ]
@@ -236,16 +252,50 @@ def main() -> int:
     ]:
         require_fragment(failures, desktop_workflow, fragment, "desktop verification/package configuration")
 
+    ci_workflow = ".github/workflows/ci.yml"
+    for fragment in [
+        'python3 -m unittest discover -s scripts/tests -p "test_*.py"',
+        ":shared:desktopTest",
+        ":desktopApp:test",
+        ":androidApp:testDebugUnitTest",
+        ":androidApp:lintRelease",
+    ]:
+        require_fragment(failures, ci_workflow, fragment, "continuous verification coverage")
+
     release_workflow = ".github/workflows/release.yml"
     for fragment in [
+        "fetch-depth: 0",
+        "scripts/check_release_version.py",
+        "scripts/stage_release_assets.py",
+        "scripts/verify_release_assets.py",
+        "--write-checksums",
+        "--verify-tag",
         "packageDeb",
         "packageMsi",
         "packageDmg",
-        "desktop-linux.deb",
-        "desktop-windows.msi",
-        "desktop-macos.dmg",
+        "contents: read",
+        "contents: write",
     ]:
-        require_fragment(failures, release_workflow, fragment, "native desktop release asset")
+        require_fragment(failures, release_workflow, fragment, "hardened release configuration")
+
+    release_staging = read("scripts/stage_release_assets.py")
+    for fragment in [
+        "Expected exactly one",
+        "healthmetric-{tag}-android-unsigned.apk",
+        "healthmetric-{tag}-desktop-{platform}.jar",
+    ]:
+        if fragment not in release_staging:
+            failures.append(f"stage_release_assets.py is missing deterministic staging invariant: {fragment}")
+
+    release_verifier = read("scripts/verify_release_assets.py")
+    for fragment in [
+        "SHA256SUMS.txt",
+        "Missing release assets",
+        "Unexpected release assets",
+        "Empty release assets",
+    ]:
+        if fragment not in release_verifier:
+            failures.append(f"verify_release_assets.py is missing release verification invariant: {fragment}")
 
     if failures:
         print("Repository invariant audit failed:")
