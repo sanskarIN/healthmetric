@@ -69,12 +69,19 @@
     <string name="history_item_bmi">BMI</string>
     <string name="history_item_waist">Waist-to-height ratio</string>
     <string name="history_item_value">%1$s %2$s</string>
+    <string name="delete_history_entry">Delete this history entry</string>
+    <string name="history_entry_deleted">History entry deleted.</string>
+    <string name="undo">Undo</string>
 
     <string name="settings_title">Settings</string>
     <string name="privacy_data">Privacy &amp; data</string>
     <string name="save_local_history">Save local history</string>
     <string name="save_local_history_description">Off by default. When enabled, results are stored only on this device. No ad trackers are used.</string>
-    <string name="export_local_data">Export my local data</string>
+    <string name="history_retention_title">History retention</string>
+    <string name="history_retention_description">Choose the maximum number of saved results. Lower limits reduce local data retention.</string>
+    <string name="history_retention_option">Keep up to %1$d</string>
+    <string name="save_json_backup">Save JSON backup to a file</string>
+    <string name="share_json_backup">Share JSON backup</string>
     <string name="restore_json_backup">Restore from JSON backup</string>
     <string name="delete_all_local_data">Delete all local data</string>
     <string name="appearance">Appearance</string>
@@ -105,9 +112,11 @@
     <string name="restore_success">Local backup restored.</string>
     <string name="restore_invalid">The selected backup is invalid or unsupported.</string>
     <string name="export_failed">Could not export local data.</string>
+    <string name="file_export_saved">JSON backup saved.</string>
+    <string name="file_export_failed">Could not save the JSON backup.</string>
     <string name="read_backup_failed">Could not read the selected backup.</string>
     <string name="open_link_failed">No app is available to open this link.</string>
     <string name="export_chooser_failed">No compatible app is available for export.</string>
     <string name="export_subject">HealthMetric local data export</string>
-    <string name="export_chooser_title">Export HealthMetric data</string>
+    <string name="export_chooser_title">Share HealthMetric data</string>
 </resources>
