@@ -116,6 +116,8 @@ desktopApp/build/compose/binaries/main/msi/
 desktopApp/build/compose/binaries/main/dmg/
 ```
 
+The public desktop application version remains `0.1.0` for the planned first release. Compose/JDK macOS DMG packaging requires package metadata whose major component is greater than zero, so `desktopApp/build.gradle.kts` uses a macOS-specific native package version of `1.0.0` while leaving the public project/release version unchanged. Treat that DMG package version as platform packaging metadata, not as a separate public HealthMetric release number.
+
 The cross-platform `.github/workflows/desktop.yml` workflow runs formatting/tests, builds a current-OS runnable JAR, builds the matching native installer, and uploads both as verification artifacts on Linux, Windows, and macOS.
 
 The tagged release workflow independently rebuilds and stages versioned JAR plus DEB/MSI/DMG assets. Native build success is not equivalent to production code signing/notarization or human platform acceptance testing.
