@@ -30,14 +30,18 @@ import androidx.compose.ui.unit.dp
 import io.github.sanskarin.healthmetric.BuildConfig
 import io.github.sanskarin.healthmetric.R
 import io.github.sanskarin.healthmetric.data.AppThemeMode
+import io.github.sanskarin.healthmetric.data.HistoryRetentionPolicy
 
 @Composable
 fun SettingsScreen(
     historyEnabled: Boolean,
+    historyRetentionLimit: Int,
     themeMode: AppThemeMode,
     onHistoryEnabledChange: (Boolean) -> Unit,
+    onHistoryRetentionLimitChange: (Int) -> Unit,
     onThemeModeChange: (AppThemeMode) -> Unit,
-    onExport: () -> Unit,
+    onSaveBackup: () -> Unit,
+    onShareBackup: () -> Unit,
     onImport: () -> Unit,
     onDeleteAllData: () -> Unit,
     onOpenReleases: () -> Unit,
@@ -77,8 +81,36 @@ fun SettingsScreen(
                     onCheckedChange = onHistoryEnabledChange,
                 )
             }
-            OutlinedButton(onClick = onExport, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(R.string.export_local_data))
+
+            Text(
+                text = stringResource(R.string.history_retention_title),
+                style = MaterialTheme.typography.titleSmall,
+            )
+            Text(
+                text = stringResource(R.string.history_retention_description),
+                style = MaterialTheme.typography.bodySmall,
+            )
+            HistoryRetentionPolicy.allowedLimits.chunked(2).forEach { rowLimits ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    rowLimits.forEach { limit ->
+                        FilterChip(
+                            selected = historyRetentionLimit == limit,
+                            onClick = { onHistoryRetentionLimitChange(limit) },
+                            label = { Text(stringResource(R.string.history_retention_option, limit)) },
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                }
+            }
+
+            OutlinedButton(onClick = onSaveBackup, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.save_json_backup))
+            }
+            OutlinedButton(onClick = onShareBackup, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.share_json_backup))
             }
             OutlinedButton(onClick = onImport, modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(R.string.restore_json_backup))
