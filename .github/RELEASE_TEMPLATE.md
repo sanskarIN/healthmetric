@@ -22,7 +22,7 @@ Describe accessibility improvements and manual verification performed on each pl
 
 ## Verification
 
-- [ ] Repository invariant and internal Markdown-link checks passed.
+- [ ] Repository invariant, Python repository-tooling tests, and internal Markdown-link checks passed.
 - [ ] Shared, Android, and desktop formatting/tests passed.
 - [ ] Android release lint passed.
 - [ ] Android debug APK, unsigned release APK, and unsigned release AAB builds succeeded.
@@ -33,6 +33,10 @@ Describe accessibility improvements and manual verification performed on each pl
 - [ ] Linux DEB, Windows MSI, and macOS DMG builds succeeded on matching hosts.
 - [ ] Published desktop native installers were smoke-tested on their target host operating systems.
 - [ ] CodeQL, Dependency Review where applicable, and Secret Scan were reviewed and passed for the exact release candidate.
+- [ ] Stable release tag matches Android `versionName` and desktop project version.
+- [ ] Release tag targets the current `main` commit.
+- [ ] Final downloaded release asset set contains exactly the expected eight non-empty binaries.
+- [ ] Published `SHA256SUMS.txt` matches the eight binary release assets.
 - [ ] Android primary flows were manually verified on physical hardware before public release.
 - [ ] Android TalkBack/large-font/display and applicable keyboard/DPAD checks were completed.
 - [ ] Desktop keyboard/focus/display-scaling/screen-reader checks were completed on published platforms.
@@ -47,9 +51,10 @@ Expected automated asset set when all configured platforms are published:
 - Android unsigned AAB;
 - Linux runnable JAR and DEB;
 - Windows runnable JAR and MSI;
-- macOS runnable JAR and DMG.
+- macOS runnable JAR and DMG;
+- `SHA256SUMS.txt` generated from the eight binary assets after exact-set verification.
 
-Do not describe unsigned/unnotarized artifacts as store-signed or platform-trusted builds.
+The release workflow fails closed on missing, extra, or empty binary assets. Do not describe unsigned/unnotarized artifacts as store-signed or platform-trusted builds.
 
 ## Known limitations
 
