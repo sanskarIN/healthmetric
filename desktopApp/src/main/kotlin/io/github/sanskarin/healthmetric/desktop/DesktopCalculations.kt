@@ -45,6 +45,7 @@ internal object DesktopCalculations {
             ?: return DesktopCalculationOutcome.Failure("Enter height feet as a whole number.")
         val heightInches = DesktopNumbers.parseDecimal(inches)
             ?: return DesktopCalculationOutcome.Failure("Enter valid remaining height inches.")
+        validateImperialHeightComponents(heightFeet, heightInches)?.let { return it }
 
         return runCatching {
             BmiCalculator.calculateImperial(
@@ -99,6 +100,7 @@ internal object DesktopCalculations {
             ?: return DesktopCalculationOutcome.Failure("Enter height feet as a whole number.")
         val inches = DesktopNumbers.parseDecimal(heightInches)
             ?: return DesktopCalculationOutcome.Failure("Enter valid remaining height inches.")
+        validateImperialHeightComponents(feet, inches)?.let { return it }
         val totalHeightInches = (feet * 12.0) + inches
 
         return runCatching {
@@ -117,6 +119,17 @@ internal object DesktopCalculations {
             },
             onFailure = ::failure,
         )
+    }
+
+    private fun validateImperialHeightComponents(
+        feet: Int,
+        remainingInches: Double,
+    ): DesktopCalculationOutcome.Failure? = when {
+        feet !in 0..8 -> DesktopCalculationOutcome.Failure("Enter height feet from 0 to 8.")
+        remainingInches !in 0.0..<12.0 -> DesktopCalculationOutcome.Failure(
+            "Enter remaining height inches from 0 up to, but not including, 12.",
+        )
+        else -> null
     }
 
     private fun failure(error: Throwable): DesktopCalculationOutcome.Failure =
