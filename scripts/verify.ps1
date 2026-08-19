@@ -9,6 +9,9 @@ if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 & $PythonBin scripts/check_markdown_links.py
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+& $PythonBin -m unittest discover -s scripts/tests -p "test_*.py"
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
 & $GradleBin :shared:ktlintCheck :androidApp:ktlintCheck :desktopApp:ktlintCheck
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
