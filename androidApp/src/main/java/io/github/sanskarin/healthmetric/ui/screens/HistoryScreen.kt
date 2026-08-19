@@ -23,11 +23,13 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import io.github.sanskarin.healthmetric.R
 import io.github.sanskarin.healthmetric.data.CalculatorKind
 import io.github.sanskarin.healthmetric.data.HistoryEntry
 import java.text.DateFormat
@@ -49,7 +51,7 @@ fun HistoryScreen(
     ) {
         item {
             Text(
-                text = "Local history",
+                text = stringResource(R.string.history_title),
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier
@@ -58,9 +60,9 @@ fun HistoryScreen(
             )
             Text(
                 text = if (historyEnabled) {
-                    "History is stored only on this device and can be disabled or erased at any time."
+                    stringResource(R.string.history_enabled_message)
                 } else {
-                    "History saving is disabled. Existing local entries remain until you erase them."
+                    stringResource(R.string.history_disabled_message)
                 },
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(top = 6.dp),
@@ -71,12 +73,12 @@ fun HistoryScreen(
                 FilterChip(
                     selected = selectedKind == CalculatorKind.BMI,
                     onClick = { selectedKindName = CalculatorKind.BMI.name },
-                    label = { Text("BMI") },
+                    label = { Text(stringResource(R.string.history_bmi)) },
                 )
                 FilterChip(
                     selected = selectedKind == CalculatorKind.WAIST_TO_HEIGHT,
                     onClick = { selectedKindName = CalculatorKind.WAIST_TO_HEIGHT.name },
-                    label = { Text("Waist ratio") },
+                    label = { Text(stringResource(R.string.history_waist)) },
                 )
             }
         }
@@ -84,7 +86,11 @@ fun HistoryScreen(
             item {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Text(
-                        text = "No saved ${if (selectedKind == CalculatorKind.BMI) "BMI" else "waist ratio"} measurements yet.",
+                        text = if (selectedKind == CalculatorKind.BMI) {
+                            stringResource(R.string.history_empty_bmi)
+                        } else {
+                            stringResource(R.string.history_empty_waist)
+                        },
                         modifier = Modifier.padding(18.dp),
                     )
                 }
@@ -93,7 +99,11 @@ fun HistoryScreen(
             item {
                 MeasurementChart(
                     entries = filtered.take(20).reversed(),
-                    label = if (selectedKind == CalculatorKind.BMI) "BMI" else "waist-to-height ratio",
+                    label = if (selectedKind == CalculatorKind.BMI) {
+                        stringResource(R.string.history_item_bmi)
+                    } else {
+                        stringResource(R.string.history_item_waist)
+                    },
                 )
             }
             items(filtered, key = HistoryEntry::id) { entry ->
@@ -108,7 +118,7 @@ fun HistoryScreen(
                         .fillMaxWidth()
                         .padding(vertical = 12.dp),
                 ) {
-                    Text("Erase all local history")
+                    Text(stringResource(R.string.erase_history))
                 }
             }
         }
@@ -124,15 +134,27 @@ private fun MeasurementChart(entries: List<HistoryEntry>, label: String) {
     val maxValue = values.maxOrNull() ?: 1.0
     val range = (maxValue - minValue).takeIf { it > 0.0001 } ?: 1.0
     val summary = if (values.size == 1) {
-        "$label history chart with one value: ${formatValue(values.first())}."
+        stringResource(
+            R.string.chart_summary_one,
+            label,
+            formatValue(values.first()),
+        )
     } else {
-        "$label history chart with ${values.size} values, from ${formatValue(values.first())} to ${formatValue(values.last())}. Minimum ${formatValue(minValue)}, maximum ${formatValue(maxValue)}."
+        stringResource(
+            R.string.chart_summary_many,
+            label,
+            values.size,
+            formatValue(values.first()),
+            formatValue(values.last()),
+            formatValue(minValue),
+            formatValue(maxValue),
+        )
     }
 
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = "Measurement history",
+                text = stringResource(R.string.measurement_history),
                 style = MaterialTheme.typography.titleMedium,
             )
             Box(
@@ -177,7 +199,7 @@ private fun MeasurementChart(entries: List<HistoryEntry>, label: String) {
                 }
             }
             Text(
-                text = "Chart values are also summarized for screen readers; color is not used to assign health meaning.",
+                text = stringResource(R.string.chart_accessibility_note),
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.padding(top = 8.dp),
             )
@@ -188,8 +210,8 @@ private fun MeasurementChart(entries: List<HistoryEntry>, label: String) {
 @Composable
 private fun HistoryCard(entry: HistoryEntry) {
     val label = when (entry.calculator) {
-        CalculatorKind.BMI -> "BMI"
-        CalculatorKind.WAIST_TO_HEIGHT -> "Waist-to-height ratio"
+        CalculatorKind.BMI -> stringResource(R.string.history_item_bmi)
+        CalculatorKind.WAIST_TO_HEIGHT -> stringResource(R.string.history_item_waist)
     }
     val formattedTime = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT)
         .format(Date(entry.timestampEpochMillis))
@@ -200,7 +222,7 @@ private fun HistoryCard(entry: HistoryEntry) {
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Text(
-                text = "$label ${formatValue(entry.value)}",
+                text = stringResource(R.string.history_item_value, label, formatValue(entry.value)),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Medium,
             )
