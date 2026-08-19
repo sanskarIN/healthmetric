@@ -10,9 +10,11 @@ Verify:
 gradle --version
 ```
 
+You can also set `GRADLE_BIN` before running `scripts/verify.sh` or `scripts/verify.ps1` if your Gradle executable has a different path/name.
+
 ## Wrong Java version
 
-HealthMetric uses JDK 17 for Android builds.
+HealthMetric uses JDK 17 for Android builds and CI.
 
 Verify:
 
@@ -57,10 +59,23 @@ Review the formatting diff before committing.
 Run:
 
 ```bash
-gradle :androidApp:lintDebug
+gradle :androidApp:lintRelease
 ```
 
 Open the HTML report under `androidApp/build/reports/`. Fix the root cause rather than globally suppressing warnings.
+
+## Repository/documentation audit failure
+
+Run:
+
+```bash
+python3 scripts/check_repository.py
+python3 scripts/check_markdown_links.py
+```
+
+The first command verifies required repository files, offline Android manifest invariants, README project/contact/funding metadata, and key privacy documentation. The second verifies relative Markdown link targets.
+
+Fix the missing/inconsistent source rather than bypassing the audit.
 
 ## Shared tests fail
 
@@ -72,35 +87,96 @@ gradle :shared:desktopTest --stacktrace
 
 Calculation failures should be reproduced with deterministic example inputs and covered by a regression test.
 
+## Apple shared target fails locally
+
+The iOS targets require macOS with Xcode/Apple SDKs. Run:
+
+```bash
+gradle :shared:compileKotlinIosSimulatorArm64 :shared:compileKotlinIosArm64 --stacktrace
+```
+
+If Android project configuration also reports a missing compile SDK, install Android SDK Platform 36/Build Tools 35.0.0. Compare with `.github/workflows/apple-shared.yml`.
+
 ## App opens the adult-only screen
 
-The current adult BMI and waist-to-height reference calculators are intentionally unavailable when the onboarding response indicates the user is under 18. Deleting all app data resets onboarding.
+The current adult BMI and waist-to-height reference calculators are intentionally unavailable when the onboarding response indicates the user is under 18. Portable backups cannot change the adult-use gate.
+
+Do not edit a backup to try to change age-gate state; those fields are not portable and are ignored on restore.
 
 ## History is not saving
 
-Open Settings and check **Save local history**. When disabled, calculations remain available but new history entries are intentionally not stored.
+Open Settings and check **Save local history**. History is disabled by default. When disabled, calculations remain available but new history entries are intentionally not stored.
+
+Importing a backup does not enable history saving. This is intentional: history opt-in remains a device-local privacy choice.
+
+## Older history disappeared after changing retention
+
+Lowering **History retention** immediately trims older entries beyond the selected maximum. Supported limits are 50, 100, 250, and 500.
+
+This trimming is intentionally irreversible. Create an explicit backup before lowering the limit if you need to preserve a copy outside the app.
+
+## Decimal input is rejected
+
+Decimal measurement fields accept digits plus one `.` or `,` separator. They do not accept grouping separators, unit suffixes, multiple separators, `NaN`, or infinity text.
+
+If the on-screen keyboard supplies a locale-specific separator, HealthMetric accepts comma/dot decimal input and formats results using the active locale.
 
 ## Restore says backup is invalid
 
-HealthMetric currently supports backup schema version `1`. The restore parser rejects unsupported top-level schemas and safely ignores malformed history payloads rather than applying uncertain data.
+HealthMetric currently supports backup schema version `1`. Common causes include:
 
-Do not manually edit a backup to bypass schema checks. Use a backup exported by a compatible HealthMetric version.
+- unsupported/missing `schemaVersion`;
+- file larger than 1 MiB;
+- invalid top-level JSON;
+- a document that is not a HealthMetric backup.
 
-## Export opens the Android share sheet instead of saving a file
+Malformed individual history records are skipped when the top-level document is otherwise valid. See [`backup-format.md`](backup-format.md).
 
-This is expected in the initial implementation. Export currently shares JSON text through an explicit Android chooser. Direct Storage Access Framework file export is tracked on the roadmap.
+Do not manually edit a backup to bypass schema or safety checks.
+
+## Restore does not change history opt-in or the adult-use screen
+
+This is intentional. Portable backups do not control:
+
+- future history-saving consent;
+- adult-use confirmation;
+- onboarding completion.
+
+Restore preserves those current-device values even if an older schema-v1 file contains similarly named legacy fields.
+
+## Save backup opens a document picker
+
+This is expected. **Save JSON backup to a file** uses Android's Storage Access Framework so the user chooses the destination. Backup JSON is generated after the destination is selected.
+
+**Share JSON backup** is a separate action and opens Android's share chooser.
+
+## Restore asks for confirmation after file selection
+
+This is expected. HealthMetric first reads the bounded selected document, then requires explicit confirmation before portable history/settings are replaced.
+
+## Android emulator CI fails
+
+Reproduce with:
+
+```bash
+gradle :androidApp:connectedDebugAndroidTest --stacktrace
+```
+
+Use an API 35 emulator where practical to match the dedicated workflow. Check instrumentation reports uploaded by the workflow before changing production code.
 
 ## CI differs from local results
 
 Match CI's baseline:
 
-- Ubuntu runner;
+- Ubuntu runner for Android/JVM verification;
 - JDK 17;
 - Gradle 8.13;
 - Android SDK 36;
-- Build Tools 35.0.0.
+- Build Tools 35.0.0;
+- API 35 emulator for connected tests;
+- macOS runner for Apple shared-target compilation.
 
-Then rerun the exact commands from `.github/workflows/ci.yml`.
+Then rerun the exact commands from `.github/workflows/`.
 
 ## Security/privacy bug
 
