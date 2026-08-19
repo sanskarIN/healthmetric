@@ -10,6 +10,7 @@ import io.github.sanskarin.healthmetric.data.HealthMetricDataStore
 import io.github.sanskarin.healthmetric.ui.testing.HealthMetricTestTags
 import kotlinx.coroutines.runBlocking
 import org.junit.After
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 
@@ -17,10 +18,19 @@ class AboutNavigationUiTest {
     @get:Rule
     val composeRule = createAndroidComposeRule<MainActivity>()
 
+    private val dataStore = HealthMetricDataStore(
+        InstrumentationRegistry.getInstrumentation().targetContext,
+    )
+
+    @Before
+    fun clearStateBeforeTest() = runBlocking {
+        dataStore.deleteAllLocalData()
+        composeRule.waitForIdle()
+    }
+
     @After
-    fun clearLocalState() = runBlocking {
-        val context = InstrumentationRegistry.getInstrumentation().targetContext
-        HealthMetricDataStore(context).deleteAllLocalData()
+    fun clearStateAfterTest() = runBlocking {
+        dataStore.deleteAllLocalData()
     }
 
     @Test
