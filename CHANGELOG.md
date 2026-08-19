@@ -13,6 +13,7 @@ All notable HealthMetric changes are documented here. The project follows Semant
 - Metric/imperial conversion helpers.
 - Strict finite-value and plausible-range input validation.
 - Adult-only onboarding safety gate.
+- Recoverable Android adult-use selection so an accidental under-18 choice can return to age selection without clearing unrelated local data.
 - Jetpack Compose Android UI with BMI, ratio, history, settings, About, and update/release access.
 - Compose Multiplatform desktop client backed by the same shared calculation core.
 - Desktop adult-use gate and metric/imperial BMI plus waist-to-height calculator journeys.
@@ -23,6 +24,7 @@ All notable HealthMetric changes are documented here. The project follows Semant
 - User-selectable Android history retention limits of 50, 100, 250, or 500 results.
 - Per-entry Android history deletion with immediate snackbar undo.
 - Accessible neutral Android measurement history chart with screen-reader summaries.
+- Overflow-safe Android history-chart normalization for extreme finite imported values.
 - Confirmation for destructive Android history deletion, complete local-data deletion, and backup restore.
 - Storage Access Framework JSON backup-to-file flow in addition to explicit share export.
 - Defensive JSON restore with 1 MiB backup size cap, schema validation, malformed-record recovery, duplicate-ID handling, bounded history, and chronological normalization.
@@ -33,7 +35,8 @@ All notable HealthMetric changes are documented here. The project follows Semant
 - Adaptive, round, and Android 13+ themed launcher icons.
 - Reusable typography, shape, spacing, elevation, and motion design tokens.
 - Reusable validated numeric measurement field component.
-- Stable Compose semantics tags for critical Android UI automation and navigation journeys.
+- Stable Compose semantics tags for critical Android UI automation, navigation journeys, and adult-gate correction controls.
+- Defensive saved-enum restoration for Android navigation/history filter state after future enum changes.
 - Externalized Android UI strings for localization-ready presentation.
 - Privacy-safe structured operational logger with fixed event names.
 - Explicit in-app and system-back navigation from the Android About screen.
@@ -41,23 +44,32 @@ All notable HealthMetric changes are documented here. The project follows Semant
 - GitHub Actions CI, CodeQL, dependency review, secret scanning, Android emulator instrumentation, Apple shared-core compilation, desktop verification, tagged release automation, and Dependabot.
 - CI assembly and artifact upload for the debug APK, unsigned release APK, unsigned release Android App Bundle, and desktop runnable JAR.
 - Tagged release workflow packaging for Android unsigned APK/App Bundle plus desktop artifacts where produced by supported runners.
+- Stable-tag/project-version validator for Android and desktop release versions.
+- Deterministic cross-platform release-asset staging with exact-single-output and non-empty checks.
+- Exact release-asset set verification plus generated `SHA256SUMS.txt` for published binaries.
+- Python regression tests for release tag validation, asset staging, and final asset/checksum verification.
 - Real-app Android instrumentation capture of the eight required release-evidence screenshots, uploaded by CI as `android-release-screenshots`.
-- Repository invariant checks for desktop module presence, required screenshot evidence, AAB packaging tasks/artifacts, and accidental temporary probe files.
+- Repository invariant checks for desktop module presence, required screenshot evidence, AAB packaging tasks/artifacts, hardened release tooling, chart safety, adult-gate correction, and accidental temporary probe files.
 - Domain unit, boundary, conversion, validation, deterministic property, onboarding UI, adult-gate, privacy-default, retention-policy, locale-number, bounded backup IO, and desktop calculation/parser tests.
-- Instrumentation tests for BMI/ratio success and error journeys, About return navigation, privacy settings, history controls, retention, DataStore export/restore, malformed backups, consent/safety boundaries, chronology, and deletion/restore behavior.
+- Instrumentation tests for BMI/ratio success and error journeys, About return navigation, privacy settings, history controls, retention, adult-gate controls, DataStore export/restore, malformed backups, consent/safety boundaries, chronology, and deletion/restore behavior.
 - Repository community, security, support, privacy, desktop, design-system, evidence, and contribution documentation.
 
 ### Changed
 
-- GitHub Actions workflow dependencies were updated to current supported major versions for checkout, Java setup, Gradle setup, CodeQL, dependency review, and artifact upload where applicable.
+- GitHub Actions workflow dependencies were updated to current supported major versions for checkout, Java/Python setup, Gradle setup, CodeQL, dependency review, and artifact upload where applicable.
 - Release CI now runs shared, Android, and desktop verification before producing distribution artifacts.
+- Tagged release automation now performs a read-only preflight before builds, requires the tag to match both app versions, and requires the tag to target the current `main` commit.
+- Release build jobs now use tested Python staging logic instead of duplicated shell-specific artifact discovery.
+- The final release publication step rejects missing, extra, or empty binary assets before creating the GitHub Release.
+- Release workflow repository permissions are read-only by default; `contents: write` is scoped only to the final publication job.
 - Local Unix and Windows verification scripts include desktop tests/packaging and `:androidApp:bundleRelease`.
 - Android history storage is normalized newest-first across new calculations, imports, and delete/undo restoration before retention limits are applied.
 - Lowering the Android local history retention limit immediately trims older entries beyond the newly selected limit.
 - Portable Android backups contain only portable settings/history; current history opt-in and adult-use/onboarding state remain device-local.
 - Android file export generates backup content after the user selects the destination document, avoiding reliance on transient pre-launch payload state.
 - Release screenshot automation resets local Android app state before capture so results are independent of instrumentation test execution order.
-- Documentation now distinguishes persistent Android behavior from the intentionally ephemeral desktop client.
+- Desktop measurement parsing accepts ordinary dot/comma decimal syntax while rejecting scientific notation, signed input, malformed separators, and non-finite literals.
+- Documentation now distinguishes persistent Android behavior from the intentionally ephemeral desktop client and documents release-integrity/checksum gates.
 
 ### Fixed
 
@@ -65,6 +77,13 @@ All notable HealthMetric changes are documented here. The project follows Semant
 - Fixed delete/undo of an older Android history entry incorrectly moving that entry to the top of the newest-first timeline.
 - Fixed imported Android history depending on JSON array order instead of canonical timestamp order.
 - Fixed the Android About screen having no in-app return path after bottom navigation was hidden.
+- Fixed an accidental under-18 Android selection requiring complete app-data clearing before age selection could be revisited.
+- Fixed stale saved Android navigation/history-filter enum values being able to crash composition after enum changes.
+- Fixed extreme finite imported Android history values being able to overflow chart range arithmetic.
+- Fixed imperial weight validation reporting kilogram bounds instead of pound bounds.
+- Fixed imperial waist validation reporting metric bounds instead of inch bounds.
+- Fixed imperial BMI revalidating converted values against metric boundaries after valid imperial validation, which could reject documented pound-boundary inputs.
+- Fixed imperial waist-to-height calculation revalidating converted values through the metric path instead of preserving the imperial validation contract.
 - Removed the avoidable timestamp-plus-small-random-suffix collision path for newly recorded Android history IDs.
 - Corrected release documentation drift where AAB packaging had been documented before CI/release/verification scripts actually implemented `bundleRelease`.
 - Reconciled the desktop/release-readiness branch with the separate Android release-hardening branch so neither set of changes is lost.
@@ -81,9 +100,13 @@ All notable HealthMetric changes are documented here. The project follows Semant
 - Duplicate/blank Android history identifiers, negative timestamps, non-finite values, and unknown calculator types are rejected during restore.
 - Android local history requires explicit opt-in on fresh/default state.
 - Android import cannot enable adult-only reference calculators or silently enable future history saving.
+- Adult-use-choice correction clears only adult/onboarding state and preserves unrelated local history/preferences.
 - Desktop measurement/session state is deliberately not persisted.
 - Secret scanning checks repository history in CI.
-- Repository invariants reject the known accidental write-probe path and verify expected release packaging/evidence/desktop configuration.
+- Release tags fail closed unless they use stable SemVer form, match configured Android/desktop versions, and target current `main`.
+- Release asset publication fails closed on missing, unexpected, or empty files and publishes SHA-256 checksums.
+- Release workflow write privilege is isolated to the final publication job.
+- Repository invariants reject the known accidental write-probe path and verify expected release packaging/evidence/desktop/security configuration.
 
 ### Remaining release verification
 
