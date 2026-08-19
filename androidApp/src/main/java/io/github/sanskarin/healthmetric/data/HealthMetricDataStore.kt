@@ -56,31 +56,34 @@ class HealthMetricDataStore(private val context: Context) {
     }
 
     suspend fun addHistory(entry: HistoryEntry) {
+        val safeEntry = sanitizeEntry(entry)
         context.healthMetricDataStore.edit { preferences ->
             if (preferences[Keys.historyEnabled] != true) return@edit
             val retentionLimit = HistoryRetentionPolicy.normalize(
                 preferences[Keys.historyRetentionLimit] ?: HistoryRetentionPolicy.DEFAULT_LIMIT,
             )
             val current = decodeHistory(preferences[Keys.historyJson]).toMutableList()
-            current.removeAll { it.id == entry.id }
-            current.add(0, sanitizeEntry(entry))
+            current.removeAll { it.id == safeEntry.id }
+            current.add(0, safeEntry)
             preferences[Keys.historyJson] = encodeHistory(current.take(retentionLimit))
         }
     }
 
     suspend fun restoreHistoryEntry(entry: HistoryEntry) {
+        val safeEntry = sanitizeEntry(entry)
         context.healthMetricDataStore.edit { preferences ->
             val retentionLimit = HistoryRetentionPolicy.normalize(
                 preferences[Keys.historyRetentionLimit] ?: HistoryRetentionPolicy.DEFAULT_LIMIT,
             )
             val current = decodeHistory(preferences[Keys.historyJson]).toMutableList()
-            current.removeAll { it.id == entry.id }
-            current.add(0, sanitizeEntry(entry))
+            current.removeAll { it.id == safeEntry.id }
+            current.add(0, safeEntry)
             preferences[Keys.historyJson] = encodeHistory(current.take(retentionLimit))
         }
     }
 
     suspend fun deleteHistoryEntry(id: String) {
+        if (id.isBlank()) return
         context.healthMetricDataStore.edit { preferences ->
             val current = decodeHistory(preferences[Keys.historyJson])
             preferences[Keys.historyJson] = encodeHistory(current.filterNot { it.id == id })
@@ -168,34 +171,41 @@ class HealthMetricDataStore(private val context: Context) {
 
     private fun decodeHistory(rawJson: String?): List<HistoryEntry> {
         if (rawJson.isNullOrBlank()) return emptyList()
-        return runCatching {
-            val array = JSONArray(rawJson)
-            buildList {
-                for (index in 0 until array.length()) {
+        val array = runCatching { JSONArray(rawJson) }.getOrElse { return emptyList() }
+        val seenIds = mutableSetOf<String>()
+
+        return buildList {
+            for (index in 0 until array.length()) {
+                val entry = runCatching {
                     val item = array.getJSONObject(index)
-                    val calculator = CalculatorKind.valueOf(item.getString("calculator"))
-                    val value = item.getDouble("value")
-                    if (!value.isFinite()) continue
-                    add(
-                        sanitizeEntry(
-                            HistoryEntry(
-                                id = item.getString("id"),
-                                timestampEpochMillis = item.getLong("timestampEpochMillis"),
-                                calculator = calculator,
-                                value = value,
-                                summary = item.getString("summary"),
-                            ),
+                    sanitizeEntry(
+                        HistoryEntry(
+                            id = item.getString("id"),
+                            timestampEpochMillis = item.getLong("timestampEpochMillis"),
+                            calculator = CalculatorKind.valueOf(item.getString("calculator")),
+                            value = item.getDouble("value"),
+                            summary = item.optString("summary", ""),
                         ),
                     )
-                }
-            }.take(HistoryRetentionPolicy.MAX_LIMIT)
-        }.getOrElse { emptyList() }
+                }.getOrNull() ?: continue
+
+                if (seenIds.add(entry.id)) add(entry)
+                if (size >= HistoryRetentionPolicy.MAX_LIMIT) break
+            }
+        }
     }
 
-    private fun sanitizeEntry(entry: HistoryEntry): HistoryEntry = entry.copy(
-        id = entry.id.take(MAX_ID_LENGTH),
-        summary = entry.summary.take(MAX_SUMMARY_LENGTH),
-    )
+    private fun sanitizeEntry(entry: HistoryEntry): HistoryEntry {
+        val id = entry.id.trim().take(MAX_ID_LENGTH)
+        require(id.isNotBlank()) { "History entry ID cannot be blank." }
+        require(entry.timestampEpochMillis >= 0L) { "History timestamp cannot be negative." }
+        require(entry.value.isFinite()) { "History value must be finite." }
+
+        return entry.copy(
+            id = id,
+            summary = entry.summary.take(MAX_SUMMARY_LENGTH),
+        )
+    }
 
     companion object {
         private const val BACKUP_SCHEMA_VERSION = 1
