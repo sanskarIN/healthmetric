@@ -22,8 +22,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import io.github.sanskarin.healthmetric.R
+import io.github.sanskarin.healthmetric.ui.theme.HealthMetricSpacing
 
 @Composable
 fun OnboardingScreen(
@@ -34,7 +34,10 @@ fun OnboardingScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 24.dp, vertical = 48.dp),
+                .padding(
+                    horizontal = HealthMetricSpacing.xl,
+                    vertical = HealthMetricSpacing.hero,
+                ),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
@@ -43,36 +46,36 @@ fun OnboardingScreen(
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
             )
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(HealthMetricSpacing.lg))
             Text(
                 text = stringResource(R.string.app_name),
                 style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.semantics { heading() },
             )
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(HealthMetricSpacing.sm))
             Text(
                 text = stringResource(R.string.app_tagline),
                 style = MaterialTheme.typography.titleMedium,
             )
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(HealthMetricSpacing.xl))
             Text(
                 text = stringResource(R.string.onboarding_privacy_intro),
                 style = MaterialTheme.typography.bodyLarge,
             )
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(HealthMetricSpacing.sm))
             Text(
                 text = stringResource(R.string.onboarding_offline_intro),
                 style = MaterialTheme.typography.bodyMedium,
             )
-            Spacer(Modifier.height(28.dp))
+            Spacer(Modifier.height(HealthMetricSpacing.xl))
             Button(
                 onClick = onAdultConfirmed,
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(stringResource(R.string.onboarding_adult_confirm))
             }
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(HealthMetricSpacing.sm))
             OutlinedButton(
                 onClick = onUnder18,
                 modifier = Modifier.fillMaxWidth(),
@@ -89,7 +92,7 @@ fun AdultOnlyScreen() {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(24.dp),
+                .padding(HealthMetricSpacing.xl),
             verticalArrangement = Arrangement.Center,
         ) {
             Text(
@@ -98,7 +101,7 @@ fun AdultOnlyScreen() {
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.semantics { heading() },
             )
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(HealthMetricSpacing.sm))
             Text(
                 text = stringResource(R.string.adult_only_body),
                 style = MaterialTheme.typography.bodyLarge,
