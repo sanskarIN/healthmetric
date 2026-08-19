@@ -1251,3 +1251,50 @@ The exact next actions are:
 5. inspect exact-head Android screenshot and Desktop host artifacts when workflows complete;
 6. make no additional code/documentation change unless a concrete exact-head verification failure is found;
 7. do not create `v0.1.0` until physical Android, manual accessibility/screenshot review, desktop target-host acceptance and protected signing/trust requirements are actually complete.
+
+## Final audit extension — strict UTF-8 backup boundary
+
+A final backup I/O audit after the documentation-completion pass found one remaining fail-open behavior at the Android document boundary.
+
+`BackupIo.readUtf8` previously decoded selected backup bytes with the platform UTF-8 string conversion. Java's ordinary UTF-8 decoding replaces malformed byte sequences with the Unicode replacement character. A malformed byte sequence inside otherwise parseable JSON text could therefore be silently changed rather than rejected.
+
+The Android backup contract now fails closed at that boundary:
+
+- `BackupIo.readUtf8` uses a UTF-8 decoder configured with `CodingErrorAction.REPORT` for malformed and unmappable input;
+- malformed UTF-8 therefore fails before the restore-confirmation payload can be accepted as valid text;
+- the existing 1 MiB byte cap remains unchanged;
+- valid UTF-8 round trips remain unchanged;
+- the DataStore restore boundary still performs its independent encoded-size, schema, structure, sanitation, chronology, retention, and consent/safety checks.
+
+Regression coverage in `BackupIoTest` includes an invalid UTF-8 byte sequence that must raise a character-coding failure. The new test was also corrected to use explicit Kotlin `Byte` literals so the test itself is compile-safe.
+
+Documentation was reconciled without changing schema version `1`:
+
+- `docs/backup-format.md` now defines well-formed UTF-8 as a document-boundary requirement and explicitly states malformed bytes are rejected rather than replacement-decoded;
+- `CHANGELOG.md` records the fixed malformed-UTF-8 behavior and the security/privacy boundary;
+- PR #14's title was aligned with this handoff's canonical title;
+- PR #14's description now includes the strict UTF-8 backup-import behavior and documentation update.
+
+Focused commits from this final audit extension:
+
+- `fix: reject malformed UTF-8 backup input`;
+- `test: cover malformed UTF-8 backup rejection`;
+- `fix: use byte literals in malformed backup test`;
+- `docs: document strict UTF-8 backup decoding`;
+- `docs: record strict backup encoding rejection`;
+- this final `what_changed.md` checkpoint.
+
+### Exact-head rule after the final audit extension
+
+This `what_changed.md` commit becomes the authoritative PR #14 head and supersedes workflow evidence from every earlier SHA, including the workflow runs started for the pre-handoff encoding-fix commits.
+
+After this commit:
+
+1. fetch PR #14 again and record its exact head SHA;
+2. require CI, Android instrumentation, Desktop, Apple shared core, CodeQL, Dependency Review, and Secret Scan on that exact SHA;
+3. inspect failed-job logs only if an exact-head workflow actually fails rather than treating queued/pending runner state as a code failure;
+4. verify the exact-head Android screenshot artifact and desktop host artifacts after their workflows complete;
+5. make no further source/documentation commit unless exact-head verification exposes a concrete defect;
+6. merge PR #14 only after all configured exact-head automation is green;
+7. after merge, compare PR #13 against `main` before closing it as superseded;
+8. keep `v0.1.0` untagged until the documented physical-device, accessibility, visual, desktop host, and protected signing/trust gates are genuinely completed.
