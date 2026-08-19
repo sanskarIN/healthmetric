@@ -134,7 +134,7 @@ Located in `androidApp/src/androidTest/`:
 - `SettingsUiTest` — explicit history opt-in, retention selection, save-file, and share-backup actions;
 - `HistoryUiTest` — per-entry deletion and erase-all confirmation;
 - `AboutNavigationUiTest` — explicit and system back navigation from About to the originating destination;
-- `HealthMetricDataStoreTest` — privacy opt-in, retention trimming, portable export/restore, unsupported schemas, device-local consent/adult-gate preservation, adult-choice reset preservation, entry delete/restore, chronology after undo, malformed-record recovery, duplicate-ID handling, and invalid entry rejection;
+- `HealthMetricDataStoreTest` — privacy opt-in, retention trimming, portable export/restore, unsupported schemas, required top-level history-array validation before mutation, device-local consent/adult-gate preservation, adult-choice reset preservation, entry delete/restore, chronology after undo, malformed-record recovery, duplicate-ID handling, and invalid entry rejection;
 - `ReleaseScreenshotCaptureTest` — drives the real app and captures the required eight-file Android release-evidence set with fictional/example values.
 
 Run with a connected device/emulator:
@@ -192,6 +192,14 @@ Desktop has no persistence layer, so its adult-use choice is process-local and r
 
 Both user-facing clients must keep the under-18 path separate from adult BMI/waist reference results.
 
+## Backup structural regression invariants
+
+Schema-v1 restore requires a top-level `history` JSON array. An empty array is valid; a missing field or non-array value must fail before the DataStore edit transaction begins.
+
+Instrumentation coverage seeds existing history and theme state, attempts both malformed top-level forms, and verifies the restore fails without changing the existing local data. This protects against interpreting a damaged backup container as an intentional empty-history restore.
+
+Once the top-level array is valid, malformed individual records remain independently recoverable so one bad record does not discard valid neighboring records.
+
 ## Chronology and identity regression invariants
 
 Android history is canonical newest-first. Adding, importing, deleting, and undoing entries must preserve descending timestamp order before applying the selected retention limit.
@@ -221,7 +229,8 @@ Examples:
 
 - calculation boundary defect → shared unit test;
 - imperial unit/error regression → shared test plus presentation-layer test when user-visible;
-- malformed backup crash → DataStore instrumentation test;
+- malformed backup record crash → DataStore instrumentation test;
+- malformed top-level backup structure that could mutate local state → DataStore instrumentation test plus repository invariant;
 - backup size bypass → `BackupIoTest` plus restore test where relevant;
 - consent/adult-gate restore regression → DataStore instrumentation test;
 - adult-choice correction regression → DataStore plus Compose instrumentation test;
@@ -250,8 +259,9 @@ Test at minimum:
 - comma and dot decimal presentation input;
 - desktop scientific/signed/mixed-separator input rejection;
 - corrupted/unsupported Android backup schema;
+- missing/non-array top-level Android backup `history`;
 - oversized Android backup payloads;
-- malformed and duplicate Android history records;
+- malformed and duplicate Android history records inside a valid history array;
 - legacy Android backups containing non-portable consent/safety fields;
 - extreme finite imported history values through chart normalization;
 - empty Android history;
@@ -268,7 +278,7 @@ Test at minimum:
 
 The shared module uses seeded property-style loops for large sets of valid inputs. Keep seeds deterministic so failures reproduce exactly in CI.
 
-Android backup parsing is intentionally bounded before JSON parsing and validates each history record independently. If backup schemas become more complex, add dedicated parser fuzz/property tooling rather than relying only on example tests.
+Android backup parsing is intentionally bounded before JSON parsing, validates required top-level structure before persistence mutation, and validates each history record independently once the container is valid. If backup schemas become more complex, add dedicated parser fuzz/property tooling rather than relying only on example tests.
 
 ## Accessibility verification
 
