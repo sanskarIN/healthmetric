@@ -16,11 +16,11 @@ The Android format is designed to be:
 - deterministically ordered after restore;
 - unable to transfer device-local privacy consent or adult-use gate decisions.
 
-## Size limit
+## Size and encoding limit
 
-HealthMetric accepts and writes Android backup payloads up to **1 MiB (1,048,576 bytes)** of UTF-8 JSON.
+HealthMetric accepts and writes Android backup payloads up to **1 MiB (1,048,576 bytes)** of well-formed UTF-8 JSON.
 
-The Android document layer enforces this while reading/writing streams, and the DataStore restore boundary independently checks the raw UTF-8 byte size before JSON parsing.
+The Android document layer enforces the byte limit while reading/writing streams, and the DataStore restore boundary independently checks the raw UTF-8 byte size before JSON parsing. Malformed UTF-8 byte sequences are rejected at the document-read boundary rather than being silently replaced with Unicode replacement characters.
 
 ## Schema version 1
 
@@ -88,17 +88,18 @@ Older schema-v1 documents may contain JSON fields named `historyEnabled`, `adult
 
 The Android UI reads the chosen file into a bounded string and asks the user for confirmation. Only after confirmation does the ViewModel call the DataStore restore operation.
 
-Before opening the DataStore edit transaction, the restore operation validates:
+Before opening the DataStore edit transaction, the restore path validates:
 
-1. the UTF-8 payload size;
-2. parseable top-level JSON;
-3. supported `schemaVersion`;
-4. presence and array type of the required `history` field;
-5. portable setting normalization;
-6. individual history records, deduplication, chronology, and retention bounds;
-7. that a non-empty history array retains at least one valid record after sanitation.
+1. that the selected document is bounded and well-formed UTF-8;
+2. the UTF-8 payload size at the DataStore boundary;
+3. parseable top-level JSON;
+4. supported `schemaVersion`;
+5. presence and array type of the required `history` field;
+6. portable setting normalization;
+7. individual history records, deduplication, chronology, and retention bounds;
+8. that a non-empty history array retains at least one valid record after sanitation.
 
-Only after those preconditions are resolved are portable settings and sanitized, deduplicated, newest-first bounded history written together in one DataStore edit. A missing/non-array `history` field or non-empty all-invalid history array therefore cannot clear existing local data or change portable preferences.
+Only after those preconditions are resolved are portable settings and sanitized, deduplicated, newest-first bounded history written together in one DataStore edit. A malformed UTF-8 document, missing/non-array `history` field, or non-empty all-invalid history array therefore cannot clear existing local data or change portable preferences.
 
 Current device-local consent/safety values are left untouched.
 
@@ -112,11 +113,12 @@ When adding a new schema version:
 2. define explicit migration behavior;
 3. add deterministic migration tests;
 4. retain bounded payload/history protections or document an ADR for any reviewed replacement;
-5. retain required top-level structural validation before mutation;
-6. retain the distinction between intentional empty history and non-empty all-invalid history unless a reviewed migration explicitly changes it;
-7. retain deterministic history ordering or explicitly document a reviewed alternative;
-8. never make consent/adult-gate state portable without a dedicated privacy and safety review;
-9. update `PRIVACY.md`, `CHANGELOG.md`, `docs/release.md`, and `what_changed.md`.
+5. retain strict UTF-8 decoding at the document boundary;
+6. retain required top-level structural validation before mutation;
+7. retain the distinction between intentional empty history and non-empty all-invalid history unless a reviewed migration explicitly changes it;
+8. retain deterministic history ordering or explicitly document a reviewed alternative;
+9. never make consent/adult-gate state portable without a dedicated privacy and safety review;
+10. update `PRIVACY.md`, `CHANGELOG.md`, `docs/release.md`, and `what_changed.md`.
 
 ## Privacy note
 
