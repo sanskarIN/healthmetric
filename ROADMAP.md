@@ -11,6 +11,7 @@ The roadmap prioritizes correctness, privacy, accessibility, and maintainability
 - [x] Issue/PR templates, release template, support, security, privacy, contribution docs.
 - [x] Architecture decision records and continuation handoff process.
 - [x] Architecture, evidence, design-system, setup, testing, performance, accessibility, release, and troubleshooting documentation.
+- [x] Repository invariant checks for required files, privacy manifest rules, release packaging, screenshot evidence configuration, and forbidden temporary probe files.
 
 ## Phase 1 — Clean end-to-end MVP
 
@@ -36,15 +37,19 @@ The roadmap prioritizes correctness, privacy, accessibility, and maintainability
 - [x] Storage Access Framework JSON export-to-file.
 - [x] Restore confirmation before replacing portable local data.
 - [x] Per-history-entry deletion with immediate undo.
+- [x] Canonical newest-first ordering for add/import/delete-undo history flows.
+- [x] Collision-resistant UUID identifiers for new history records.
 - [x] User-selectable bounded history retention (50/100/250/500 entries).
-- [x] Defensive backup limits, record validation, malformed-record recovery, and duplicate-ID handling.
+- [x] Defensive backup limits, record validation, malformed-record recovery, duplicate-ID handling, and chronological normalization.
 - [x] Device-local privacy/adult-gate state excluded from portable backup restore.
 - [x] About/support/funding UI.
+- [x] Explicit in-app and system-back navigation from About to the originating screen.
 - [x] Privacy, data, appearance, accessibility, update, and About settings sections.
 - [x] Localization-ready Android string resources.
 - [x] Reusable validated measurement input component.
 - [x] Locale-aware decimal input parsing and result/history formatting.
-- [ ] Capture real screenshots on an Android device/emulator.
+- [x] Implement deterministic real-app emulator capture for the eight required release-evidence screenshots.
+- [ ] Confirm the screenshot capture job succeeds for the exact release-candidate commit and visually approve the generated PNG set.
 
 ## Phase 3 — Advanced quality
 
@@ -68,9 +73,11 @@ The roadmap prioritizes correctness, privacy, accessibility, and maintainability
 - [x] Instrumentation coverage for waist-ratio success/error journeys.
 - [x] Instrumentation coverage for history deletion and destructive confirmation.
 - [x] Instrumentation coverage for privacy/retention/backup settings actions.
-- [x] DataStore opt-in, retention, export/restore, malformed-record, consent-boundary, deletion, and undo-persistence tests.
+- [x] Instrumentation coverage for About return navigation.
+- [x] DataStore opt-in, retention, export/restore, malformed-record, consent-boundary, chronology, deletion, and undo-persistence tests.
 - [x] Dedicated GitHub Actions Android emulator workflow for connected tests.
-- [ ] Add accessibility scanner/manual TalkBack checklist evidence.
+- [x] Configure Android instrumentation to publish release screenshot evidence as a CI artifact.
+- [ ] Add manual TalkBack/accessibility checklist evidence for the release candidate.
 - [ ] Add baseline-profile/macrobenchmark module only if profiling shows a meaningful need.
 
 ## Phase 5 — Release readiness
@@ -78,22 +85,24 @@ The roadmap prioritizes correctness, privacy, accessibility, and maintainability
 - [x] Tagged unsigned release workflow.
 - [x] Release documentation and release-notes template.
 - [x] CI configured to assemble and upload a debug APK, unsigned release APK, and unsigned release App Bundle.
-- [x] Tagged release workflow configured to publish both unsigned APK and App Bundle artifacts.
-- [ ] Run clean-checkout CI successfully and record the run in `what_changed.md`.
-- [ ] Verify release build on physical Android hardware and emulator.
-- [ ] Capture required screenshots and accessibility evidence.
+- [x] Tagged release workflow configured to build, upload, and attach both unsigned APK and App Bundle artifacts.
+- [x] Unix and Windows verification scripts include debug APK, unsigned APK, and unsigned AAB builds.
+- [ ] Run the complete PR #13 hardening check suite successfully and record the exact head/results in `what_changed.md`.
+- [ ] Verify release build on physical Android hardware.
+- [ ] Visually approve the generated release screenshots and complete manual accessibility evidence.
 - [ ] Configure protected Android signing outside source control.
 - [ ] Publish `v0.1.0` only after all blocker checks pass.
 
 ## Phase 6 — Final audit
 
-- [ ] Verify every README command from a clean clone with Gradle/Android SDK available.
-- [ ] Confirm CI, Android instrumentation, Apple shared-core compilation, CodeQL, dependency review, and secret scan are green on the release commit.
-- [ ] Review dependency advisories and repository security settings.
-- [ ] Check documentation links.
+- [x] Add automated required-path, privacy-manifest, AAB-packaging, screenshot-evidence, and Markdown-link checks.
+- [ ] Verify every README verification command through the exact release-candidate automation/environment.
+- [ ] Confirm CI, Android instrumentation, Apple shared-core compilation, CodeQL, dependency review, and secret scan are green on the exact release commit.
+- [ ] Review dependency advisories and repository security settings before tagging.
+- [x] Check internal documentation links automatically in CI.
 - [x] Re-review adult-only safety language and evidence references in source/docs.
 - [x] Confirm required documentation files exist and repository structure matches the architecture docs.
-- [ ] Confirm `CHANGELOG.md`, `ROADMAP.md`, and `what_changed.md` match the release immediately before tagging.
+- [ ] Confirm `CHANGELOG.md`, `ROADMAP.md`, and `what_changed.md` match the exact release immediately before tagging.
 
 ## Non-goals
 
