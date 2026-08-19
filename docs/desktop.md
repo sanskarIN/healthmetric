@@ -161,7 +161,9 @@ desktopApp/build/compose/binaries/main/msi/
 desktopApp/build/compose/binaries/main/dmg/
 ```
 
-The public desktop application version remains `0.1.0` for the planned first release. Compose/JDK macOS DMG packaging requires package metadata whose major component is greater than zero, so `desktopApp/build.gradle.kts` uses a macOS-specific native package version of `1.0.0` while leaving the public project/release version unchanged. Treat that DMG package version as platform packaging metadata, not a separate public HealthMetric release number.
+The prepared public desktop release version is `2.0.12`. `desktopApp/build.gradle.kts` uses `2.0.12` for both the desktop project version and native `packageVersion` across Linux, Windows, and macOS. The earlier macOS-only `1.0.0` package metadata workaround used for the `0.1.0` development target is no longer necessary because `2.0.12` already has a positive major component.
+
+`scripts/check_release_version.py` verifies the desktop project version and native `packageVersion` both match the proposed stable release tag, alongside Android release metadata.
 
 The cross-platform `.github/workflows/desktop.yml` workflow runs formatting/tests, builds a current-OS runnable JAR, builds the matching native installer, and uploads both as verification artifacts on Linux, Windows, and macOS.
 
@@ -240,5 +242,7 @@ Before promoting native installers:
 ## Release policy
 
 Desktop artifacts are development/release-candidate outputs until exact-head automation, manual host-platform accessibility, install/uninstall, smoke testing, and final release verification are complete.
+
+The current prepared desktop release target is `2.0.12`; do not tag or promote it until the exact-head and manual release gates in [`release.md`](release.md) are satisfied.
 
 Do not claim a desktop distribution as a medical device, diagnosis tool, or individualized health recommendation service.
