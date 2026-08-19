@@ -49,7 +49,7 @@ The Android client provides optional bounded local history and explicit backup/r
 - Accessible measurement-history chart with text/screen-reader summaries and no color-only health meaning.
 - Confirmation before erase-all, delete-all-data, and restore operations.
 - JSON backup through Android's document picker or explicit share chooser.
-- Defensive JSON restore with a 1 MiB limit, schema validation, malformed-record recovery, duplicate-ID protection, and bounded newest-first history.
+- Defensive JSON restore with a 1 MiB limit, schema/top-level structure validation, malformed-record recovery, duplicate-ID protection, bounded newest-first history, and fail-closed handling for non-empty backups with no valid records.
 - Portable backups cannot change current-device history opt-in, adult-use confirmation, or onboarding safety state.
 - Locale-aware decimal input plus locale-aware result/history formatting.
 - Full local-data deletion that restores first-run privacy defaults.
@@ -66,6 +66,7 @@ The Android client provides optional bounded local history and explicit backup/r
 - Metric and imperial adult BMI forms.
 - Metric and imperial waist-to-height forms.
 - Dot/comma decimal input support.
+- Strict split imperial height input: feet must be whole and the remaining inches component must stay below 12.
 - Shared-domain validation/reference rules rather than duplicated health logic.
 - Light/dark theme switch for the current session.
 - Evidence, project, support, and funding information.
@@ -86,6 +87,7 @@ The Android client provides optional bounded local history and explicit backup/r
 - Debug APK, unsigned release APK, unsigned release AAB, desktop JAR, DEB, MSI, and DMG artifact pipelines.
 - CodeQL, dependency review, full-history secret scanning, and Dependabot.
 - Repository invariant and internal Markdown-link audits.
+- Exhaustive tracked-file documentation: `scripts/check_repository.py` compares `git ls-files` with [`docs/repository-file-reference.md`](docs/repository-file-reference.md), so newly tracked files cannot remain undocumented.
 
 ## Supported platforms
 
@@ -186,6 +188,8 @@ More detail:
 - [`docs/development.md`](docs/development.md)
 - [`docs/desktop.md`](docs/desktop.md)
 - [`docs/troubleshooting.md`](docs/troubleshooting.md)
+- [`docs/documentation-map.md`](docs/documentation-map.md) — canonical documentation ownership and update matrix.
+- [`docs/repository-file-reference.md`](docs/repository-file-reference.md) — exact purpose of every tracked repository file.
 
 ## Testing and verification
 
@@ -258,7 +262,7 @@ Backup options are explicit user actions:
 - **Share JSON backup** opens Android's chooser.
 - **Restore from JSON backup** reads a selected local document and asks for confirmation before mutation.
 
-Backup reads/writes are capped at 1 MiB. Restore accepts schema version 1, validates/sanitizes records, deduplicates IDs, sorts accepted records by timestamp descending, and then applies retention.
+Backup reads/writes are capped at 1 MiB. Restore accepts schema version 1, requires the documented top-level `history` JSON array, validates/sanitizes records, rejects a non-empty array when no valid record survives, deduplicates IDs, sorts accepted records by timestamp descending, and then applies retention. An explicitly empty `history: []` remains a valid empty-history restore.
 
 Portable backups intentionally exclude history opt-in, adult-use confirmation, and onboarding completion. See [`docs/backup-format.md`](docs/backup-format.md).
 
@@ -328,8 +332,8 @@ HealthMetric/
 ├── androidApp/                 # Android UI, DataStore persistence, document/platform integrations
 ├── desktopApp/                 # Compose JVM desktop UI; ephemeral session state
 ├── shared/                     # Kotlin Multiplatform calculation/validation domain
-├── docs/                       # Architecture, desktop, backup, evidence, testing, release, ADRs
-├── scripts/                    # Repository/link audits and local verification
+├── docs/                       # Architecture, platform/data/test/release docs, ADRs, exhaustive file reference
+├── scripts/                    # Repository/link/release audits and local verification
 ├── gradle/libs.versions.toml   # Central dependency/version catalog
 └── .github/                    # CI, Android/desktop/Apple/security/release automation
 ```
@@ -343,6 +347,8 @@ Key references:
 - [`docs/backup-format.md`](docs/backup-format.md)
 - [`docs/design-system.md`](docs/design-system.md)
 - [`docs/evidence.md`](docs/evidence.md)
+- [`docs/documentation-map.md`](docs/documentation-map.md)
+- [`docs/repository-file-reference.md`](docs/repository-file-reference.md)
 - [`docs/adr/`](docs/adr/)
 
 ## Privacy and security
@@ -374,7 +380,7 @@ See [`docs/accessibility.md`](docs/accessibility.md).
 
 Contributions are welcome. Start with [`CONTRIBUTING.md`](CONTRIBUTING.md), follow the Code of Conduct, and keep changes focused and testable.
 
-Use fictional/example measurement values in bug reports, tests, and screenshots. Do not submit private health information.
+Use fictional/example measurement values in bug reports, tests, and screenshots. Do not submit private health information. When adding, deleting, or renaming a tracked file, update [`docs/repository-file-reference.md`](docs/repository-file-reference.md) in the same pull request; repository verification enforces this coverage.
 
 ## Roadmap
 
