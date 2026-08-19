@@ -23,8 +23,10 @@ Use Semantic Versioning:
 For a release:
 
 - keep Android `versionCode` monotonic;
-- update Android `versionName` to the release version;
-- update the desktop module version/package version to the same public release version;
+- update Android `versionName` to the public release version;
+- update the desktop project version to the public release version;
+- keep host-native package metadata valid for the target packaging tool while documenting any required platform-specific mapping;
+- for the planned public desktop `0.1.0` release, the macOS DMG uses native package metadata `1.0.0` because the DMG packaging tool requires a positive major component; this does not change the public HealthMetric version/tag;
 - update release notes and changelog consistently.
 
 ## Pre-release checklist
@@ -146,6 +148,8 @@ It also builds host-specific native installers:
 - Linux: `gradle :desktopApp:packageDeb` → `desktopApp/build/compose/binaries/main/deb/*.deb`;
 - Windows: `gradle :desktopApp:packageMsi` → `desktopApp/build/compose/binaries/main/msi/*.msi`;
 - macOS: `gradle :desktopApp:packageDmg` → `desktopApp/build/compose/binaries/main/dmg/*.dmg`.
+
+The public desktop application/release version and platform-native installer metadata are related but not always represented identically by every packaging tool. The current macOS DMG configuration uses a positive-major native package version while the public HealthMetric release remains `0.1.0`; the release tag/file names remain the source of truth for the public release version.
 
 The cross-platform Desktop workflow verifies both the runnable JAR and native installer on each matching host. The tagged release workflow stages and publishes both forms for each platform after the build jobs succeed.
 
