@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.KeyboardType
+import io.github.sanskarin.healthmetric.ui.format.LocalizedNumbers
 
 @Composable
 fun MeasurementNumberField(
@@ -29,12 +30,13 @@ fun MeasurementNumberField(
     OutlinedTextField(
         value = value,
         onValueChange = { candidate ->
-            val validCharacters = if (wholeNumbersOnly) {
-                candidate.all(Char::isDigit)
-            } else {
-                candidate.all { it.isDigit() || it == '.' } && candidate.count { it == '.' } <= 1
-            }
-            if (candidate.length <= maxLength && validCharacters) {
+            if (
+                LocalizedNumbers.isValidInput(
+                    candidate = candidate,
+                    wholeNumbersOnly = wholeNumbersOnly,
+                    maxLength = maxLength,
+                )
+            ) {
                 onValueChange(candidate)
             }
         },
