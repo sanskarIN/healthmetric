@@ -175,6 +175,14 @@ def main() -> int:
     if 'android:usesCleartextTraffic="false"' not in manifest:
         failures.append("AndroidManifest.xml must keep cleartext traffic disabled")
 
+    android_build = read("androidApp/build.gradle.kts")
+    for fragment in [
+        "versionCode = 20012",
+        'versionName = "2.0.12"',
+    ]:
+        if fragment not in android_build:
+            failures.append(f"androidApp/build.gradle.kts is missing 2.0.12 release metadata: {fragment}")
+
     settings = read("settings.gradle.kts")
     if 'include(":desktopApp")' not in settings:
         failures.append("settings.gradle.kts must include the desktop application module")
@@ -187,9 +195,13 @@ def main() -> int:
         "TargetFormat.Msi",
         "TargetFormat.Deb",
         "HealthMetric",
+        'version = "2.0.12"',
+        'packageVersion = "2.0.12"',
     ]:
         if fragment not in desktop_build:
             failures.append(f"desktopApp/build.gradle.kts is missing required configuration: {fragment}")
+    if 'packageVersion = "1.0.0"' in desktop_build:
+        failures.append("desktopApp/build.gradle.kts must not retain the obsolete macOS 1.0.0 package workaround")
 
     desktop_main = read("desktopApp/src/main/kotlin/io/github/sanskarin/healthmetric/desktop/Main.kt")
     for fragment in [
@@ -219,6 +231,15 @@ def main() -> int:
         if fragment not in history_screen:
             failures.append(f"HistoryScreen.kt is missing Android history safety invariant: {fragment}")
 
+    backup_io = read("androidApp/src/main/java/io/github/sanskarin/healthmetric/data/BackupIo.kt")
+    for fragment in [
+        "CodingErrorAction.REPORT",
+        ".onMalformedInput(CodingErrorAction.REPORT)",
+        ".onUnmappableCharacter(CodingErrorAction.REPORT)",
+    ]:
+        if fragment not in backup_io:
+            failures.append(f"BackupIo.kt is missing strict UTF-8 decoding invariant: {fragment}")
+
     data_store = read("androidApp/src/main/java/io/github/sanskarin/healthmetric/data/HealthMetricDataStore.kt")
     for fragment in [
         'requireNotNull(root.optJSONArray("history"))',
@@ -237,6 +258,9 @@ def main() -> int:
         "supportramsandesh@gmail.com",
         "MIT",
         "docs/desktop.md",
+        "2.0.12",
+        "v2.0.12",
+        "20012",
     ]
     for fragment in required_readme_fragments:
         if fragment not in readme:
@@ -248,6 +272,7 @@ def main() -> int:
         "adult-use confirmation",
         "1 mib",
         "desktop client",
+        "well-formed utf-8",
     ]:
         if phrase not in privacy_lower:
             failures.append(f"PRIVACY.md is missing required privacy invariant text: {phrase}")
@@ -320,6 +345,27 @@ def main() -> int:
             ":androidApp:lintRelease",
         ]:
             require_fragment(failures, verification_script, fragment, "local verification coverage")
+
+    release_version_validator = read("scripts/check_release_version.py")
+    for fragment in [
+        "ANDROID_VERSION_CODE_PATTERN",
+        "DESKTOP_PACKAGE_VERSION_PATTERN",
+        "android_version_code_for",
+        "major * 10_000 + minor * 100 + patch",
+        "Android versionCode",
+        "Desktop packageVersion",
+    ]:
+        if fragment not in release_version_validator:
+            failures.append(f"check_release_version.py is missing 2.0.12 version-integrity invariant: {fragment}")
+
+    release_version_tests = read("scripts/tests/test_check_release_version.py")
+    for fragment in [
+        '"2.0.12"',
+        "20_012",
+        "desktop_package_version",
+    ]:
+        if fragment not in release_version_tests:
+            failures.append(f"test_check_release_version.py is missing 2.0.12 regression coverage: {fragment}")
 
     release_workflow = ".github/workflows/release.yml"
     for fragment in [
