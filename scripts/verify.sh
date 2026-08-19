@@ -9,5 +9,6 @@ GRADLE_BIN="${GRADLE_BIN:-gradle}"
 "${GRADLE_BIN}" :androidApp:lintRelease
 "${GRADLE_BIN}" :androidApp:assembleDebug
 "${GRADLE_BIN}" :androidApp:assembleRelease
+"${GRADLE_BIN}" :androidApp:bundleRelease
 
 printf '\nHealthMetric verification completed successfully.\n'
