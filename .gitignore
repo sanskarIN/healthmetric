@@ -1,0 +1,38 @@
+# Gradle
+.gradle/
+build/
+**/build/
+
+# Local configuration
+local.properties
+.env
+.env.*
+!.env.example
+
+# IntelliJ / Android Studio
+.idea/
+*.iml
+navigation.xml
+captures/
+.externalNativeBuild/
+.cxx/
+
+# macOS / Windows
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Kotlin
+.kotlin/
+
+# Signing / secrets
+*.jks
+*.keystore
+*.p12
+*.pem
+*.key
+secrets.properties
+
+# Generated reports
+reports/
+benchmark-results/
