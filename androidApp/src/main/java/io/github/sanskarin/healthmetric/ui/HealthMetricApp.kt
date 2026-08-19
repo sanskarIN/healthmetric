@@ -25,6 +25,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -41,6 +42,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.sanskarin.healthmetric.R
 import io.github.sanskarin.healthmetric.data.CalculatorKind
+import io.github.sanskarin.healthmetric.data.HistoryEntry
 import io.github.sanskarin.healthmetric.data.SafeLogger
 import io.github.sanskarin.healthmetric.ui.screens.AboutScreen
 import io.github.sanskarin.healthmetric.ui.screens.AdultOnlyScreen
@@ -50,6 +52,9 @@ import io.github.sanskarin.healthmetric.ui.screens.OnboardingScreen
 import io.github.sanskarin.healthmetric.ui.screens.SettingsScreen
 import io.github.sanskarin.healthmetric.ui.screens.WaistToHeightScreen
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 private enum class AppScreen {
     CALCULATOR,
@@ -89,17 +94,22 @@ fun HealthMetricApp(
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     var screenName by rememberSaveable { mutableStateOf(AppScreen.CALCULATOR.name) }
+    var pendingFileExport by remember { mutableStateOf<String?>(null) }
     val screen = AppScreen.valueOf(screenName)
 
     val restoreSuccess = stringResource(R.string.restore_success)
     val restoreInvalid = stringResource(R.string.restore_invalid)
     val exportFailed = stringResource(R.string.export_failed)
+    val fileExportSaved = stringResource(R.string.file_export_saved)
+    val fileExportFailed = stringResource(R.string.file_export_failed)
     val readBackupFailed = stringResource(R.string.read_backup_failed)
     val openLinkFailed = stringResource(R.string.open_link_failed)
     val exportChooserFailed = stringResource(R.string.export_chooser_failed)
     val exportSubject = stringResource(R.string.export_subject)
     val exportChooserTitle = stringResource(R.string.export_chooser_title)
     val ratioHistorySummary = stringResource(R.string.ratio_history_summary)
+    val historyEntryDeleted = stringResource(R.string.history_entry_deleted)
+    val undoLabel = stringResource(R.string.undo)
 
     val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
@@ -118,6 +128,25 @@ fun HealthMetricApp(
         }
     }
 
+    val saveBackupLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json"),
+    ) { uri ->
+        val json = pendingFileExport
+        pendingFileExport = null
+        if (uri == null || json == null) return@rememberLauncherForActivityResult
+
+        runCatching {
+            context.contentResolver.openOutputStream(uri, "wt")?.writer(Charsets.UTF_8)?.buffered()?.use {
+                it.write(json)
+            } ?: error(fileExportFailed)
+        }.onSuccess {
+            scope.launch { snackbarHostState.showSnackbar(fileExportSaved) }
+        }.onFailure { error ->
+            SafeLogger.warn(SafeLogger.Event.EXPORT_FAILED, error)
+            scope.launch { snackbarHostState.showSnackbar(fileExportFailed) }
+        }
+    }
+
     fun openUri(rawUri: String) {
         runCatching {
             context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(rawUri)))
@@ -127,7 +156,7 @@ fun HealthMetricApp(
         }
     }
 
-    fun exportData() {
+    fun shareData() {
         viewModel.exportData(
             onReady = { json ->
                 val intent = Intent(Intent.ACTION_SEND).apply {
@@ -144,6 +173,31 @@ fun HealthMetricApp(
             },
             onError = { scope.launch { snackbarHostState.showSnackbar(exportFailed) } },
         )
+    }
+
+    fun saveDataToFile() {
+        viewModel.exportData(
+            onReady = { json ->
+                pendingFileExport = json
+                val stamp = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date())
+                saveBackupLauncher.launch("healthmetric-backup-$stamp.json")
+            },
+            onError = { scope.launch { snackbarHostState.showSnackbar(exportFailed) } },
+        )
+    }
+
+    fun deleteHistoryEntry(entry: HistoryEntry) {
+        viewModel.deleteHistoryEntry(entry) {
+            scope.launch {
+                val result = snackbarHostState.showSnackbar(
+                    message = historyEntryDeleted,
+                    actionLabel = undoLabel,
+                )
+                if (result == SnackbarResult.ActionPerformed) {
+                    viewModel.restoreHistoryEntry(entry)
+                }
+            }
+        }
     }
 
     val screenTitle = when (screen) {
@@ -238,14 +292,18 @@ fun HealthMetricApp(
                     AppScreen.HISTORY -> HistoryScreen(
                         history = state.history,
                         historyEnabled = state.preferences.historyEnabled,
+                        onDeleteEntry = ::deleteHistoryEntry,
                         onDeleteAll = viewModel::deleteHistory,
                     )
                     AppScreen.SETTINGS -> SettingsScreen(
                         historyEnabled = state.preferences.historyEnabled,
+                        historyRetentionLimit = state.preferences.historyRetentionLimit,
                         themeMode = state.preferences.themeMode,
                         onHistoryEnabledChange = viewModel::setHistoryEnabled,
+                        onHistoryRetentionLimitChange = viewModel::setHistoryRetentionLimit,
                         onThemeModeChange = viewModel::setThemeMode,
-                        onExport = ::exportData,
+                        onSaveBackup = ::saveDataToFile,
+                        onShareBackup = ::shareData,
                         onImport = { importLauncher.launch(arrayOf("application/json", "text/plain")) },
                         onDeleteAllData = viewModel::deleteAllLocalData,
                         onOpenReleases = { openUri("https://github.com/sanskarIN/healthmetric/releases") },
