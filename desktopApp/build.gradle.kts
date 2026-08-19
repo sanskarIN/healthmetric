@@ -17,7 +17,6 @@ dependencies {
     implementation(project(":shared"))
     implementation(compose.desktop.currentOs)
     implementation(compose.material3)
-    implementation(compose.materialIconsExtended)
     testImplementation(kotlin("test"))
 }
 
