@@ -1025,3 +1025,229 @@ The next verifier must:
 8. inspect post-merge `main` automation;
 9. compare PR #13 against merged `main` and close PR #13 as superseded only if no meaningful unique change remains;
 10. keep `v0.1.0` untagged until physical Android, TalkBack/visual review, target-host desktop smoke/accessibility review, and protected signing/trust requirements are actually satisfied.
+
+## Deep documentation completion pass
+
+This section records the repository-wide documentation pass performed after the correctness/state/release-integrity work above. The goal was not to inflate documentation volume mechanically; it was to make every tracked file discoverable, assign canonical documentation ownership, and remove stale operational statements from the current branch.
+
+### Exhaustive tracked-file reference completed
+
+Added:
+
+`docs/repository-file-reference.md`
+
+The reference documents every tracked repository file by its exact repository-relative path and explains its responsibility/maintenance boundary. Coverage includes:
+
+- root metadata/configuration/community files;
+- every GitHub issue/PR/release template;
+- every GitHub Actions workflow;
+- Android build/manifest/production Kotlin files;
+- every Android resource file;
+- every Android JVM and instrumentation test;
+- all shared Kotlin Multiplatform production/test files;
+- all desktop production/test files;
+- Gradle version catalog;
+- every Python/shell/PowerShell repository/release script and Python tooling test;
+- every project documentation file;
+- all five ADRs;
+- logo and screenshot-policy assets.
+
+This is the repository's file-by-file answer to the requirement that documentation not skip files.
+
+### Documentation ownership map completed
+
+Added:
+
+`docs/documentation-map.md`
+
+It defines:
+
+- documentation principles;
+- entry points by audience (users, contributors, maintainers/release owners);
+- the canonical document for each topic;
+- a change-type → required-document-review/update matrix;
+- ADR creation/supersession policy;
+- rules against overstating CI, screenshots, signing, iOS UI, persistence, or medical meaning;
+- the maintenance procedure for new/deleted/renamed tracked files.
+
+This prevents future contributors from guessing whether a behavior belongs in README, privacy, backup, architecture, testing, release, evidence, or another specialist document.
+
+### Tracked-file documentation became a machine-checked invariant
+
+`scripts/check_repository.py` now runs `git ls-files -z`, reads the exhaustive repository file reference, and requires every tracked path to occur there exactly in backticks.
+
+Consequences:
+
+- a newly tracked source file cannot remain undocumented while CI is green;
+- workflows, scripts, tests, assets, configuration and documentation files receive the same treatment as production Kotlin;
+- a deletion/rename must reconcile the old file-reference entry;
+- contributors cannot satisfy the intent merely by documenting major modules while silently adding infrastructure files.
+
+The repository invariant also includes the late Android restore guard for non-empty backup history arrays that contain no valid entries.
+
+A wording mismatch in that invariant was found during review (`records` versus the implementation's exact `entries` wording) and corrected immediately so CI would check the real implementation contract rather than fail on a stale string.
+
+### README discoverability completed
+
+README now:
+
+- links the documentation ownership map;
+- links the exhaustive tracked-file reference;
+- explains that repository CI compares `git ls-files` with the reference;
+- documents the stricter Android restore distinction between intentional empty history and non-empty all-invalid history;
+- documents strict desktop split-height remaining inches in `[0, 12)`;
+- tells contributors to update the file reference for tracked-file structure changes.
+
+### Contributor and PR governance completed
+
+`CONTRIBUTING.md` now includes a dedicated documentation-maintenance contract.
+
+`.github/PULL_REQUEST_TEMPLATE.md` now requires reviewers/contributors to confirm:
+
+- documentation-map review;
+- exhaustive file-reference reconciliation;
+- exact `git ls-files` coverage;
+- canonical architecture/privacy/evidence/testing/release updates where applicable;
+- ADR review for durable boundary changes;
+- current backup structure/all-invalid behavior;
+- desktop split-height input semantics.
+
+`docs/github-governance.md` now treats exhaustive documentation as a repository-governance invariant and explicitly explains why meaningful granular documentation commits are valid while empty/churn commits are not.
+
+### Development/setup/troubleshooting documentation completed
+
+`docs/development.md` now documents exact source/test ownership across shared, Android, and desktop, including Android `ui/state`, platform test placement, documentation ownership, current backup transaction semantics, and split imperial component validation.
+
+`docs/setup.md` fixed a real prerequisite omission: Python 3 is now explicitly required for repository/documentation/release tooling. It documents that the current Python tooling uses the standard library and gives the exact repository/tooling commands.
+
+`docs/troubleshooting.md` now covers:
+
+- missing Python;
+- undocumented tracked-file invariant failures;
+- why `git ls-files` requires a real Git checkout;
+- release-tooling Python test failures;
+- desktop remaining-inch validation behavior;
+- current three-host native desktop packaging rather than older JAR-only wording;
+- missing/non-array/all-invalid Android backup restore failures;
+- no-mutation expectations on failed restores;
+- chart/saved-state regressions;
+- tagged release preflight and exact artifact-set failures;
+- exact-head-versus-superseded CI interpretation.
+
+### Architecture, privacy, security, testing, accessibility, design, and performance completed
+
+`docs/architecture.md` now describes:
+
+- explicit dependency direction;
+- Android/desktop input and data flows;
+- Android saved-state and chart safety boundaries;
+- backup structure/all-invalid transaction behavior;
+- desktop split-height presentation boundary versus shared adult range validation;
+- repository/documentation architecture;
+- tagged release trust boundaries.
+
+`PRIVACY.md` now documents the exact schema-v1 restore distinction:
+
+- `history: []` is intentional empty history;
+- missing/wrong-type `history` is rejected;
+- a non-empty all-invalid history array is rejected before mutation;
+- valid neighbors can survive malformed records;
+- consent/adult-gate state remains device-local.
+
+`SECURITY.md` now includes the same untrusted-backup model plus chart/saved-state defenses, desktop parser/split-height boundaries, exact release tag/asset validation, least-privilege publication, exhaustive tracked-file documentation, and exact-head security evidence rules.
+
+`docs/testing.md` now includes:
+
+- repository/documentation integrity as its own automated layer;
+- all-invalid backup regression behavior;
+- desktop remaining-inch boundaries;
+- an expanded regression placement policy and validation edge-case matrix.
+
+`docs/accessibility.md` now covers age-gate correction, About back navigation, finite-safe chart alternatives, split-height error discoverability, and exact remaining manual accessibility evidence.
+
+`docs/design-system.md` now documents current interaction/recovery states, test-tag/accessibility separation, desktop split-height form semantics, About return behavior, and finite-safe chart design rules.
+
+`docs/performance.md` now covers bounded restore validation, finite-safe chart arithmetic, desktop input cost, repository/release tooling cost, and performance-specific release review without inventing benchmark claims.
+
+`docs/evidence.md` was deliberately left substantively unchanged in this pass because its versioned evidence/source contract was already internally coherent and there was no new health-reference decision. The file remains documented in the exhaustive reference and canonical ownership map.
+
+### Release documentation completed
+
+`docs/release.md` now treats documentation integrity as a release gate and requires:
+
+- exact tracked-file reference coverage;
+- documentation-map consistency;
+- exact-head workflow evidence;
+- current backup malformed/all-invalid checks;
+- desktop split-height checks;
+- exact eight-binary release assets and checksums;
+- human/device/accessibility/signing/trust gates to remain separate from automation.
+
+`.github/RELEASE_TEMPLATE.md` now contains matching documentation-integrity, backup, split-height, exact-head, artifact, signing and manual-acceptance checklist items.
+
+### Project status documents reconciled
+
+`CHANGELOG.md` now records:
+
+- the exhaustive file reference/documentation map;
+- `git ls-files` documentation enforcement;
+- all-invalid Android restore hardening;
+- desktop remaining-inch hardening;
+- Python setup correction;
+- expanded privacy/security/governance documentation.
+
+`ROADMAP.md` now marks the documentation ownership map, exhaustive file-level reference and machine-checked tracked-file coverage complete, while keeping exact-head CI, physical Android, accessibility, screenshots, target-host smoke testing and signing/trust tasks open.
+
+### Focused commits from the deep documentation pass
+
+The documentation work remained granular. Focused commit messages include:
+
+- `docs: add documentation ownership map`;
+- `docs: document every tracked repository file`;
+- `ci: require documentation for every tracked file`;
+- `fix(ci): align backup invariant with implementation`;
+- `docs: expose exhaustive documentation from readme`;
+- `docs: require file-level documentation maintenance`;
+- `docs: enforce documentation coverage in pull requests`;
+- `docs: govern exhaustive repository documentation`;
+- `docs: deepen module and documentation maintenance guide`;
+- `docs: complete regression and documentation-integrity matrix`;
+- `docs: complete architecture and data-boundary reference`;
+- `docs: reconcile release guide with final integrity gates`;
+- `docs: complete setup and verification prerequisites`;
+- `docs: complete troubleshooting for current verification stack`;
+- `docs: complete desktop behavior and packaging contract`;
+- `docs: complete privacy contract for defensive restore`;
+- `docs: deepen security threat and release boundaries`;
+- `docs: record exhaustive documentation and late hardening`;
+- `docs: reconcile roadmap with documentation completion`;
+- `docs: add documentation integrity to release template`;
+- `docs: complete accessibility acceptance guidance`;
+- `docs: align performance guide with bounded data safeguards`;
+- `docs: align design system with current interaction states`;
+- this handoff commit.
+
+### Documentation completeness definition after this pass
+
+For this repository, “complete documentation” now means all of the following rather than only a long README:
+
+1. every tracked file has an exact-path responsibility entry;
+2. every detailed contract has an identified canonical document;
+3. contributor/reviewer/release workflows tell maintainers when those documents must change;
+4. repository automation rejects newly tracked undocumented files;
+5. specialist docs agree on Android persistence, desktop ephemerality, adult-use scope, backup transaction behavior, supported targets and release artifacts;
+6. project status documents distinguish completed repository work from unresolved manual/external release gates.
+
+### Exact-head verification required after this documentation commit
+
+This handoff update becomes the new PR #14 head. All earlier workflow results are superseded for merge/release-readiness purposes.
+
+The exact next actions are:
+
+1. fetch PR #14 and record this commit's exact head SHA;
+2. inspect only workflow runs attached to that head;
+3. require `CI` to pass the new `git ls-files` documentation invariant and Markdown-link audit;
+4. require Android instrumentation, Desktop, Apple shared core, CodeQL, Dependency Review and Secret Scan to pass on the same head;
+5. inspect exact-head Android screenshot and Desktop host artifacts when workflows complete;
+6. make no additional code/documentation change unless a concrete exact-head verification failure is found;
+7. do not create `v0.1.0` until physical Android, manual accessibility/screenshot review, desktop target-host acceptance and protected signing/trust requirements are actually complete.
