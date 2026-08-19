@@ -31,6 +31,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -40,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import io.github.sanskarin.healthmetric.R
 import io.github.sanskarin.healthmetric.data.CalculatorKind
 import io.github.sanskarin.healthmetric.data.HistoryEntry
+import io.github.sanskarin.healthmetric.ui.testing.HealthMetricTestTags
 import java.text.DateFormat
 import java.util.Date
 
@@ -56,7 +58,9 @@ fun HistoryScreen(
     val filtered = history.filter { it.calculator == selectedKind }
 
     LazyColumn(
-        modifier = Modifier.padding(horizontal = 20.dp),
+        modifier = Modifier
+            .padding(horizontal = 20.dp)
+            .testTag(HealthMetricTestTags.HISTORY_LIST),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
