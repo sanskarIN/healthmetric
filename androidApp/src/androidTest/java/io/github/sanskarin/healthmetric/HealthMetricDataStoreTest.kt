@@ -145,6 +145,59 @@ class HealthMetricDataStoreTest {
     }
 
     @Test
+    fun nonEmptyHistoryWithNoValidEntriesIsRejectedBeforeLocalMutation() = runBlocking {
+        dataStore.setHistoryEnabled(true)
+        dataStore.setThemeMode(AppThemeMode.DARK)
+        dataStore.addHistory(entry(id = "existing", value = 22.4))
+
+        val result = runCatching {
+            dataStore.restoreFromJson(
+                """
+                    {
+                      "schemaVersion": 1,
+                      "historyRetentionLimit": 50,
+                      "themeMode": "LIGHT",
+                      "history": [
+                        {
+                          "id": "",
+                          "timestampEpochMillis": -1,
+                          "calculator": "UNKNOWN",
+                          "value": 22.0
+                        }
+                      ]
+                    }
+                """.trimIndent(),
+            )
+        }
+
+        assertTrue(result.isFailure)
+        assertEquals(AppThemeMode.DARK, dataStore.preferences.first().themeMode)
+        assertEquals("existing", dataStore.history.first().single().id)
+    }
+
+    @Test
+    fun explicitEmptyHistoryArrayCanIntentionallyClearPortableHistory() = runBlocking {
+        dataStore.setHistoryEnabled(true)
+        dataStore.setThemeMode(AppThemeMode.DARK)
+        dataStore.addHistory(entry(id = "existing", value = 22.4))
+
+        dataStore.restoreFromJson(
+            """
+                {
+                  "schemaVersion": 1,
+                  "historyRetentionLimit": 50,
+                  "themeMode": "LIGHT",
+                  "history": []
+                }
+            """.trimIndent(),
+        )
+
+        assertTrue(dataStore.history.first().isEmpty())
+        assertEquals(AppThemeMode.LIGHT, dataStore.preferences.first().themeMode)
+        assertTrue(dataStore.preferences.first().historyEnabled)
+    }
+
+    @Test
     fun entryCanBeDeletedAndRestoredWithoutChangingHistoryPreference() = runBlocking {
         dataStore.setHistoryEnabled(true)
         val saved = entry(id = "undo-me", value = 21.8)
