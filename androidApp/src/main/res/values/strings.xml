@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">HealthMetric</string>
+    <string name="app_tagline">Private, neutral adult health measurements</string>
+    <string name="adult_only_notice">HealthMetric uses adult reference information. It is not intended for people under 18 and does not provide medical diagnosis.</string>
+    <string name="made_by">Made by the Sanskar</string>
+</resources>
