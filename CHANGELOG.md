@@ -6,9 +6,9 @@ All notable HealthMetric changes are documented here. The project follows Semant
 
 ### Added
 
-- Kotlin Multiplatform shared calculation module with Android and JVM targets.
+- Kotlin Multiplatform shared calculation module with Android, JVM, iOS device, and iOS simulator targets.
 - Adult metric and imperial BMI calculation.
-- Versioned adult BMI reference profile and evidence metadata.
+- Versioned adult BMI reference profile and evidence metadata with explicit source review date.
 - Adult waist-to-height ratio calculator.
 - Metric/imperial conversion helpers.
 - Strict finite-value and plausible-range input validation.
@@ -18,9 +18,11 @@ All notable HealthMetric changes are documented here. The project follows Semant
 - User-selectable history retention limits of 50, 100, 250, or 500 results.
 - Per-entry history deletion with immediate snackbar undo.
 - Accessible neutral measurement history chart with screen-reader summaries.
-- Confirmation for destructive history deletion and complete local-data deletion.
+- Confirmation for destructive history deletion, complete local-data deletion, and backup restore.
 - Storage Access Framework JSON backup-to-file flow in addition to explicit share export.
 - Defensive JSON restore with 1 MiB backup size cap, schema validation, malformed-record recovery, duplicate-ID handling, and bounded history.
+- Device-local consent/safety boundary that keeps history opt-in, adult-use confirmation, and onboarding state out of portable backup restore.
+- Locale-aware decimal parsing and numeric formatting for calculator inputs/results/history.
 - Light, dark, system, and Android dynamic-color theming.
 - Branded Android splash/launch treatment.
 - Adaptive, round, and Android 13+ themed launcher icons.
@@ -29,10 +31,10 @@ All notable HealthMetric changes are documented here. The project follows Semant
 - Stable Compose semantics tags for critical UI automation journeys.
 - Externalized Android UI strings for localization-ready presentation.
 - Privacy-safe structured operational logger with fixed event names.
-- GitHub Actions CI, CodeQL, dependency review, secret scanning, Android emulator instrumentation, tagged release automation, and Dependabot.
+- GitHub Actions CI, CodeQL, dependency review, secret scanning, Android emulator instrumentation, Apple shared-core compilation, tagged release automation, and Dependabot.
 - CI assembly of both debug and unsigned release APKs.
-- Domain unit, boundary, conversion, validation, deterministic property, onboarding UI, privacy-default, retention-policy, and bounded backup IO tests.
-- Instrumentation tests for BMI/ratio success and error journeys, privacy settings, history controls, retention, DataStore export/restore, malformed backups, and deletion/restore behavior.
+- Domain unit, boundary, conversion, validation, deterministic property, onboarding UI, adult-gate, privacy-default, retention-policy, locale-number, and bounded backup IO tests.
+- Instrumentation tests for BMI/ratio success and error journeys, privacy settings, history controls, retention, DataStore export/restore, malformed backups, consent/safety boundaries, and deletion/restore behavior.
 - Repository community, security, support, privacy, design-system, evidence, and contribution documentation.
 
 ### Changed
@@ -40,6 +42,8 @@ All notable HealthMetric changes are documented here. The project follows Semant
 - GitHub Actions workflow dependencies were updated to current supported major versions for checkout, Java setup, Gradle setup, CodeQL, dependency review, and artifact upload where applicable.
 - Release CI now runs Android unit tests and release lint before creating an unsigned APK.
 - Lowering the local history retention limit immediately trims older entries beyond the newly selected limit.
+- Portable backups now contain only portable settings/history; current history opt-in and adult-use/onboarding state remain device-local.
+- File export generates backup content after the user selects the destination document, avoiding reliance on transient pre-launch payload state.
 
 ### Security
 
@@ -51,6 +55,7 @@ All notable HealthMetric changes are documented here. The project follows Semant
 - Malformed history records are ignored individually instead of invalidating valid neighboring records.
 - Duplicate/blank history identifiers, negative timestamps, non-finite values, and unknown calculator types are rejected during restore.
 - Local history requires explicit opt-in on fresh/default state.
+- Import cannot enable adult-only reference calculators or silently enable future history saving.
 - Secret scanning checks repository history in CI.
 
 ### Known verification limitation
