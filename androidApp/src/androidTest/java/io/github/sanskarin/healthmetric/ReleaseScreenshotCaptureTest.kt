@@ -25,20 +25,23 @@ class ReleaseScreenshotCaptureTest {
 
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
     private val targetContext = instrumentation.targetContext
+    private val dataStore = HealthMetricDataStore(targetContext)
     private val screenshotDirectory: File
         get() = File(requireNotNull(targetContext.getExternalFilesDir(null)), SCREENSHOT_DIRECTORY)
 
     @Before
-    fun clearPreviousScreenshots() {
+    fun resetReleaseEvidenceState() = runBlocking {
+        dataStore.deleteAllLocalData()
         screenshotDirectory.deleteRecursively()
         check(screenshotDirectory.mkdirs() || screenshotDirectory.isDirectory) {
             "Could not create release screenshot directory."
         }
+        composeRule.waitForIdle()
     }
 
     @After
     fun clearLocalState() = runBlocking {
-        HealthMetricDataStore(targetContext).deleteAllLocalData()
+        dataStore.deleteAllLocalData()
     }
 
     @Test
@@ -53,10 +56,11 @@ class ReleaseScreenshotCaptureTest {
         composeRule.onNodeWithTag(HealthMetricTestTags.NAV_SETTINGS).performClick()
         composeRule.onNodeWithText("Privacy & data").assertIsDisplayed()
         composeRule.onNodeWithTag(HealthMetricTestTags.SETTINGS_HISTORY_SWITCH).performClick()
-        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Save local history").assertIsDisplayed()
         capture("06-settings.png")
 
         composeRule.onNodeWithTag(HealthMetricTestTags.NAV_BMI).performClick()
+        composeRule.onNodeWithText("Calculate and save locally").assertIsDisplayed()
         composeRule.onNodeWithTag(HealthMetricTestTags.BMI_WEIGHT).performTextInput("70")
         composeRule.onNodeWithTag(HealthMetricTestTags.BMI_HEIGHT_CM).performTextInput("175")
         composeRule.onNodeWithTag(HealthMetricTestTags.BMI_CALCULATE).performClick()
@@ -72,6 +76,7 @@ class ReleaseScreenshotCaptureTest {
 
         composeRule.onNodeWithTag(HealthMetricTestTags.NAV_HISTORY).performClick()
         composeRule.onNodeWithTag(HealthMetricTestTags.HISTORY_LIST).assertIsDisplayed()
+        composeRule.onNodeWithText("BMI 22.9").assertIsDisplayed()
         capture("05-history.png")
 
         composeRule.onNodeWithTag(HealthMetricTestTags.ABOUT_OPEN).performClick()
