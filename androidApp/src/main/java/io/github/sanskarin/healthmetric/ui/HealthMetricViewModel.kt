@@ -78,24 +78,24 @@ class HealthMetricViewModel(application: Application) : AndroidViewModel(applica
         }
     }
 
-    fun exportData(onReady: (String) -> Unit, onError: (String) -> Unit) {
+    fun exportData(onReady: (String) -> Unit, onError: () -> Unit) {
         viewModelScope.launch {
             runCatching { dataStore.exportJson() }
                 .onSuccess(onReady)
                 .onFailure { error ->
                     SafeLogger.warn(SafeLogger.Event.EXPORT_FAILED, error)
-                    onError("Could not export local data.")
+                    onError()
                 }
         }
     }
 
-    fun restoreData(rawJson: String, onComplete: (Boolean, String) -> Unit) {
+    fun restoreData(rawJson: String, onComplete: (Boolean) -> Unit) {
         viewModelScope.launch {
             runCatching { dataStore.restoreFromJson(rawJson) }
-                .onSuccess { onComplete(true, "Local backup restored.") }
+                .onSuccess { onComplete(true) }
                 .onFailure { error ->
                     SafeLogger.warn(SafeLogger.Event.RESTORE_FAILED, error)
-                    onComplete(false, "The selected backup is invalid or unsupported.")
+                    onComplete(false)
                 }
         }
     }
