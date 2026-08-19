@@ -23,11 +23,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import io.github.sanskarin.healthmetric.R
 import io.github.sanskarin.healthmetric.domain.WaistToHeightCalculator
 import io.github.sanskarin.healthmetric.domain.WaistToHeightResult
 import io.github.sanskarin.healthmetric.ui.components.MeasurementNumberField
+import io.github.sanskarin.healthmetric.ui.theme.HealthMetricSpacing
 
 @Composable
 fun WaistToHeightScreen(
@@ -47,8 +47,8 @@ fun WaistToHeightScreen(
     Column(
         modifier = Modifier
             .verticalScroll(rememberScrollState())
-            .padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+            .padding(HealthMetricSpacing.lg),
+        verticalArrangement = Arrangement.spacedBy(HealthMetricSpacing.md),
     ) {
         Text(
             text = stringResource(R.string.waist_title),
@@ -60,7 +60,7 @@ fun WaistToHeightScreen(
             text = stringResource(R.string.waist_intro),
             style = MaterialTheme.typography.bodyMedium,
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(HealthMetricSpacing.xs)) {
             FilterChip(
                 selected = useMetric,
                 onClick = { useMetric = true; result = null; error = null },
@@ -129,8 +129,8 @@ fun WaistToHeightScreen(
         result?.let { ratioResult ->
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(
-                    modifier = Modifier.padding(18.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.padding(HealthMetricSpacing.lg),
+                    verticalArrangement = Arrangement.spacedBy(HealthMetricSpacing.xs),
                 ) {
                     Text(
                         text = stringResource(R.string.ratio_result, ratioResult.displayRatio.toString()),
