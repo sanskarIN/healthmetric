@@ -8,13 +8,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -27,7 +25,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import io.github.sanskarin.healthmetric.R
 import io.github.sanskarin.healthmetric.domain.BmiCalculator
@@ -35,6 +32,7 @@ import io.github.sanskarin.healthmetric.domain.BmiResult
 import io.github.sanskarin.healthmetric.domain.ImperialBodyInput
 import io.github.sanskarin.healthmetric.domain.MetricBodyInput
 import io.github.sanskarin.healthmetric.domain.UnitSystem
+import io.github.sanskarin.healthmetric.ui.components.MeasurementNumberField
 
 @Composable
 fun CalculatorScreen(
@@ -95,28 +93,30 @@ fun CalculatorScreen(
         }
 
         if (unitSystem == UnitSystem.METRIC) {
-            NumberField(
+            MeasurementNumberField(
                 value = weight,
                 onValueChange = { weight = it },
                 label = stringResource(R.string.weight_kg),
             )
-            NumberField(
+            MeasurementNumberField(
                 value = heightCm,
                 onValueChange = { heightCm = it },
                 label = stringResource(R.string.height_cm),
             )
         } else {
-            NumberField(
+            MeasurementNumberField(
                 value = weight,
                 onValueChange = { weight = it },
                 label = stringResource(R.string.weight_lb),
             )
-            NumberField(
+            MeasurementNumberField(
                 value = feet,
-                onValueChange = { feet = it.filter(Char::isDigit).take(1) },
+                onValueChange = { feet = it },
                 label = stringResource(R.string.height_feet),
+                wholeNumbersOnly = true,
+                maxLength = 1,
             )
-            NumberField(
+            MeasurementNumberField(
                 value = inches,
                 onValueChange = { inches = it },
                 label = stringResource(R.string.height_inches_additional),
@@ -203,24 +203,4 @@ fun CalculatorScreen(
             }
         }
     }
-}
-
-@Composable
-private fun NumberField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    label: String,
-) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = { candidate ->
-            if (candidate.length <= 12 && candidate.all { it.isDigit() || it == '.' }) {
-                onValueChange(candidate)
-            }
-        },
-        label = { Text(label) },
-        singleLine = true,
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-        modifier = Modifier.fillMaxWidth(),
-    )
 }
