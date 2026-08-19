@@ -30,6 +30,10 @@ compose.desktop {
             packageVersion = "0.1.0"
             description = "Privacy-first adult health measurement calculator"
             vendor = "Sanskar"
+
+            macOS {
+                packageVersion = "1.0.0"
+            }
         }
     }
 }
