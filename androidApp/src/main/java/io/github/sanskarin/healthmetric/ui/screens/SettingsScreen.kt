@@ -22,6 +22,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -31,6 +32,7 @@ import io.github.sanskarin.healthmetric.BuildConfig
 import io.github.sanskarin.healthmetric.R
 import io.github.sanskarin.healthmetric.data.AppThemeMode
 import io.github.sanskarin.healthmetric.data.HistoryRetentionPolicy
+import io.github.sanskarin.healthmetric.ui.testing.HealthMetricTestTags
 
 @Composable
 fun SettingsScreen(
@@ -79,6 +81,7 @@ fun SettingsScreen(
                 Switch(
                     checked = historyEnabled,
                     onCheckedChange = onHistoryEnabledChange,
+                    modifier = Modifier.testTag(HealthMetricTestTags.SETTINGS_HISTORY_SWITCH),
                 )
             }
 
