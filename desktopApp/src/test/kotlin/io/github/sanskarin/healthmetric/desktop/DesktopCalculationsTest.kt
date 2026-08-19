@@ -18,11 +18,12 @@ class DesktopCalculationsTest {
 
     @Test
     fun imperialBmiAcceptsFeetAndRemainingInches() {
-        val outcome = DesktopCalculations.imperialBmi(
-            weightLb = "154.324",
-            feet = "5",
-            inches = "8.8976",
-        )
+        val outcome =
+            DesktopCalculations.imperialBmi(
+                weightLb = "154.324",
+                feet = "5",
+                inches = "8.8976",
+            )
         val success = assertIs<DesktopCalculationOutcome.Success>(outcome)
 
         assertEquals("BMI 22.9", success.valueLabel)
