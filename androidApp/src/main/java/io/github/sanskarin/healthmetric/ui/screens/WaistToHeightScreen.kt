@@ -21,11 +21,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import io.github.sanskarin.healthmetric.R
 import io.github.sanskarin.healthmetric.domain.WaistToHeightCalculator
 import io.github.sanskarin.healthmetric.domain.WaistToHeightResult
 
@@ -40,6 +42,10 @@ fun WaistToHeightScreen(
     var result by remember { mutableStateOf<WaistToHeightResult?>(null) }
     var error by rememberSaveable { mutableStateOf<String?>(null) }
 
+    val invalidWaist = stringResource(R.string.invalid_waist)
+    val invalidHeight = stringResource(R.string.invalid_height)
+    val measurementError = stringResource(R.string.measurement_error)
+
     Column(
         modifier = Modifier
             .verticalScroll(rememberScrollState())
@@ -47,42 +53,50 @@ fun WaistToHeightScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text(
-            text = "Adult waist-to-height ratio",
+            text = stringResource(R.string.waist_title),
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.semantics { heading() },
         )
         Text(
-            text = "A neutral measurement tool for adults. The result is not a diagnosis and is not presented as an appearance target.",
+            text = stringResource(R.string.waist_intro),
             style = MaterialTheme.typography.bodyMedium,
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FilterChip(
                 selected = useMetric,
                 onClick = { useMetric = true; result = null; error = null },
-                label = { Text("Centimetres") },
+                label = { Text(stringResource(R.string.centimetres)) },
             )
             FilterChip(
                 selected = !useMetric,
                 onClick = { useMetric = false; result = null; error = null },
-                label = { Text("Inches") },
+                label = { Text(stringResource(R.string.inches)) },
             )
         }
         RatioNumberField(
             value = waist,
             onValueChange = { waist = it },
-            label = if (useMetric) "Waist (cm)" else "Waist (inches)",
+            label = if (useMetric) {
+                stringResource(R.string.waist_cm)
+            } else {
+                stringResource(R.string.waist_inches)
+            },
         )
         RatioNumberField(
             value = height,
             onValueChange = { height = it },
-            label = if (useMetric) "Height (cm)" else "Height (inches)",
+            label = if (useMetric) {
+                stringResource(R.string.height_cm)
+            } else {
+                stringResource(R.string.height_inches)
+            },
         )
         Button(
             onClick = {
                 val calculation = runCatching {
-                    val waistValue = waist.toDoubleOrNull() ?: error("Enter a valid waist measurement.")
-                    val heightValue = height.toDoubleOrNull() ?: error("Enter a valid height.")
+                    val waistValue = waist.toDoubleOrNull() ?: error(invalidWaist)
+                    val heightValue = height.toDoubleOrNull() ?: error(invalidHeight)
                     if (useMetric) {
                         WaistToHeightCalculator.calculateMetric(waistValue, heightValue)
                     } else {
@@ -95,12 +109,18 @@ fun WaistToHeightScreen(
                     onRecord(it)
                 }.onFailure {
                     result = null
-                    error = it.message ?: "Check the measurements and try again."
+                    error = it.message ?: measurementError
                 }
             },
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text(if (historyEnabled) "Calculate and save locally" else "Calculate")
+            Text(
+                if (historyEnabled) {
+                    stringResource(R.string.calculate_save)
+                } else {
+                    stringResource(R.string.calculate)
+                },
+            )
         }
         error?.let {
             Text(
@@ -115,12 +135,12 @@ fun WaistToHeightScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Text(
-                        text = "Ratio ${ratioResult.displayRatio}",
+                        text = stringResource(R.string.ratio_result, ratioResult.displayRatio.toString()),
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.SemiBold,
                     )
                     Text(
-                        text = "This value is shown neutrally without appearance rankings or pressure-oriented goals.",
+                        text = stringResource(R.string.ratio_neutral_note),
                         style = MaterialTheme.typography.bodyMedium,
                     )
                     Text(
