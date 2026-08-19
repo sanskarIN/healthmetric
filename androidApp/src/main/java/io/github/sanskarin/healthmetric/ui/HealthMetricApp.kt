@@ -42,6 +42,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.sanskarin.healthmetric.R
@@ -56,6 +57,7 @@ import io.github.sanskarin.healthmetric.ui.screens.HistoryScreen
 import io.github.sanskarin.healthmetric.ui.screens.OnboardingScreen
 import io.github.sanskarin.healthmetric.ui.screens.SettingsScreen
 import io.github.sanskarin.healthmetric.ui.screens.WaistToHeightScreen
+import io.github.sanskarin.healthmetric.ui.testing.HealthMetricTestTags
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -242,7 +244,10 @@ fun HealthMetricApp(
                 title = { Text(stringResource(R.string.top_bar_title, screenTitle)) },
                 navigationIcon = {
                     if (screen == AppScreen.ABOUT) {
-                        IconButton(onClick = ::closeAbout) {
+                        IconButton(
+                            onClick = ::closeAbout,
+                            modifier = Modifier.testTag(HealthMetricTestTags.ABOUT_BACK),
+                        ) {
                             Icon(
                                 Icons.Outlined.ArrowBack,
                                 contentDescription = stringResource(R.string.navigate_back),
@@ -252,7 +257,10 @@ fun HealthMetricApp(
                 },
                 actions = {
                     if (screen != AppScreen.ABOUT) {
-                        IconButton(onClick = ::openAbout) {
+                        IconButton(
+                            onClick = ::openAbout,
+                            modifier = Modifier.testTag(HealthMetricTestTags.ABOUT_OPEN),
+                        ) {
                             Icon(
                                 Icons.Outlined.Info,
                                 contentDescription = stringResource(R.string.about_content_description),
@@ -271,24 +279,28 @@ fun HealthMetricApp(
                         onClick = { screenName = AppScreen.CALCULATOR.name },
                         icon = { Icon(Icons.Outlined.Calculate, contentDescription = null) },
                         label = { Text(stringResource(R.string.screen_bmi)) },
+                        modifier = Modifier.testTag(HealthMetricTestTags.NAV_BMI),
                     )
                     NavigationBarItem(
                         selected = screen == AppScreen.WAIST,
                         onClick = { screenName = AppScreen.WAIST.name },
                         icon = { Icon(Icons.Outlined.Straighten, contentDescription = null) },
                         label = { Text(stringResource(R.string.nav_ratio)) },
+                        modifier = Modifier.testTag(HealthMetricTestTags.NAV_WAIST),
                     )
                     NavigationBarItem(
                         selected = screen == AppScreen.HISTORY,
                         onClick = { screenName = AppScreen.HISTORY.name },
                         icon = { Icon(Icons.Outlined.History, contentDescription = null) },
                         label = { Text(stringResource(R.string.screen_history)) },
+                        modifier = Modifier.testTag(HealthMetricTestTags.NAV_HISTORY),
                     )
                     NavigationBarItem(
                         selected = screen == AppScreen.SETTINGS,
                         onClick = { screenName = AppScreen.SETTINGS.name },
                         icon = { Icon(Icons.Outlined.Settings, contentDescription = null) },
                         label = { Text(stringResource(R.string.screen_settings)) },
+                        modifier = Modifier.testTag(HealthMetricTestTags.NAV_SETTINGS),
                     )
                 }
             }
