@@ -31,6 +31,7 @@ The roadmap prioritizes correctness, privacy, accessibility, and maintainability
 - [x] Adaptive, round, and Android 13+ themed launcher icons.
 - [x] Adaptive bounded content width for wider Android windows.
 - [x] Accessible local-history chart.
+- [x] Overflow-safe history-chart scaling for extreme finite imported values.
 - [x] Confirmation before destructive history deletion.
 - [x] JSON share export and restore.
 - [x] Storage Access Framework JSON export-to-file.
@@ -39,6 +40,7 @@ The roadmap prioritizes correctness, privacy, accessibility, and maintainability
 - [x] User-selectable bounded history retention (50/100/250/500 entries).
 - [x] Defensive backup limits, record validation, malformed-record recovery, duplicate-ID handling, and canonical timestamp ordering.
 - [x] Device-local privacy/adult-gate state excluded from portable backup restore.
+- [x] Recoverable adult-use choice so an accidental under-18 selection can return to age selection without clearing unrelated local data.
 - [x] Collision-resistant UUID identifiers for new local history records.
 - [x] About/support/funding UI.
 - [x] Explicit in-app and system-back return navigation from About.
@@ -46,6 +48,7 @@ The roadmap prioritizes correctness, privacy, accessibility, and maintainability
 - [x] Localization-ready Android string resources.
 - [x] Reusable validated measurement input component.
 - [x] Locale-aware decimal input parsing and result/history formatting.
+- [x] Safe fallback for stale saved navigation/history-filter enum names after app updates.
 - [x] Deterministic real-app Android release screenshot capture test implemented.
 - [ ] Human visual/privacy approval of the final CI-generated screenshot artifact for publication.
 
@@ -58,6 +61,7 @@ The roadmap prioritizes correctness, privacy, accessibility, and maintainability
 - [x] Keep desktop measurement/session state ephemeral with no HealthMetric persistence layer.
 - [x] Add desktop metric/imperial BMI and waist-to-height journeys.
 - [x] Add desktop parser/calculation tests.
+- [x] Keep imperial validation/error contracts in imperial units without metric double-validation at documented boundaries.
 - [x] Add dedicated Linux/Windows/macOS desktop CI packaging/verification.
 - [x] Document desktop architecture, privacy boundaries, setup, testing, and release expectations.
 - [ ] Add reduced-motion setting only if future animations become substantial.
@@ -71,17 +75,21 @@ The roadmap prioritizes correctness, privacy, accessibility, and maintainability
 - [x] Backup IO size/UTF-8 unit tests.
 - [x] Locale-aware numeric parsing/formatting unit tests.
 - [x] Desktop parsing/calculation tests.
+- [x] Imperial BMI and waist-to-height boundary/error regression tests.
 - [x] Initial Compose onboarding UI test.
 - [x] Under-18 adult-reference gate instrumentation coverage.
+- [x] Adult-gate correction-control instrumentation coverage.
 - [x] Instrumentation coverage for BMI success/error journeys.
 - [x] Instrumentation coverage for waist-ratio success/error journeys.
 - [x] Instrumentation coverage for history deletion and destructive confirmation.
 - [x] Instrumentation coverage for privacy/retention/backup settings actions.
 - [x] Instrumentation coverage for About origin/back navigation.
-- [x] DataStore opt-in, retention, export/restore, malformed-record, consent-boundary, chronology, deletion, and undo-persistence tests.
+- [x] DataStore opt-in, retention, export/restore, malformed-record, consent-boundary, chronology, deletion, undo-persistence, and adult-choice-reset tests.
+- [x] Unit coverage for finite-safe Android chart normalization and stale saved-enum fallback.
+- [x] Python regression coverage for release tag/version validation, deterministic asset staging, exact asset verification, and checksums.
 - [x] Dedicated GitHub Actions Android emulator workflow for connected tests.
 - [x] Android instrumentation workflow configured to publish eight real-app release screenshots.
-- [x] Repository invariant audit covers Android release evidence and desktop module expectations.
+- [x] Repository invariant audit covers Android release evidence, desktop module expectations, release-integrity tooling, chart safety, and adult-gate correction.
 - [ ] Add manual TalkBack/accessibility evidence for the release candidate.
 - [ ] Add baseline-profile/macrobenchmark module only if profiling shows a meaningful need.
 
@@ -94,6 +102,12 @@ The roadmap prioritizes correctness, privacy, accessibility, and maintainability
 - [x] Desktop runnable JAR/native-distribution build configuration.
 - [x] Dedicated desktop workflow across Linux, Windows, and macOS.
 - [x] Local Unix/Windows verification scripts include Android AAB and desktop verification.
+- [x] Stable release tags are machine-checked against Android and desktop public versions.
+- [x] Tagged release preflight requires the tag to target the current `main` commit.
+- [x] Release workflow defaults to read-only repository permissions and grants write only to final publication.
+- [x] Cross-platform release staging fails closed on zero, duplicate, or empty expected build outputs.
+- [x] Final release publication rejects missing, extra, or empty binary assets.
+- [x] Final release publication generates `SHA256SUMS.txt` for the eight expected binaries and verifies the Git tag before release creation.
 - [ ] Confirm the exact final PR #14 head is green across CI, Android instrumentation, Apple shared core, Desktop, CodeQL, Dependency Review, and Secret Scan.
 - [ ] Confirm the exact final Android instrumentation run publishes all eight required screenshot PNGs.
 - [ ] Verify Android release candidate on physical Android hardware.
@@ -104,11 +118,12 @@ The roadmap prioritizes correctness, privacy, accessibility, and maintainability
 
 ## Phase 6 — Final audit
 
-- [x] Repository-required paths, Android manifest privacy invariants, desktop module configuration, AAB tasks, and screenshot-evidence configuration are machine-checked.
+- [x] Repository-required paths, Android manifest privacy invariants, desktop module configuration, AAB tasks, screenshot evidence, release staging, checksum verification, and publication permission boundaries are machine-checked.
 - [x] Internal Markdown links are machine-checked without network access.
 - [x] Re-review adult-only safety language and evidence references in source/docs.
 - [x] Remove and forbid accidental `docs/.noop-probe` repository state.
 - [x] Reconcile the Android release-hardening work with the desktop/release-readiness branch.
+- [x] Reconcile release documentation/template with the hardened tag/version/main/checksum workflow.
 - [ ] Confirm every final README/setup/release command against the exact release candidate.
 - [ ] Confirm all configured workflows are green on the exact release commit.
 - [ ] Review dependency advisories and repository security settings immediately before release.
