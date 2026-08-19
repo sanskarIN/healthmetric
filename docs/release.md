@@ -2,7 +2,7 @@
 
 ## Release principles
 
-A HealthMetric release is publishable only after reproducible build, test, lint, privacy, accessibility, and documentation checks pass.
+A HealthMetric release is publishable only after reproducible build, test, lint, privacy, accessibility, evidence, and documentation checks pass.
 
 The repository never stores Android signing keys or signing passwords.
 
@@ -20,22 +20,44 @@ Keep `androidApp` `versionCode` monotonic and update `versionName` to the releas
 
 1. Update `CHANGELOG.md`.
 2. Update `ROADMAP.md` and `what_changed.md`.
-3. Verify reference source metadata and adult-only copy.
-4. Run formatting/lint/tests/build.
-5. Run connected UI tests.
-6. Manually test onboarding, BMI, ratio, history disabled/enabled, export, restore, deletion, themes, About links, and large text.
-7. Capture release screenshots with fictional/example data.
-8. Confirm dependency/security checks are green.
-9. Confirm no secrets/signing material are in Git history.
+3. Verify reference source metadata, `reviewedOnIsoDate`, and adult-only copy.
+4. Run formatting, shared tests, Android unit tests, release lint, debug assembly, release APK assembly, and release App Bundle assembly.
+5. Run the connected Android instrumentation suite.
+6. Compile the iOS shared-core targets on macOS.
+7. Confirm GitHub CI, Android instrumentation, Apple shared core, CodeQL, dependency review, and secret scanning are green for the release commit/PR.
+8. Manually test onboarding, under-18 gate, BMI, ratio, history disabled/enabled, retention changes, entry deletion/undo, erase-all confirmation, file backup, share backup, restore confirmation, restore, delete-all-data, themes, release link, About links, and large text.
+9. Test one valid backup round trip and confirm malformed/unsupported/oversized files produce safe errors rather than partial uncontrolled writes.
+10. Confirm imported legacy fields cannot alter history opt-in, adult-use confirmation, or onboarding state.
+11. Check numeric input/display in at least one dot-decimal and one comma-decimal locale.
+12. Capture release screenshots with fictional/example data only.
+13. Complete the manual TalkBack/accessibility checklist and record evidence.
+14. Confirm no secrets/signing material are in Git history.
+15. Configure production signing only in the protected distribution environment.
 
 ## Verification commands
+
+Complete non-device suite:
+
+```bash
+bash scripts/verify.sh
+```
+
+or on Windows PowerShell:
+
+```powershell
+.\scripts\verify.ps1
+```
+
+Equivalent commands:
 
 ```bash
 gradle :shared:ktlintCheck :androidApp:ktlintCheck
 gradle :shared:desktopTest
 gradle :androidApp:testDebugUnitTest
 gradle :androidApp:lintRelease
+gradle :androidApp:assembleDebug
 gradle :androidApp:assembleRelease
+gradle :androidApp:bundleRelease
 ```
 
 With a connected emulator/device:
@@ -43,6 +65,58 @@ With a connected emulator/device:
 ```bash
 gradle :androidApp:connectedDebugAndroidTest
 ```
+
+On macOS:
+
+```bash
+gradle :shared:compileKotlinIosSimulatorArm64 :shared:compileKotlinIosArm64
+```
+
+The repository's `android-instrumentation.yml` workflow performs connected Android tests on an API 35 emulator. `apple-shared.yml` runs shared JVM tests and compiles both configured iOS targets on macOS.
+
+## Android release artifacts
+
+The repository builds both Android release package formats without embedding distribution signing secrets:
+
+- unsigned release APK: `androidApp/build/outputs/apk/release/`;
+- unsigned release App Bundle: `androidApp/build/outputs/bundle/release/`.
+
+The App Bundle is the preferred artifact for a future Google Play protected signing/distribution pipeline. The APK remains useful for release-candidate inspection and controlled testing.
+
+Neither repository artifact should be represented as a production-store-signed binary. Production signing must be performed through a protected process outside Git source.
+
+## Release data/privacy checks
+
+Before tagging, verify:
+
+- fresh install history is disabled;
+- selecting 50/100/250/500 retention trims history as documented;
+- raw weight, height, and waist fields do not appear in persisted history/export;
+- individual deletion can be undone without enabling future history saving;
+- erase-all requires confirmation;
+- delete-all returns to onboarding/privacy defaults;
+- file backup uses Android's document picker;
+- share backup uses an explicit chooser;
+- restore asks for confirmation before mutation;
+- restore rejects unsupported schema versions and oversized payloads;
+- malformed history records are skipped independently;
+- duplicate IDs cannot become duplicate Compose list keys;
+- imported history never exceeds the selected supported retention limit;
+- portable backup JSON omits `historyEnabled`, `adultUseConfirmed`, and `onboardingComplete`;
+- legacy backups containing those fields cannot change current device-local consent/safety state;
+- app manifest still has no Internet permission and keeps Android backup disabled.
+
+The authoritative schema contract is [`backup-format.md`](backup-format.md).
+
+## Release locale checks
+
+At minimum, verify:
+
+- dot-decimal input/display under an English locale;
+- comma-decimal input/display under a comma-decimal locale;
+- BMI displays at the intended one-decimal precision;
+- waist-to-height values display at the intended two-decimal precision;
+- history and chart accessibility summaries match the visible locale formatting.
 
 ## Tagging
 
@@ -61,16 +135,18 @@ The workflow:
 
 1. sets up JDK 17 and Gradle 8.13;
 2. installs Android SDK packages;
-3. runs shared tests, ktlint, and release lint;
-4. assembles the release build;
-5. uploads the unsigned APK as a workflow artifact;
-6. creates a GitHub Release with generated notes and the unsigned APK.
+3. runs shared tests, Android unit tests, ktlint, and release lint;
+4. assembles the unsigned release APK and App Bundle;
+5. uploads the unsigned APK and App Bundle as workflow artifacts;
+6. creates a GitHub Release with generated notes and both unsigned artifacts.
+
+The tagged release workflow intentionally does not replace pull-request emulator, Apple-target, and security gates. A tag should be created only after the release commit has already passed those checks.
 
 ## Signing
 
-The generated repository release APK is intentionally unsigned. Production distribution signing must happen through a protected environment using secrets that are never committed.
+The generated repository release APK and App Bundle are intentionally unsigned. Production distribution signing must happen through a protected environment using secrets that are never committed.
 
-For Google Play, use a secure Play App Signing/release pipeline and prefer Android App Bundles when that distribution pipeline is introduced.
+For Google Play, use Play App Signing or another protected release pipeline for the App Bundle. Do not add keystores, passwords, signing certificates, or service-account credentials to the repository.
 
 ## Rollback
 
@@ -81,14 +157,21 @@ If a release has a blocker defect:
 - publish a patch release;
 - do not rewrite a published Git tag to hide history.
 
+If a release changes backup behavior, retain compatibility with supported schema versions or explicitly document a migration before shipping.
+
+If evidence/reference interpretation changes, ship it as an explicit versioned profile change rather than silently mutating a published interpretation.
+
 ## Release notes content
 
 Include:
 
 - user-visible changes;
 - privacy/data changes;
-- reference/evidence changes;
+- portable backup/migration changes;
+- reference/evidence changes and source review date where applicable;
 - accessibility improvements;
+- platform/shared-core target changes;
+- Android APK/App Bundle packaging changes;
 - fixed defects;
 - known limitations;
-- upgrade/migration notes.
+- verification status.

@@ -12,6 +12,9 @@ Source metadata embedded in the shared domain module:
 - Publisher: World Health Organization
 - Source URL: https://www.who.int/data/gho/data/themes/topics/topic-details/GHO/body-mass-index
 - Scope in HealthMetric: general adult population screening context
+- Last source review recorded in code: `2026-08-19`
+
+The source review confirms that the referenced WHO page continues to distinguish adult BMI indicators at `< 18.5`, `>= 25`, and `>= 30`, while separately listing child/adolescent indicators. HealthMetric keeps its adult-only gate and does not reuse the adult profile for people under 18.
 
 Current reference boundaries encoded by the profile:
 
@@ -39,11 +42,12 @@ This keeps the feature useful as a measurement calculator without implying clini
 A change to reference thresholds or clinical interpretation requires:
 
 1. a new/reviewed authoritative source;
-2. an updated stable profile ID/version;
-3. boundary/regression tests;
-4. neutral user-facing copy review;
-5. `CHANGELOG.md` entry;
-6. updates to this document and `what_changed.md`;
-7. release notes that explicitly identify the reference change.
+2. an updated `reviewedOnIsoDate` value for the source metadata;
+3. an updated stable profile ID/version when interpretation changes;
+4. boundary/regression tests;
+5. neutral user-facing copy review;
+6. `CHANGELOG.md` entry;
+7. updates to this document and `what_changed.md`;
+8. release notes that explicitly identify the reference change.
 
 Do not silently change an existing versioned reference profile after a release if that would alter historical interpretation.

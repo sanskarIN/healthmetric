@@ -8,6 +8,7 @@ data class EvidenceSource(
     val publisher: String,
     val url: String,
     val note: String,
+    val reviewedOnIsoDate: String,
 )
 
 data class BmiReferenceBand(
@@ -66,6 +67,7 @@ data class BmiReferenceProfile(
                 publisher = "World Health Organization",
                 url = "https://www.who.int/data/gho/data/themes/topics/topic-details/GHO/body-mass-index",
                 note = "Population-level adult BMI reference information. HealthMetric presents this for education, not diagnosis.",
+                reviewedOnIsoDate = "2026-08-19",
             ),
         )
     }

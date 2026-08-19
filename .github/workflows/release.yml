@@ -15,35 +15,38 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v6
         with:
           gradle-version: "8.13"
 
       - name: Install Android SDK packages
         shell: bash
-        run: sdkmanager "platforms;android-36" "build-tools;35.0.0"
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-36" "build-tools;35.0.0"
 
       - name: Verify release inputs
-        run: gradle :shared:desktopTest :shared:ktlintCheck :androidApp:ktlintCheck :androidApp:lintRelease
+        run: gradle :shared:desktopTest :shared:ktlintCheck :androidApp:ktlintCheck :androidApp:testDebugUnitTest :androidApp:lintRelease
 
       - name: Assemble unsigned release APK
         run: gradle :androidApp:assembleRelease
 
       - name: Upload release artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: healthmetric-${{ github.ref_name }}-unsigned-apk
           path: androidApp/build/outputs/apk/release/*-unsigned.apk
           if-no-files-found: error
+          retention-days: 30
 
       - name: Create GitHub release
         env:

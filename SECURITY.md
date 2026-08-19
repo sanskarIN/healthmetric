@@ -34,17 +34,47 @@ Do not send real health records, credentials, tokens, signing material, or other
 HealthMetric intentionally minimizes attack surface:
 
 - core calculators work offline;
+- the Android manifest requests no Internet permission;
 - no account or authentication system is required;
 - no advertising or analytics tracker SDK is included;
 - cleartext network traffic is disabled in the Android manifest;
-- Android application backup is disabled by default;
-- local history is optional and can be deleted;
+- Android application backup is disabled;
+- local history is disabled by default, explicitly opt-in, bounded, selectively deletable, and fully erasable;
 - export/restore is explicit and user-initiated;
-- restored JSON is schema-checked and history is bounded;
-- measurement values are not intentionally written to logs;
+- restore requires confirmation before portable local data is replaced;
+- backup reads/writes are limited to 1 MiB;
+- restored JSON is schema-checked, record-validated, deduplicated, and history-bounded;
+- portable backup restore cannot change current history opt-in, adult-use confirmation, or onboarding safety state;
+- raw weight, height, and waist inputs are not persisted in history;
+- backup contents and measurement values are not intentionally written to logs;
 - signing keys and secrets are excluded from source control;
-- CodeQL and dependency review run in GitHub Actions;
+- CodeQL, dependency review, full-history secret scanning, Android instrumentation, and standard build/test checks run in GitHub Actions;
 - Dependabot monitors Gradle and GitHub Actions dependencies.
+
+See [`docs/backup-format.md`](docs/backup-format.md) and [`docs/adr/0004-bounded-user-controlled-local-data.md`](docs/adr/0004-bounded-user-controlled-local-data.md) for the backup trust boundary.
+
+## Imported-data threat model
+
+A selected backup document is untrusted input even though the user explicitly chose it.
+
+HealthMetric therefore:
+
+- bounds the UTF-8 payload before JSON parsing;
+- accepts only the supported top-level schema version;
+- normalizes retention/theme preferences to supported values;
+- validates every history record independently;
+- rejects invalid/blank IDs, negative timestamps, non-finite numeric values, and unknown calculator kinds;
+- caps record field lengths;
+- deduplicates record IDs before they reach Compose list keys;
+- caps final restored history;
+- keeps consent/safety state device-local;
+- performs the DataStore mutation only after user confirmation.
+
+A future schema must retain equivalent protections or record the reviewed replacement in an ADR.
+
+## External intents
+
+GitHub/release/funding/email links and backup share destinations are opened only after explicit user actions. HealthMetric does not guarantee the privacy/security behavior of the selected external application or destination.
 
 ## Secret handling
 
@@ -62,6 +92,19 @@ Never commit:
 ## Dependency policy
 
 Prefer maintained dependencies from trusted sources. Dependency upgrades should pass the full test/lint/build suite before merge. High-severity dependency-review findings block pull requests unless a documented false positive or accepted temporary exception exists.
+
+## Release security gates
+
+Before tagging, the release commit should have successful:
+
+- CI formatting, JVM tests, Android unit tests, release lint, and debug/release assembly;
+- Android emulator instrumentation;
+- Apple shared-core compilation;
+- CodeQL analysis;
+- dependency review where applicable;
+- repository-history secret scanning.
+
+Production signing must remain outside source control.
 
 ## Disclosure process
 

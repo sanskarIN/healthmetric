@@ -28,36 +28,48 @@ The roadmap prioritizes correctness, privacy, accessibility, and maintainability
 - [x] Light/dark/system theme and Android dynamic color.
 - [x] Shared typography, shape, spacing, elevation, and motion design tokens.
 - [x] Branded launch splash treatment.
+- [x] Adaptive, round, and Android 13+ themed launcher icons.
 - [x] Adaptive bounded content width for wider Android windows.
 - [x] Accessible local-history chart.
 - [x] Confirmation before destructive history deletion.
-- [x] JSON export and restore.
+- [x] JSON share export and restore.
+- [x] Storage Access Framework JSON export-to-file.
+- [x] Restore confirmation before replacing portable local data.
+- [x] Per-history-entry deletion with immediate undo.
+- [x] User-selectable bounded history retention (50/100/250/500 entries).
+- [x] Defensive backup limits, record validation, malformed-record recovery, and duplicate-ID handling.
+- [x] Device-local privacy/adult-gate state excluded from portable backup restore.
 - [x] About/support/funding UI.
 - [x] Privacy, data, appearance, accessibility, update, and About settings sections.
 - [x] Localization-ready Android string resources.
 - [x] Reusable validated measurement input component.
+- [x] Locale-aware decimal input parsing and result/history formatting.
 - [ ] Capture real screenshots on an Android device/emulator.
-- [ ] Add Storage Access Framework export-to-file in addition to share-text export.
-- [ ] Add per-history-entry deletion and optional undo.
-- [ ] Add user-selectable history retention limit if real usage demonstrates a need.
 
 ## Phase 3 — Advanced quality
 
-- [ ] Add iOS target to the shared module and validate on macOS CI.
-- [ ] Add a simple desktop Compose client if it provides clear user value.
-- [ ] Add source review dates and review workflow to versioned evidence metadata.
-- [ ] Add locale-aware numeric parsing/formatting beyond the initial English UI.
-- [ ] Add reduced-motion setting if future animations become substantial.
+- [x] Add explicit iOS device/simulator targets to the shared module.
+- [x] Add macOS CI compilation for the shared iOS targets.
+- [x] Add source review date metadata and evidence review workflow documentation.
+- [ ] Add a simple desktop Compose client only if it provides clear user value beyond the tested JVM shared core.
+- [ ] Add reduced-motion setting only if future animations become substantial.
 - [ ] Evaluate encrypted-at-rest history only if the documented threat model justifies the complexity.
 
 ## Phase 4 — Verification depth
 
 - [x] Domain unit and boundary tests.
 - [x] Deterministic property-style tests.
-- [x] Privacy-default unit test.
+- [x] Privacy-default and retention-policy unit tests.
+- [x] Backup IO size/UTF-8 unit tests.
+- [x] Locale-aware numeric parsing/formatting unit tests.
 - [x] Initial Compose onboarding UI test.
-- [ ] Add instrumentation coverage for calculator success/error journeys.
-- [ ] Add DataStore backup/restore instrumentation tests.
+- [x] Under-18 adult-reference gate instrumentation coverage.
+- [x] Instrumentation coverage for BMI success/error journeys.
+- [x] Instrumentation coverage for waist-ratio success/error journeys.
+- [x] Instrumentation coverage for history deletion and destructive confirmation.
+- [x] Instrumentation coverage for privacy/retention/backup settings actions.
+- [x] DataStore opt-in, retention, export/restore, malformed-record, consent-boundary, deletion, and undo-persistence tests.
+- [x] Dedicated GitHub Actions Android emulator workflow for connected tests.
 - [ ] Add accessibility scanner/manual TalkBack checklist evidence.
 - [ ] Add baseline-profile/macrobenchmark module only if profiling shows a meaningful need.
 
@@ -65,6 +77,8 @@ The roadmap prioritizes correctness, privacy, accessibility, and maintainability
 
 - [x] Tagged unsigned release workflow.
 - [x] Release documentation and release-notes template.
+- [x] CI configured to assemble and upload a debug APK, unsigned release APK, and unsigned release App Bundle.
+- [x] Tagged release workflow configured to publish both unsigned APK and App Bundle artifacts.
 - [ ] Run clean-checkout CI successfully and record the run in `what_changed.md`.
 - [ ] Verify release build on physical Android hardware and emulator.
 - [ ] Capture required screenshots and accessibility evidence.
@@ -74,7 +88,7 @@ The roadmap prioritizes correctness, privacy, accessibility, and maintainability
 ## Phase 6 — Final audit
 
 - [ ] Verify every README command from a clean clone with Gradle/Android SDK available.
-- [ ] Confirm CI, CodeQL, dependency review, and secret scan are green on the release commit.
+- [ ] Confirm CI, Android instrumentation, Apple shared-core compilation, CodeQL, dependency review, and secret scan are green on the release commit.
 - [ ] Review dependency advisories and repository security settings.
 - [ ] Check documentation links.
 - [x] Re-review adult-only safety language and evidence references in source/docs.

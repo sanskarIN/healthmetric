@@ -21,6 +21,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -32,6 +33,8 @@ import io.github.sanskarin.healthmetric.domain.ImperialBodyInput
 import io.github.sanskarin.healthmetric.domain.MetricBodyInput
 import io.github.sanskarin.healthmetric.domain.UnitSystem
 import io.github.sanskarin.healthmetric.ui.components.MeasurementNumberField
+import io.github.sanskarin.healthmetric.ui.format.LocalizedNumbers
+import io.github.sanskarin.healthmetric.ui.testing.HealthMetricTestTags
 import io.github.sanskarin.healthmetric.ui.theme.HealthMetricSpacing
 
 @Composable
@@ -97,17 +100,20 @@ fun CalculatorScreen(
                 value = weight,
                 onValueChange = { weight = it },
                 label = stringResource(R.string.weight_kg),
+                testTag = HealthMetricTestTags.BMI_WEIGHT,
             )
             MeasurementNumberField(
                 value = heightCm,
                 onValueChange = { heightCm = it },
                 label = stringResource(R.string.height_cm),
+                testTag = HealthMetricTestTags.BMI_HEIGHT_CM,
             )
         } else {
             MeasurementNumberField(
                 value = weight,
                 onValueChange = { weight = it },
                 label = stringResource(R.string.weight_lb),
+                testTag = HealthMetricTestTags.BMI_WEIGHT,
             )
             MeasurementNumberField(
                 value = feet,
@@ -115,11 +121,13 @@ fun CalculatorScreen(
                 label = stringResource(R.string.height_feet),
                 wholeNumbersOnly = true,
                 maxLength = 1,
+                testTag = HealthMetricTestTags.BMI_HEIGHT_FEET,
             )
             MeasurementNumberField(
                 value = inches,
                 onValueChange = { inches = it },
                 label = stringResource(R.string.height_inches_additional),
+                testTag = HealthMetricTestTags.BMI_HEIGHT_INCHES,
             )
         }
 
@@ -129,15 +137,15 @@ fun CalculatorScreen(
                     when (unitSystem) {
                         UnitSystem.METRIC -> BmiCalculator.calculateMetric(
                             MetricBodyInput(
-                                weightKg = weight.toDoubleOrNull() ?: error(invalidWeight),
-                                heightCm = heightCm.toDoubleOrNull() ?: error(invalidHeight),
+                                weightKg = LocalizedNumbers.parseDecimal(weight) ?: error(invalidWeight),
+                                heightCm = LocalizedNumbers.parseDecimal(heightCm) ?: error(invalidHeight),
                             ),
                         )
                         UnitSystem.IMPERIAL -> BmiCalculator.calculateImperial(
                             ImperialBodyInput(
-                                weightLb = weight.toDoubleOrNull() ?: error(invalidWeight),
+                                weightLb = LocalizedNumbers.parseDecimal(weight) ?: error(invalidWeight),
                                 heightFeet = feet.toIntOrNull() ?: error(invalidFeet),
-                                heightInches = inches.toDoubleOrNull() ?: error(invalidInches),
+                                heightInches = LocalizedNumbers.parseDecimal(inches) ?: error(invalidInches),
                             ),
                         )
                     }
@@ -151,7 +159,9 @@ fun CalculatorScreen(
                     error = it.message ?: measurementError
                 }
             },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag(HealthMetricTestTags.BMI_CALCULATE),
         ) {
             Text(
                 if (historyEnabled) {
@@ -171,13 +181,20 @@ fun CalculatorScreen(
         }
 
         result?.let { bmiResult ->
-            Card(modifier = Modifier.fillMaxWidth()) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag(HealthMetricTestTags.BMI_RESULT),
+            ) {
                 Column(
                     modifier = Modifier.padding(HealthMetricSpacing.lg),
                     verticalArrangement = Arrangement.spacedBy(HealthMetricSpacing.xs),
                 ) {
                     Text(
-                        text = stringResource(R.string.bmi_result, bmiResult.displayBmi.toString()),
+                        text = stringResource(
+                            R.string.bmi_result,
+                            LocalizedNumbers.format(bmiResult.displayBmi, maximumFractionDigits = 1),
+                        ),
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.SemiBold,
                     )

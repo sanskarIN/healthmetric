@@ -15,6 +15,7 @@ import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Straighten
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -25,7 +26,9 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -40,7 +43,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.sanskarin.healthmetric.R
+import io.github.sanskarin.healthmetric.data.BackupIo
 import io.github.sanskarin.healthmetric.data.CalculatorKind
+import io.github.sanskarin.healthmetric.data.HistoryEntry
 import io.github.sanskarin.healthmetric.data.SafeLogger
 import io.github.sanskarin.healthmetric.ui.screens.AboutScreen
 import io.github.sanskarin.healthmetric.ui.screens.AdultOnlyScreen
@@ -50,6 +55,9 @@ import io.github.sanskarin.healthmetric.ui.screens.OnboardingScreen
 import io.github.sanskarin.healthmetric.ui.screens.SettingsScreen
 import io.github.sanskarin.healthmetric.ui.screens.WaistToHeightScreen
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 private enum class AppScreen {
     CALCULATOR,
@@ -89,33 +97,56 @@ fun HealthMetricApp(
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     var screenName by rememberSaveable { mutableStateOf(AppScreen.CALCULATOR.name) }
+    var pendingRestoreJson by remember { mutableStateOf<String?>(null) }
     val screen = AppScreen.valueOf(screenName)
 
     val restoreSuccess = stringResource(R.string.restore_success)
     val restoreInvalid = stringResource(R.string.restore_invalid)
     val exportFailed = stringResource(R.string.export_failed)
+    val fileExportSaved = stringResource(R.string.file_export_saved)
+    val fileExportFailed = stringResource(R.string.file_export_failed)
     val readBackupFailed = stringResource(R.string.read_backup_failed)
     val openLinkFailed = stringResource(R.string.open_link_failed)
     val exportChooserFailed = stringResource(R.string.export_chooser_failed)
     val exportSubject = stringResource(R.string.export_subject)
     val exportChooserTitle = stringResource(R.string.export_chooser_title)
     val ratioHistorySummary = stringResource(R.string.ratio_history_summary)
+    val historyEntryDeleted = stringResource(R.string.history_entry_deleted)
+    val undoLabel = stringResource(R.string.undo)
 
     val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
         runCatching {
-            context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
+            context.contentResolver.openInputStream(uri)?.use(BackupIo::readUtf8)
                 ?: error(readBackupFailed)
         }.onSuccess { json ->
-            viewModel.restoreData(json) { success ->
-                scope.launch {
-                    snackbarHostState.showSnackbar(if (success) restoreSuccess else restoreInvalid)
-                }
-            }
+            pendingRestoreJson = json
         }.onFailure { error ->
             SafeLogger.warn(SafeLogger.Event.RESTORE_FAILED, error)
             scope.launch { snackbarHostState.showSnackbar(readBackupFailed) }
         }
+    }
+
+    val saveBackupLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json"),
+    ) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+
+        viewModel.exportData(
+            onReady = { json ->
+                runCatching {
+                    context.contentResolver.openOutputStream(uri, "wt")?.use { output ->
+                        BackupIo.writeUtf8(output, json)
+                    } ?: error(fileExportFailed)
+                }.onSuccess {
+                    scope.launch { snackbarHostState.showSnackbar(fileExportSaved) }
+                }.onFailure { error ->
+                    SafeLogger.warn(SafeLogger.Event.EXPORT_FAILED, error)
+                    scope.launch { snackbarHostState.showSnackbar(fileExportFailed) }
+                }
+            },
+            onError = { scope.launch { snackbarHostState.showSnackbar(exportFailed) } },
+        )
     }
 
     fun openUri(rawUri: String) {
@@ -127,7 +158,7 @@ fun HealthMetricApp(
         }
     }
 
-    fun exportData() {
+    fun shareData() {
         viewModel.exportData(
             onReady = { json ->
                 val intent = Intent(Intent.ACTION_SEND).apply {
@@ -144,6 +175,35 @@ fun HealthMetricApp(
             },
             onError = { scope.launch { snackbarHostState.showSnackbar(exportFailed) } },
         )
+    }
+
+    fun saveDataToFile() {
+        val stamp = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date())
+        saveBackupLauncher.launch("healthmetric-backup-$stamp.json")
+    }
+
+    fun restorePendingBackup() {
+        val json = pendingRestoreJson ?: return
+        pendingRestoreJson = null
+        viewModel.restoreData(json) { success ->
+            scope.launch {
+                snackbarHostState.showSnackbar(if (success) restoreSuccess else restoreInvalid)
+            }
+        }
+    }
+
+    fun deleteHistoryEntry(entry: HistoryEntry) {
+        viewModel.deleteHistoryEntry(entry) {
+            scope.launch {
+                val result = snackbarHostState.showSnackbar(
+                    message = historyEntryDeleted,
+                    actionLabel = undoLabel,
+                )
+                if (result == SnackbarResult.ActionPerformed) {
+                    viewModel.restoreHistoryEntry(entry)
+                }
+            }
+        }
     }
 
     val screenTitle = when (screen) {
@@ -238,14 +298,18 @@ fun HealthMetricApp(
                     AppScreen.HISTORY -> HistoryScreen(
                         history = state.history,
                         historyEnabled = state.preferences.historyEnabled,
+                        onDeleteEntry = ::deleteHistoryEntry,
                         onDeleteAll = viewModel::deleteHistory,
                     )
                     AppScreen.SETTINGS -> SettingsScreen(
                         historyEnabled = state.preferences.historyEnabled,
+                        historyRetentionLimit = state.preferences.historyRetentionLimit,
                         themeMode = state.preferences.themeMode,
                         onHistoryEnabledChange = viewModel::setHistoryEnabled,
+                        onHistoryRetentionLimitChange = viewModel::setHistoryRetentionLimit,
                         onThemeModeChange = viewModel::setThemeMode,
-                        onExport = ::exportData,
+                        onSaveBackup = ::saveDataToFile,
+                        onShareBackup = ::shareData,
                         onImport = { importLauncher.launch(arrayOf("application/json", "text/plain")) },
                         onDeleteAllData = viewModel::deleteAllLocalData,
                         onOpenReleases = { openUri("https://github.com/sanskarIN/healthmetric/releases") },
@@ -255,5 +319,23 @@ fun HealthMetricApp(
                 }
             }
         }
+    }
+
+    if (pendingRestoreJson != null) {
+        AlertDialog(
+            onDismissRequest = { pendingRestoreJson = null },
+            title = { Text(stringResource(R.string.restore_backup_title)) },
+            text = { Text(stringResource(R.string.restore_backup_body)) },
+            confirmButton = {
+                TextButton(onClick = { restorePendingBackup() }) {
+                    Text(stringResource(R.string.restore))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingRestoreJson = null }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            },
+        )
     }
 }

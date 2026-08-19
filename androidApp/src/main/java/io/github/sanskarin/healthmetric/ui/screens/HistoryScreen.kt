@@ -11,10 +11,14 @@ import androidx.compose.foundation.layout.matchParentSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -24,8 +28,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -35,6 +41,8 @@ import androidx.compose.ui.unit.dp
 import io.github.sanskarin.healthmetric.R
 import io.github.sanskarin.healthmetric.data.CalculatorKind
 import io.github.sanskarin.healthmetric.data.HistoryEntry
+import io.github.sanskarin.healthmetric.ui.format.LocalizedNumbers
+import io.github.sanskarin.healthmetric.ui.testing.HealthMetricTestTags
 import java.text.DateFormat
 import java.util.Date
 
@@ -42,6 +50,7 @@ import java.util.Date
 fun HistoryScreen(
     history: List<HistoryEntry>,
     historyEnabled: Boolean,
+    onDeleteEntry: (HistoryEntry) -> Unit,
     onDeleteAll: () -> Unit,
 ) {
     var selectedKindName by rememberSaveable { mutableStateOf(CalculatorKind.BMI.name) }
@@ -50,7 +59,9 @@ fun HistoryScreen(
     val filtered = history.filter { it.calculator == selectedKind }
 
     LazyColumn(
-        modifier = Modifier.padding(horizontal = 20.dp),
+        modifier = Modifier
+            .padding(horizontal = 20.dp)
+            .testTag(HealthMetricTestTags.HISTORY_LIST),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
@@ -111,7 +122,10 @@ fun HistoryScreen(
                 )
             }
             items(filtered, key = HistoryEntry::id) { entry ->
-                HistoryCard(entry)
+                HistoryCard(
+                    entry = entry,
+                    onDelete = { onDeleteEntry(entry) },
+                )
             }
         }
         if (history.isNotEmpty()) {
@@ -164,17 +178,17 @@ private fun MeasurementChart(entries: List<HistoryEntry>, label: String) {
         stringResource(
             R.string.chart_summary_one,
             label,
-            formatValue(values.first()),
+            formatValue(values.first(), entries.first().calculator),
         )
     } else {
         stringResource(
             R.string.chart_summary_many,
             label,
             values.size,
-            formatValue(values.first()),
-            formatValue(values.last()),
-            formatValue(minValue),
-            formatValue(maxValue),
+            formatValue(values.first(), entries.first().calculator),
+            formatValue(values.last(), entries.last().calculator),
+            formatValue(minValue, entries.first().calculator),
+            formatValue(maxValue, entries.first().calculator),
         )
     }
 
@@ -235,7 +249,10 @@ private fun MeasurementChart(entries: List<HistoryEntry>, label: String) {
 }
 
 @Composable
-private fun HistoryCard(entry: HistoryEntry) {
+private fun HistoryCard(
+    entry: HistoryEntry,
+    onDelete: () -> Unit,
+) {
     val label = when (entry.calculator) {
         CalculatorKind.BMI -> stringResource(R.string.history_item_bmi)
         CalculatorKind.WAIST_TO_HEIGHT -> stringResource(R.string.history_item_waist)
@@ -244,19 +261,41 @@ private fun HistoryCard(entry: HistoryEntry) {
         .format(Date(entry.timestampEpochMillis))
 
     Card(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+        Row(
+            modifier = Modifier.padding(start = 16.dp, top = 12.dp, end = 8.dp, bottom = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text(
-                text = stringResource(R.string.history_item_value, label, formatValue(entry.value)),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Medium,
-            )
-            Text(entry.summary, style = MaterialTheme.typography.bodyMedium)
-            Text(formattedTime, style = MaterialTheme.typography.labelMedium)
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    text = stringResource(
+                        R.string.history_item_value,
+                        label,
+                        formatValue(entry.value, entry.calculator),
+                    ),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Medium,
+                )
+                Text(entry.summary, style = MaterialTheme.typography.bodyMedium)
+                Text(formattedTime, style = MaterialTheme.typography.labelMedium)
+            }
+            IconButton(onClick = onDelete) {
+                Icon(
+                    imageVector = Icons.Outlined.DeleteOutline,
+                    contentDescription = stringResource(R.string.delete_history_entry),
+                )
+            }
         }
     }
 }
 
-private fun formatValue(value: Double): String = ((value * 100.0).toInt() / 100.0).toString()
+private fun formatValue(value: Double, calculator: CalculatorKind): String = LocalizedNumbers.format(
+    value = value,
+    maximumFractionDigits = when (calculator) {
+        CalculatorKind.BMI -> 1
+        CalculatorKind.WAIST_TO_HEIGHT -> 2
+    },
+)

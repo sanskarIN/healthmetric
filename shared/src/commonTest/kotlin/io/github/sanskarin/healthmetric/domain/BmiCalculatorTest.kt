@@ -33,4 +33,15 @@ class BmiCalculatorTest {
         val result = BmiReferenceProfile.AdultGeneralReference.bandFor(25.0)
         assertEquals("Above adult reference range", result.label)
     }
+
+    @Test
+    fun adultReferenceCarriesAuditableSourceMetadata() {
+        val profile = BmiReferenceProfile.AdultGeneralReference
+
+        assertEquals("adult-general-v1", profile.id)
+        assertTrue(profile.adultOnly)
+        assertEquals("World Health Organization", profile.source.publisher)
+        assertEquals("2026-08-19", profile.source.reviewedOnIsoDate)
+        assertTrue(profile.source.url.startsWith("https://"))
+    }
 }
