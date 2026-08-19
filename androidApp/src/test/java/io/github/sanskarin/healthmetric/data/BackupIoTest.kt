@@ -23,7 +23,7 @@ class BackupIoTest {
         val malformed = byteArrayOf(
             '"'.code.toByte(),
             0xC3.toByte(),
-            0x28,
+            0x28.toByte(),
             '"'.code.toByte(),
         )
 
