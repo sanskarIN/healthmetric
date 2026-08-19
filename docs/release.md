@@ -35,22 +35,23 @@ For a release:
 4. Run repository invariants and internal Markdown-link checks.
 5. Run shared, Android, and desktop formatting/tests.
 6. Run Android release lint, debug assembly, unsigned release APK assembly, and unsigned release App Bundle assembly.
-7. Package a desktop runnable JAR on each supported desktop operating-system family that will be distributed.
-8. Run connected Android instrumentation on an emulator/device.
+7. Package the desktop runnable JAR and native installer on every desktop operating-system family being published: DEB on Linux, MSI on Windows, DMG on macOS.
+8. Run connected Android instrumentation on an emulator/device and inspect the generated screenshot evidence set.
 9. Compile the iOS shared-core targets on macOS.
 10. Confirm GitHub CI, Desktop, Android instrumentation, Apple shared core, CodeQL, dependency review, and secret scanning are green for the exact release PR/commit.
-11. Manually test Android onboarding, under-18 gate, BMI, ratio, history disabled/enabled, retention changes, entry deletion/undo, erase-all confirmation, file backup, share backup, restore confirmation, restore, delete-all-data, themes, release link, About links, and large text.
+11. Manually test Android onboarding, under-18 gate, BMI, ratio, history disabled/enabled, retention changes, entry deletion/undo, erase-all confirmation, file backup, share backup, restore confirmation, restore, delete-all-data, themes, release link, About links/back navigation, and large text.
 12. Test one valid Android backup round trip and confirm malformed/unsupported/oversized files produce safe errors rather than uncontrolled writes.
 13. Confirm imported legacy Android fields cannot alter history opt-in, adult-use confirmation, or onboarding state.
 14. Check Android numeric input/display in at least one dot-decimal and one comma-decimal locale.
 15. Manually test desktop adult gate, under-18 path, metric/imperial BMI, metric/imperial waist-to-height, theme toggle, About/evidence links, and process restart.
 16. Confirm desktop measurements/results/adult choice/theme state are not retained after closing/reopening the application.
-17. Manually launch desktop artifacts on every platform being published and verify keyboard focus, display scaling, screen-reader naming where available, and external-link behavior.
-18. Capture release screenshots with fictional/example data only.
+17. Manually launch the JAR and native desktop installer on every platform being published and verify startup, keyboard focus, display scaling, screen-reader naming where available, external-link behavior, install/uninstall behavior, and platform warning/signing expectations.
+18. Capture/review Android release screenshots using fictional/example data only.
 19. Complete the Android TalkBack/accessibility checklist and desktop accessibility checklist and record evidence.
 20. Confirm no secrets/signing material are in Git history.
 21. Configure production Android signing only in a protected distribution environment.
-22. Create the release tag only after all blockers above are closed.
+22. Configure desktop code signing/notarization outside source control if signed installers are being promoted as production assets.
+23. Create the release tag only after all blockers above are closed.
 
 ## Verification commands
 
@@ -82,13 +83,26 @@ gradle :androidApp:assembleRelease
 gradle :androidApp:bundleRelease
 ```
 
+Native desktop packages are host-specific:
+
+```bash
+# Linux
+gradle :desktopApp:packageDeb
+
+# Windows
+gradle :desktopApp:packageMsi
+
+# macOS
+gradle :desktopApp:packageDmg
+```
+
 With a connected Android emulator/device:
 
 ```bash
 gradle :androidApp:connectedDebugAndroidTest
 ```
 
-On macOS:
+On macOS, compile the shared Apple targets with:
 
 ```bash
 gradle :shared:compileKotlinIosSimulatorArm64 :shared:compileKotlinIosArm64
@@ -99,8 +113,8 @@ gradle :shared:compileKotlinIosSimulatorArm64 :shared:compileKotlinIosArm64
 Before tagging, the exact release commit should already have passed:
 
 - `CI` — repository/docs audits, shared/Android/desktop formatting, shared tests, desktop tests/JAR packaging, Android JVM tests/lint/build/APK/AAB;
-- `Desktop` — desktop formatting/tests/runnable-JAR packaging on Linux, Windows, and macOS;
-- `Android instrumentation` — connected tests on the configured API 35 emulator;
+- `Desktop` — desktop formatting/tests, runnable-JAR packaging, and native installer packaging on Linux, Windows, and macOS;
+- `Android instrumentation` — connected tests on the configured API 35 emulator plus the eight-file `android-release-screenshots` evidence artifact;
 - `Apple shared core` — shared JVM tests plus iOS device/simulator compilation on macOS;
 - `CodeQL`;
 - `Dependency Review` where applicable;
@@ -121,25 +135,21 @@ Neither repository artifact should be represented as a production-store-signed b
 
 ## Desktop release artifacts
 
-The desktop module can build a current-operating-system runnable JAR with:
+The desktop module builds a current-operating-system runnable JAR with:
 
 ```bash
 gradle :desktopApp:packageUberJarForCurrentOS
 ```
 
-The cross-platform Desktop workflow verifies this on:
+It also builds host-specific native installers:
 
-- Linux;
-- Windows;
-- macOS.
+- Linux: `gradle :desktopApp:packageDeb` → `desktopApp/build/compose/binaries/main/deb/*.deb`;
+- Windows: `gradle :desktopApp:packageMsi` → `desktopApp/build/compose/binaries/main/msi/*.msi`;
+- macOS: `gradle :desktopApp:packageDmg` → `desktopApp/build/compose/binaries/main/dmg/*.dmg`.
 
-The module also declares native packaging formats for:
+The cross-platform Desktop workflow verifies both the runnable JAR and native installer on each matching host. The tagged release workflow stages and publishes both forms for each platform after the build jobs succeed.
 
-- Debian-compatible Linux DEB;
-- Windows MSI;
-- macOS DMG.
-
-Native installers are operating-system-specific and require manual platform verification before publication. A green runnable-JAR workflow does not by itself certify installer UX, code signing/notarization, OS reputation prompts, or assistive-technology behavior.
+A successful package build proves reproducible creation, not production trust. Human host-platform smoke testing remains required before promotion. Unsigned/unnotarized installers may trigger platform warnings; signing/notarization credentials must remain outside source control.
 
 ## Android release data/privacy checks
 
@@ -164,6 +174,23 @@ Before tagging, verify:
 - app manifest still has no Internet permission and keeps Android backup disabled.
 
 The authoritative schema contract is [`backup-format.md`](backup-format.md).
+
+## Android release screenshot evidence
+
+`ReleaseScreenshotCaptureTest` drives the real Android app and writes the required PNG set to app-scoped external storage. The Android instrumentation workflow pulls those files and publishes `android-release-screenshots`.
+
+The required set is:
+
+1. `01-onboarding.png`
+2. `02-bmi-metric.png`
+3. `03-bmi-result.png`
+4. `04-waist-ratio.png`
+5. `05-history.png`
+6. `06-settings.png`
+7. `07-about.png`
+8. `08-dark-theme.png`
+
+A successful artifact upload is automated evidence that the files were generated. A human must still inspect them for visual defects, clipping, accidental private data, inappropriate sample values, and suitability for permanent README/store publication.
 
 ## Desktop release privacy checks
 
@@ -216,12 +243,24 @@ On Linux, Windows, and macOS it:
 
 - runs desktop formatting and tests;
 - packages the current-OS runnable JAR;
-- stages a versioned platform-specific JAR;
-- uploads each JAR as a workflow artifact.
+- packages DEB/MSI/DMG respectively;
+- stages versioned JAR and native installer assets;
+- uploads each platform asset set as a workflow artifact.
 
 ### Publish job
 
-The publish job starts only after Android and all desktop matrix jobs succeed. It downloads the verified artifacts, requires the expected APK/AAB/Linux JAR/Windows JAR/macOS JAR set to be present and non-empty, then creates one GitHub Release with generated notes and all verified assets.
+The publish job starts only after Android and all desktop matrix jobs succeed. It downloads the verified artifacts and requires this complete non-empty set before creating the GitHub Release:
+
+- Android unsigned APK;
+- Android unsigned AAB;
+- Linux runnable JAR;
+- Linux DEB;
+- Windows runnable JAR;
+- Windows MSI;
+- macOS runnable JAR;
+- macOS DMG.
+
+It then creates one GitHub Release with generated notes and all verified assets.
 
 ## Signing and platform trust
 
@@ -231,7 +270,7 @@ Production Android signing must happen through a protected environment using sec
 
 ### Desktop
 
-The current repository release workflow publishes runnable JARs, not signed/notarized native installers. If native installers are published later, document and protect platform signing/notarization credentials outside source control and add a dedicated reviewed release process.
+The repository can reproducibly build native installers, but build success does not imply production code signing/notarization. If signed/notarized desktop installers are distributed, protect certificates, private keys, passwords, and notarization credentials outside source control and document the reviewed release process.
 
 ## Rollback
 
@@ -259,7 +298,7 @@ Include:
 - accessibility improvements;
 - platform/shared-core target changes;
 - Android APK/App Bundle packaging changes;
-- desktop artifact changes;
+- desktop JAR/native-installer artifact changes;
 - fixed defects and regression coverage;
 - known limitations;
 - exact verification status.
