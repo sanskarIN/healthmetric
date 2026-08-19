@@ -8,6 +8,7 @@ import io.github.sanskarin.healthmetric.data.HealthMetricDataStore
 import io.github.sanskarin.healthmetric.data.HistoryEntry
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import org.json.JSONObject
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -56,7 +57,7 @@ class HealthMetricDataStoreTest {
     }
 
     @Test
-    fun exportRestoreRoundTripPreservesSupportedPreferencesAndHistory() = runBlocking {
+    fun exportRestoreRoundTripPreservesPortablePreferencesAndHistory() = runBlocking {
         dataStore.setHistoryEnabled(true)
         dataStore.setHistoryRetentionLimit(250)
         dataStore.setThemeMode(AppThemeMode.DARK)
@@ -64,6 +65,10 @@ class HealthMetricDataStoreTest {
         dataStore.addHistory(entry(id = "round-trip", value = 23.4))
 
         val backup = dataStore.exportJson()
+        val root = JSONObject(backup)
+        assertFalse(root.has("adultUseConfirmed"))
+        assertFalse(root.has("onboardingComplete"))
+
         dataStore.deleteAllLocalData()
         dataStore.restoreFromJson(backup)
 
@@ -73,8 +78,8 @@ class HealthMetricDataStoreTest {
         assertTrue(preferences.historyEnabled)
         assertEquals(250, preferences.historyRetentionLimit)
         assertEquals(AppThemeMode.DARK, preferences.themeMode)
-        assertTrue(preferences.adultUseConfirmed)
-        assertTrue(preferences.onboardingComplete)
+        assertFalse(preferences.adultUseConfirmed)
+        assertFalse(preferences.onboardingComplete)
         assertEquals(1, history.size)
         assertEquals("round-trip", history.single().id)
         assertEquals(23.4, history.single().value, 0.0001)
@@ -153,9 +158,35 @@ class HealthMetricDataStoreTest {
         dataStore.restoreFromJson(backup)
 
         val history = dataStore.history.first()
+        val preferences = dataStore.preferences.first()
         assertEquals(2, history.size)
         assertEquals(listOf("same-id", "second-valid"), history.map { it.id })
         assertEquals(22.1, history.first().value, 0.0001)
+        assertFalse(preferences.adultUseConfirmed)
+        assertFalse(preferences.onboardingComplete)
+    }
+
+    @Test
+    fun restorePreservesCurrentAdultGateStateEvenIfBackupContainsLegacyGateFields() = runBlocking {
+        dataStore.completeOnboarding(adultUseConfirmed = false)
+        val legacyBackup = """
+            {
+              "schemaVersion": 1,
+              "historyEnabled": false,
+              "historyRetentionLimit": 100,
+              "themeMode": "LIGHT",
+              "adultUseConfirmed": true,
+              "onboardingComplete": true,
+              "history": []
+            }
+        """.trimIndent()
+
+        dataStore.restoreFromJson(legacyBackup)
+
+        val preferences = dataStore.preferences.first()
+        assertFalse(preferences.adultUseConfirmed)
+        assertTrue(preferences.onboardingComplete)
+        assertEquals(AppThemeMode.LIGHT, preferences.themeMode)
     }
 
     @Test(expected = IllegalArgumentException::class)
