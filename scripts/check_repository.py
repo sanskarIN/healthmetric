@@ -103,13 +103,13 @@ def main() -> int:
         if fragment not in readme:
             failures.append(f"README.md is missing required metadata: {fragment}")
 
-    privacy = read("PRIVACY.md")
+    privacy_lower = read("PRIVACY.md").lower()
     for phrase in [
         "disabled by default",
         "adult-use confirmation",
-        "1 MiB",
+        "1 mib",
     ]:
-        if phrase not in privacy:
+        if phrase not in privacy_lower:
             failures.append(f"PRIVACY.md is missing required privacy invariant text: {phrase}")
 
     aab_requirements = [
