@@ -223,7 +223,7 @@ def main() -> int:
     for fragment in [
         'requireNotNull(root.optJSONArray("history"))',
         "Backup history must be a JSON array.",
-        "Backup history contains no valid records.",
+        "Backup history contains no valid entries.",
     ]:
         if fragment not in data_store:
             failures.append(f"HealthMetricDataStore.kt is missing backup structure invariant: {fragment}")
