@@ -33,6 +33,7 @@ import io.github.sanskarin.healthmetric.domain.ImperialBodyInput
 import io.github.sanskarin.healthmetric.domain.MetricBodyInput
 import io.github.sanskarin.healthmetric.domain.UnitSystem
 import io.github.sanskarin.healthmetric.ui.components.MeasurementNumberField
+import io.github.sanskarin.healthmetric.ui.format.LocalizedNumbers
 import io.github.sanskarin.healthmetric.ui.testing.HealthMetricTestTags
 import io.github.sanskarin.healthmetric.ui.theme.HealthMetricSpacing
 
@@ -136,15 +137,15 @@ fun CalculatorScreen(
                     when (unitSystem) {
                         UnitSystem.METRIC -> BmiCalculator.calculateMetric(
                             MetricBodyInput(
-                                weightKg = weight.toDoubleOrNull() ?: error(invalidWeight),
-                                heightCm = heightCm.toDoubleOrNull() ?: error(invalidHeight),
+                                weightKg = LocalizedNumbers.parseDecimal(weight) ?: error(invalidWeight),
+                                heightCm = LocalizedNumbers.parseDecimal(heightCm) ?: error(invalidHeight),
                             ),
                         )
                         UnitSystem.IMPERIAL -> BmiCalculator.calculateImperial(
                             ImperialBodyInput(
-                                weightLb = weight.toDoubleOrNull() ?: error(invalidWeight),
+                                weightLb = LocalizedNumbers.parseDecimal(weight) ?: error(invalidWeight),
                                 heightFeet = feet.toIntOrNull() ?: error(invalidFeet),
-                                heightInches = inches.toDoubleOrNull() ?: error(invalidInches),
+                                heightInches = LocalizedNumbers.parseDecimal(inches) ?: error(invalidInches),
                             ),
                         )
                     }
@@ -190,7 +191,10 @@ fun CalculatorScreen(
                     verticalArrangement = Arrangement.spacedBy(HealthMetricSpacing.xs),
                 ) {
                     Text(
-                        text = stringResource(R.string.bmi_result, bmiResult.displayBmi.toString()),
+                        text = stringResource(
+                            R.string.bmi_result,
+                            LocalizedNumbers.format(bmiResult.displayBmi, maximumFractionDigits = 1),
+                        ),
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.SemiBold,
                     )
