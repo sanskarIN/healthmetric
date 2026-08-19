@@ -102,7 +102,6 @@ class HealthMetricDataStore(private val context: Context) {
         val preferences = context.healthMetricDataStore.data.first()
         return JSONObject().apply {
             put("schemaVersion", BACKUP_SCHEMA_VERSION)
-            put("historyEnabled", preferences[Keys.historyEnabled] ?: false)
             put(
                 "historyRetentionLimit",
                 HistoryRetentionPolicy.normalize(
@@ -134,12 +133,11 @@ class HealthMetricDataStore(private val context: Context) {
             .take(restoredRetentionLimit)
 
         context.healthMetricDataStore.edit { preferences ->
-            preferences[Keys.historyEnabled] = root.optBoolean("historyEnabled", false)
             preferences[Keys.historyRetentionLimit] = restoredRetentionLimit
             preferences[Keys.themeMode] = restoredTheme.name
             preferences[Keys.historyJson] = encodeHistory(restoredHistory)
-            // Adult-use confirmation and onboarding state are intentionally device-local safety state.
-            // Portable backups must never enable or overwrite them.
+            // History opt-in, adult-use confirmation, and onboarding state are intentionally
+            // device-local consent/safety state. Portable backups must never change them.
         }
     }
 
