@@ -13,19 +13,47 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  android-release:
+  preflight:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 10
 
     steps:
-      - name: Checkout
+      - name: Checkout complete release history
         uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - name: Audit repository invariants
         run: python3 scripts/check_repository.py
 
       - name: Verify internal Markdown links
         run: python3 scripts/check_markdown_links.py
+
+      - name: Verify release tag matches project versions
+        run: python3 scripts/check_release_version.py "${GITHUB_REF_NAME}"
+
+      - name: Verify release tag targets current main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main --no-tags
+          release_sha="$(git rev-parse HEAD)"
+          main_sha="$(git rev-parse origin/main)"
+          if [[ "${release_sha}" != "${main_sha}" ]]; then
+            echo "Release tags must target the current main commit." >&2
+            echo "tag commit:  ${release_sha}" >&2
+            echo "main commit: ${main_sha}" >&2
+            exit 1
+          fi
+
+  android-release:
+    needs: preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
 
       - name: Set up JDK 17
         uses: actions/setup-java@v5
@@ -77,6 +105,7 @@ jobs:
           retention-days: 30
 
   desktop-release:
+    needs: preflight
     strategy:
       fail-fast: false
       matrix:
