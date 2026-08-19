@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "io.github.sanskarin.healthmetric"
-version = "0.1.0"
+version = "2.0.12"
 
 kotlin {
     jvmToolchain(17)
@@ -27,13 +27,9 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "HealthMetric"
-            packageVersion = "0.1.0"
+            packageVersion = "2.0.12"
             description = "Privacy-first adult health measurement calculator"
             vendor = "Sanskar"
-
-            macOS {
-                packageVersion = "1.0.0"
-            }
         }
     }
 }
