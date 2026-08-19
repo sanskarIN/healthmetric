@@ -5,6 +5,7 @@ GRADLE_BIN="${GRADLE_BIN:-gradle}"
 
 python3 scripts/check_repository.py
 python3 scripts/check_markdown_links.py
+python3 -m unittest discover -s scripts/tests -p "test_*.py"
 
 "${GRADLE_BIN}" :shared:ktlintCheck :androidApp:ktlintCheck :desktopApp:ktlintCheck
 "${GRADLE_BIN}" :shared:desktopTest
