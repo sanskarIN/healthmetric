@@ -28,6 +28,16 @@ Raw weight, height, and waist inputs are not stored in history by the current im
 
 Users can choose a maximum retention of 50, 100, 250, or 500 saved results. The default retention limit is 100. Lowering the limit immediately removes older entries beyond the selected maximum. Individual history entries can be deleted, with an immediate in-app undo action, or all history can be erased after confirmation.
 
+## Device-local consent and safety state
+
+Three settings are intentionally **not portable** through HealthMetric backups:
+
+- whether local history saving is currently enabled;
+- whether adult use was confirmed;
+- whether onboarding was completed.
+
+A backup therefore cannot silently enable future history collection on another installation and cannot enable adult reference calculators by importing another person's confirmation state. Restore preserves the current device's consent and adult-use gate state.
+
 ## Data export and restore
 
 The user can explicitly export local HealthMetric data as JSON in either of two ways:
@@ -35,9 +45,11 @@ The user can explicitly export local HealthMetric data as JSON in either of two 
 - save a backup file through Android's Storage Access Framework document picker; or
 - share the JSON through Android's explicit share chooser.
 
+Portable backup content contains supported presentation/retention preferences and bounded calculation history. It deliberately omits device-local consent and adult-use gate state.
+
 HealthMetric does not silently upload exported data. Once an exported copy is handed to another app, cloud provider, removable drive, or other location, that copy is governed by the destination's privacy and security behavior.
 
-The user can restore a HealthMetric JSON backup by selecting a local document. Restore behavior is defensive:
+The user can restore a HealthMetric JSON backup by selecting a local document. After the file is read, HealthMetric asks for confirmation before replacing portable local settings/history. Restore behavior is defensive:
 
 - only backup schema version 1 is accepted;
 - backup reads and writes are limited to 1 MiB;
@@ -45,8 +57,8 @@ The user can restore a HealthMetric JSON backup by selecting a local document. R
 - malformed individual history records are ignored rather than crashing the app;
 - blank/invalid identifiers, negative timestamps, non-finite values, and unknown calculator types are rejected at record level;
 - duplicate history identifiers are deduplicated;
-- a backup that omits the history preference restores with history disabled;
-- unsupported retention values fall back to the privacy-conscious default of 100.
+- unsupported retention values fall back to the privacy-conscious default of 100;
+- current history opt-in and adult-use/onboarding state are preserved rather than imported.
 
 ## Deletion controls
 
@@ -74,7 +86,7 @@ HealthMetric uses a small structured logger for operational events such as delet
 
 ## Children and teens
 
-The current BMI and waist-to-height reference calculators are explicitly designed for adults age 18 or older. HealthMetric does not apply these adult references to people under 18.
+The current BMI and waist-to-height reference calculators are explicitly designed for adults age 18 or older. HealthMetric does not apply these adult references to people under 18. Adult-use confirmation is never exported or imported through backups.
 
 ## Third parties
 
