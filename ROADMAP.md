@@ -77,7 +77,8 @@ The roadmap prioritizes correctness, privacy, accessibility, and maintainability
 
 - [x] Tagged unsigned release workflow.
 - [x] Release documentation and release-notes template.
-- [x] CI configured to assemble both debug and unsigned release candidates.
+- [x] CI configured to assemble and upload a debug APK, unsigned release APK, and unsigned release App Bundle.
+- [x] Tagged release workflow configured to publish both unsigned APK and App Bundle artifacts.
 - [ ] Run clean-checkout CI successfully and record the run in `what_changed.md`.
 - [ ] Verify release build on physical Android hardware and emulator.
 - [ ] Capture required screenshots and accessibility evidence.
