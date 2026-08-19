@@ -1,0 +1,56 @@
+package io.github.sanskarin.healthmetric.desktop
+
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertIs
+import kotlin.test.assertTrue
+
+class DesktopCalculationsTest {
+    @Test
+    fun metricBmiUsesSharedAdultReference() {
+        val outcome = DesktopCalculations.metricBmi(weightKg = "70", heightCm = "175")
+        val success = assertIs<DesktopCalculationOutcome.Success>(outcome)
+
+        assertEquals("BMI 22.9", success.valueLabel)
+        assertEquals("Within adult reference range", success.contextLabel)
+        assertTrue(success.notice.startsWith("For adults only."))
+    }
+
+    @Test
+    fun imperialBmiAcceptsFeetAndRemainingInches() {
+        val outcome = DesktopCalculations.imperialBmi(
+            weightLb = "154.324",
+            feet = "5",
+            inches = "8.8976",
+        )
+        val success = assertIs<DesktopCalculationOutcome.Success>(outcome)
+
+        assertEquals("BMI 22.9", success.valueLabel)
+    }
+
+    @Test
+    fun metricRatioReturnsNeutralContext() {
+        val outcome = DesktopCalculations.metricWaistToHeight(waistCm = "80", heightCm = "175")
+        val success = assertIs<DesktopCalculationOutcome.Success>(outcome)
+
+        assertEquals("Waist-to-height ratio 0.46", success.valueLabel)
+        assertEquals("Adult educational screening value", success.contextLabel)
+        assertTrue(success.explanation.contains("without appearance rankings"))
+    }
+
+    @Test
+    fun invalidTextReturnsFieldSpecificFailure() {
+        val outcome = DesktopCalculations.metricBmi(weightKg = "abc", heightCm = "175")
+        val failure = assertIs<DesktopCalculationOutcome.Failure>(outcome)
+
+        assertEquals("Enter a valid weight in kilograms.", failure.message)
+    }
+
+    @Test
+    fun sharedRangeValidationIsPreserved() {
+        val outcome = DesktopCalculations.metricBmi(weightKg = "10", heightCm = "175")
+        val failure = assertIs<DesktopCalculationOutcome.Failure>(outcome)
+
+        assertTrue(failure.message.contains("adult educational calculator"))
+    }
+}
