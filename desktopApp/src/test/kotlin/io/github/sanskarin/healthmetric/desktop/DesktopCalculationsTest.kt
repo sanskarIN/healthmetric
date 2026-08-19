@@ -56,6 +56,22 @@ class DesktopCalculationsTest {
     }
 
     @Test
+    fun imperialRatioReportsWaistRangeInInches() {
+        val outcome =
+            DesktopCalculations.imperialWaistToHeight(
+                waistInches = "5",
+                heightFeet = "5",
+                heightInches = "8",
+            )
+        val failure = assertIs<DesktopCalculationOutcome.Failure>(outcome)
+
+        assertEquals(
+            "Waist measurement must be between about 11.81 in and 98.43 in for this adult educational calculator.",
+            failure.message,
+        )
+    }
+
+    @Test
     fun invalidTextReturnsFieldSpecificFailure() {
         val outcome = DesktopCalculations.metricBmi(weightKg = "abc", heightCm = "175")
         val failure = assertIs<DesktopCalculationOutcome.Failure>(outcome)
