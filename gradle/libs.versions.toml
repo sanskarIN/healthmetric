@@ -1,6 +1,6 @@
 [versions]
 agp = "8.13.2"
-kotlin = "2.2.20"
+kotlin = "2.4.10"
 ktlintGradle = "14.2.0"
 androidxCore = "1.17.0"
 activityCompose = "1.11.0"
