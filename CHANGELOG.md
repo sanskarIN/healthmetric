@@ -59,9 +59,12 @@ All notable HealthMetric changes are documented here. The project follows Semant
 
 ### Changed
 
+- Release target is now **HealthMetric 2.0.12** across Android `versionName`, desktop project version, and desktop native `packageVersion`.
+- Android `versionCode` is now `20012`, following the repository's `MAJOR * 10000 + MINOR * 100 + PATCH` mapping for two-digit minor/patch components.
+- Release validation now checks Android `versionName`, Android `versionCode`, desktop project version, desktop native `packageVersion`, and the stable release tag as one consistency boundary.
 - GitHub Actions workflow dependencies were updated to current supported major versions for checkout, Java/Python setup, Gradle setup, CodeQL, dependency review, and artifact upload where applicable.
 - Release CI now runs shared, Android, and desktop verification before producing distribution artifacts.
-- Tagged release automation now performs a read-only preflight before builds, requires the tag to match both app versions, and requires the tag to target the current `main` commit.
+- Tagged release automation now performs a read-only preflight before builds, requires the tag to match all configured release versions, and requires the tag to target the current `main` commit.
 - Release build jobs now use tested Python staging logic instead of duplicated shell-specific artifact discovery.
 - The final release publication step rejects missing, extra, or empty binary assets before creating the GitHub Release.
 - Release workflow repository permissions are read-only by default; `contents: write` is scoped only to the final publication job.
@@ -119,7 +122,7 @@ All notable HealthMetric changes are documented here. The project follows Semant
 - Desktop measurement/session state is deliberately not persisted.
 - Desktop input rejects ambiguous/signed/scientific/non-finite measurement syntax and invalid split-height remaining-inch components.
 - Secret scanning checks repository history in CI.
-- Release tags fail closed unless they use stable SemVer form, match configured Android/desktop versions, and target current `main`.
+- Release tags fail closed unless they use stable SemVer form, match configured Android/desktop versions and Android version-code mapping, and target current `main`.
 - Release asset publication fails closed on missing, unexpected, or empty files and publishes SHA-256 checksums.
 - Release workflow write privilege is isolated to the final publication job.
 - Repository invariants reject the known accidental write-probe path, verify expected release packaging/evidence/desktop/security configuration, and require documentation for every tracked file.
@@ -136,13 +139,13 @@ All notable HealthMetric changes are documented here. The project follows Semant
 ### Remaining release verification
 
 - The exact final pull-request and release-candidate commits must complete all configured automation successfully.
-- Physical Android hardware review remains required before the first public Android release.
+- Physical Android hardware review remains required before the public `2.0.12` Android release.
 - Manual TalkBack, maximum-font/display, keyboard/DPAD where applicable, and final visual review remain release-candidate tasks.
 - CI-generated Android screenshots must receive final human visual/privacy review before permanent store/README publication.
 - Android release signing remains intentionally external to source control and must be configured through a protected distribution process.
 - Desktop native packages should receive host-platform smoke/accessibility/install-uninstall testing before being promoted as release assets.
 - Desktop production signing/notarization, if used, remains external to source control.
 
-## [0.1.0] - Planned
+## [2.0.12] - Planned
 
-First development release candidate after the exact release commit passes automation, required platform/device review, final screenshot/accessibility review, protected signing/trust setup, and the release checklist.
+Release candidate for HealthMetric `2.0.12`. Publish `v2.0.12` only after the exact release commit passes automation, required platform/device review, final screenshot/accessibility review, protected signing/trust setup, and the release checklist.
