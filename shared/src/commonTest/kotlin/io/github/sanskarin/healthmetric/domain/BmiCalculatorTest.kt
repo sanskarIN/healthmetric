@@ -29,6 +29,21 @@ class BmiCalculatorTest {
     }
 
     @Test
+    fun imperialDocumentedWeightBoundariesRemainAccepted() {
+        val lowerBoundary = BmiCalculator.calculateImperial(
+            ImperialBodyInput(weightLb = 44.0, heightFeet = 5, heightInches = 8.0),
+        )
+        val upperBoundary = BmiCalculator.calculateImperial(
+            ImperialBodyInput(weightLb = 1102.5, heightFeet = 5, heightInches = 8.0),
+        )
+
+        assertTrue(lowerBoundary.bmi.isFinite())
+        assertTrue(upperBoundary.bmi.isFinite())
+        assertTrue(lowerBoundary.bmi > 0.0)
+        assertTrue(upperBoundary.bmi > lowerBoundary.bmi)
+    }
+
+    @Test
     fun referenceBoundaryAtTwentyFiveUsesAboveReferenceBand() {
         val result = BmiReferenceProfile.AdultGeneralReference.bandFor(25.0)
         assertEquals("Above adult reference range", result.label)
