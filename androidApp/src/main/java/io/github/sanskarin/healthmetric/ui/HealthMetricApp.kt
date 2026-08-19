@@ -41,6 +41,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.sanskarin.healthmetric.R
+import io.github.sanskarin.healthmetric.data.BackupIo
 import io.github.sanskarin.healthmetric.data.CalculatorKind
 import io.github.sanskarin.healthmetric.data.HistoryEntry
 import io.github.sanskarin.healthmetric.data.SafeLogger
@@ -114,7 +115,7 @@ fun HealthMetricApp(
     val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
         runCatching {
-            context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
+            context.contentResolver.openInputStream(uri)?.use(BackupIo::readUtf8)
                 ?: error(readBackupFailed)
         }.onSuccess { json ->
             viewModel.restoreData(json) { success ->
@@ -136,8 +137,8 @@ fun HealthMetricApp(
         if (uri == null || json == null) return@rememberLauncherForActivityResult
 
         runCatching {
-            context.contentResolver.openOutputStream(uri, "wt")?.writer(Charsets.UTF_8)?.buffered()?.use {
-                it.write(json)
+            context.contentResolver.openOutputStream(uri, "wt")?.use { output ->
+                BackupIo.writeUtf8(output, json)
             } ?: error(fileExportFailed)
         }.onSuccess {
             scope.launch { snackbarHostState.showSnackbar(fileExportSaved) }
