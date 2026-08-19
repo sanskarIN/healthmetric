@@ -9,8 +9,10 @@ if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
 from check_release_version import (  # noqa: E402
+    ANDROID_VERSION_CODE_PATTERN,
     ANDROID_VERSION_PATTERN,
     ROOT,
+    android_version_code_for,
     read_version,
     validate_release_tag,
 )
@@ -24,8 +26,34 @@ class ReleaseVersionCheckTest(unittest.TestCase):
             "Android versionName",
         )
 
+    def current_version_code(self) -> int:
+        return int(
+            read_version(
+                ROOT / "androidApp/build.gradle.kts",
+                ANDROID_VERSION_CODE_PATTERN,
+                "Android versionCode",
+            ),
+        )
+
     def test_current_project_version_accepts_matching_stable_tag(self) -> None:
         self.assertEqual([], validate_release_tag(f"v{self.current_version()}"))
+
+    def test_current_android_version_code_matches_semantic_version(self) -> None:
+        self.assertEqual(
+            android_version_code_for(self.current_version()),
+            self.current_version_code(),
+        )
+
+    def test_version_code_mapping_for_2_0_12(self) -> None:
+        self.assertEqual(20_012, android_version_code_for("2.0.12"))
+
+    def test_version_code_mapping_rejects_large_minor_component(self) -> None:
+        with self.assertRaisesRegex(ValueError, "reserves two digits"):
+            android_version_code_for("2.100.0")
+
+    def test_version_code_mapping_rejects_large_patch_component(self) -> None:
+        with self.assertRaisesRegex(ValueError, "reserves two digits"):
+            android_version_code_for("2.0.100")
 
     def test_tag_requires_v_prefix(self) -> None:
         failures = validate_release_tag(self.current_version())
