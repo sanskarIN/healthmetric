@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="180" viewBox="0 0 720 180" role="img" aria-labelledby="title desc">
+  <title id="title">HealthMetric logo</title>
+  <desc id="desc">A teal circular measurement pulse icon next to the HealthMetric wordmark.</desc>
+  <rect width="720" height="180" rx="28" fill="#F5FBF9"/>
+  <circle cx="90" cy="90" r="58" fill="#006B66"/>
+  <path d="M42 94h25l11-31 18 55 15-38 10 14h24" fill="none" stroke="#fff" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="174" y="88" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="54" font-weight="700" fill="#103936">HealthMetric</text>
+  <text x="176" y="128" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="22" fill="#4A635F">Private · neutral · adult health measurements</text>
+</svg>
