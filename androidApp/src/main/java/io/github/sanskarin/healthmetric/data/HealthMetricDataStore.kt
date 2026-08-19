@@ -143,8 +143,11 @@ class HealthMetricDataStore(private val context: Context) {
         val restoredRetentionLimit = HistoryRetentionPolicy.normalize(
             root.optInt("historyRetentionLimit", HistoryRetentionPolicy.DEFAULT_LIMIT),
         )
-        val restoredHistory = decodeHistory(historyArray.toString())
-            .take(restoredRetentionLimit)
+        val decodedHistory = decodeHistory(historyArray.toString())
+        require(historyArray.length() == 0 || decodedHistory.isNotEmpty()) {
+            "Backup history contains no valid entries."
+        }
+        val restoredHistory = decodedHistory.take(restoredRetentionLimit)
 
         context.healthMetricDataStore.edit { preferences ->
             preferences[Keys.historyRetentionLimit] = restoredRetentionLimit
