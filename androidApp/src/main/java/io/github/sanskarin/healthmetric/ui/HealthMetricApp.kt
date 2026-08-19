@@ -15,6 +15,7 @@ import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Straighten
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -27,6 +28,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -95,7 +97,7 @@ fun HealthMetricApp(
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     var screenName by rememberSaveable { mutableStateOf(AppScreen.CALCULATOR.name) }
-    var pendingFileExport by remember { mutableStateOf<String?>(null) }
+    var pendingRestoreJson by remember { mutableStateOf<String?>(null) }
     val screen = AppScreen.valueOf(screenName)
 
     val restoreSuccess = stringResource(R.string.restore_success)
@@ -118,11 +120,7 @@ fun HealthMetricApp(
             context.contentResolver.openInputStream(uri)?.use(BackupIo::readUtf8)
                 ?: error(readBackupFailed)
         }.onSuccess { json ->
-            viewModel.restoreData(json) { success ->
-                scope.launch {
-                    snackbarHostState.showSnackbar(if (success) restoreSuccess else restoreInvalid)
-                }
-            }
+            pendingRestoreJson = json
         }.onFailure { error ->
             SafeLogger.warn(SafeLogger.Event.RESTORE_FAILED, error)
             scope.launch { snackbarHostState.showSnackbar(readBackupFailed) }
@@ -132,20 +130,23 @@ fun HealthMetricApp(
     val saveBackupLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/json"),
     ) { uri ->
-        val json = pendingFileExport
-        pendingFileExport = null
-        if (uri == null || json == null) return@rememberLauncherForActivityResult
+        if (uri == null) return@rememberLauncherForActivityResult
 
-        runCatching {
-            context.contentResolver.openOutputStream(uri, "wt")?.use { output ->
-                BackupIo.writeUtf8(output, json)
-            } ?: error(fileExportFailed)
-        }.onSuccess {
-            scope.launch { snackbarHostState.showSnackbar(fileExportSaved) }
-        }.onFailure { error ->
-            SafeLogger.warn(SafeLogger.Event.EXPORT_FAILED, error)
-            scope.launch { snackbarHostState.showSnackbar(fileExportFailed) }
-        }
+        viewModel.exportData(
+            onReady = { json ->
+                runCatching {
+                    context.contentResolver.openOutputStream(uri, "wt")?.use { output ->
+                        BackupIo.writeUtf8(output, json)
+                    } ?: error(fileExportFailed)
+                }.onSuccess {
+                    scope.launch { snackbarHostState.showSnackbar(fileExportSaved) }
+                }.onFailure { error ->
+                    SafeLogger.warn(SafeLogger.Event.EXPORT_FAILED, error)
+                    scope.launch { snackbarHostState.showSnackbar(fileExportFailed) }
+                }
+            },
+            onError = { scope.launch { snackbarHostState.showSnackbar(exportFailed) } },
+        )
     }
 
     fun openUri(rawUri: String) {
@@ -177,14 +178,18 @@ fun HealthMetricApp(
     }
 
     fun saveDataToFile() {
-        viewModel.exportData(
-            onReady = { json ->
-                pendingFileExport = json
-                val stamp = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date())
-                saveBackupLauncher.launch("healthmetric-backup-$stamp.json")
-            },
-            onError = { scope.launch { snackbarHostState.showSnackbar(exportFailed) } },
-        )
+        val stamp = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date())
+        saveBackupLauncher.launch("healthmetric-backup-$stamp.json")
+    }
+
+    fun restorePendingBackup() {
+        val json = pendingRestoreJson ?: return
+        pendingRestoreJson = null
+        viewModel.restoreData(json) { success ->
+            scope.launch {
+                snackbarHostState.showSnackbar(if (success) restoreSuccess else restoreInvalid)
+            }
+        }
     }
 
     fun deleteHistoryEntry(entry: HistoryEntry) {
@@ -314,5 +319,23 @@ fun HealthMetricApp(
                 }
             }
         }
+    }
+
+    if (pendingRestoreJson != null) {
+        AlertDialog(
+            onDismissRequest = { pendingRestoreJson = null },
+            title = { Text(stringResource(R.string.restore_backup_title)) },
+            text = { Text(stringResource(R.string.restore_backup_body)) },
+            confirmButton = {
+                TextButton(onClick = ::restorePendingBackup) {
+                    Text(stringResource(R.string.restore))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingRestoreJson = null }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            },
+        )
     }
 }
