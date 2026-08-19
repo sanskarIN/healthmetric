@@ -2,6 +2,7 @@ package io.github.sanskarin.healthmetric.ui
 
 import android.content.Intent
 import android.net.Uri
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Calculate
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Info
@@ -97,6 +99,7 @@ fun HealthMetricApp(
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     var screenName by rememberSaveable { mutableStateOf(AppScreen.CALCULATOR.name) }
+    var previousScreenName by rememberSaveable { mutableStateOf(AppScreen.CALCULATOR.name) }
     var pendingRestoreJson by remember { mutableStateOf<String?>(null) }
     val screen = AppScreen.valueOf(screenName)
 
@@ -113,6 +116,25 @@ fun HealthMetricApp(
     val ratioHistorySummary = stringResource(R.string.ratio_history_summary)
     val historyEntryDeleted = stringResource(R.string.history_entry_deleted)
     val undoLabel = stringResource(R.string.undo)
+
+    fun openAbout() {
+        if (screen != AppScreen.ABOUT) {
+            previousScreenName = screen.name
+        }
+        screenName = AppScreen.ABOUT.name
+    }
+
+    fun closeAbout() {
+        val previousScreen = runCatching { AppScreen.valueOf(previousScreenName) }
+            .getOrDefault(AppScreen.CALCULATOR)
+        screenName = if (previousScreen == AppScreen.ABOUT) {
+            AppScreen.CALCULATOR.name
+        } else {
+            previousScreen.name
+        }
+    }
+
+    BackHandler(enabled = screen == AppScreen.ABOUT, onBack = ::closeAbout)
 
     val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
@@ -218,9 +240,19 @@ fun HealthMetricApp(
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.top_bar_title, screenTitle)) },
+                navigationIcon = {
+                    if (screen == AppScreen.ABOUT) {
+                        IconButton(onClick = ::closeAbout) {
+                            Icon(
+                                Icons.Outlined.ArrowBack,
+                                contentDescription = stringResource(R.string.navigate_back),
+                            )
+                        }
+                    }
+                },
                 actions = {
                     if (screen != AppScreen.ABOUT) {
-                        IconButton(onClick = { screenName = AppScreen.ABOUT.name }) {
+                        IconButton(onClick = ::openAbout) {
                             Icon(
                                 Icons.Outlined.Info,
                                 contentDescription = stringResource(R.string.about_content_description),
@@ -313,7 +345,7 @@ fun HealthMetricApp(
                         onImport = { importLauncher.launch(arrayOf("application/json", "text/plain")) },
                         onDeleteAllData = viewModel::deleteAllLocalData,
                         onOpenReleases = { openUri("https://github.com/sanskarIN/healthmetric/releases") },
-                        onAbout = { screenName = AppScreen.ABOUT.name },
+                        onAbout = ::openAbout,
                     )
                     AppScreen.ABOUT -> AboutScreen(onOpenLink = ::openUri)
                 }
