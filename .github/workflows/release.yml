@@ -177,6 +177,14 @@ jobs:
       contents: write
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
       - name: Download verified release assets
         uses: actions/download-artifact@v8
         with:
@@ -184,24 +192,11 @@ jobs:
           path: release-assets
           merge-multiple: true
 
-      - name: Verify release asset set
-        shell: bash
-        run: |
-          set -euo pipefail
-          expected=(
-            "healthmetric-${GITHUB_REF_NAME}-android-unsigned.apk"
-            "healthmetric-${GITHUB_REF_NAME}-android-unsigned.aab"
-            "healthmetric-${GITHUB_REF_NAME}-desktop-linux.jar"
-            "healthmetric-${GITHUB_REF_NAME}-desktop-linux.deb"
-            "healthmetric-${GITHUB_REF_NAME}-desktop-windows.jar"
-            "healthmetric-${GITHUB_REF_NAME}-desktop-windows.msi"
-            "healthmetric-${GITHUB_REF_NAME}-desktop-macos.jar"
-            "healthmetric-${GITHUB_REF_NAME}-desktop-macos.dmg"
-          )
-          for asset in "${expected[@]}"; do
-            test -s "release-assets/${asset}"
-          done
-          ls -lah release-assets
+      - name: Verify release assets and write checksums
+        run: >-
+          python scripts/verify_release_assets.py
+          --tag "${GITHUB_REF_NAME}"
+          --write-checksums
 
       - name: Create GitHub release
         env:
@@ -211,5 +206,6 @@ jobs:
           gh release create "${GITHUB_REF_NAME}" \
             release-assets/* \
             --repo "${GITHUB_REPOSITORY}" \
+            --verify-tag \
             --generate-notes \
             --title "HealthMetric ${GITHUB_REF_NAME}"
