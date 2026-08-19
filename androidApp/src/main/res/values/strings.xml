@@ -11,6 +11,7 @@
     <string name="onboarding_under_18">I am under 18</string>
     <string name="adult_only_title">Adult reference calculators unavailable</string>
     <string name="adult_only_body">HealthMetric intentionally does not apply adult BMI or waist-to-height reference calculations to people under 18. Age-specific growth and health questions should be discussed with a parent, guardian, or qualified healthcare professional.</string>
+    <string name="adult_only_return">Return to age selection</string>
 
     <string name="screen_bmi">BMI</string>
     <string name="screen_waist_ratio">Waist ratio</string>
