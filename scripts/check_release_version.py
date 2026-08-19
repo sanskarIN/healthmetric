@@ -12,6 +12,10 @@ STABLE_TAG_PATTERN = re.compile(
 ANDROID_VERSION_PATTERN = re.compile(r'^\s*versionName\s*=\s*"([^"]+)"\s*$', re.MULTILINE)
 ANDROID_VERSION_CODE_PATTERN = re.compile(r"^\s*versionCode\s*=\s*(\d+)\s*$", re.MULTILINE)
 DESKTOP_VERSION_PATTERN = re.compile(r'^\s*version\s*=\s*"([^"]+)"\s*$', re.MULTILINE)
+DESKTOP_PACKAGE_VERSION_PATTERN = re.compile(
+    r'^\s*packageVersion\s*=\s*"([^"]+)"\s*$',
+    re.MULTILINE,
+)
 
 
 def read_version(path: Path, pattern: re.Pattern[str], label: str) -> str:
@@ -46,12 +50,12 @@ def android_version_code_for(version: str) -> int:
 
 def validate_release_tag(tag: str) -> list[str]:
     failures: list[str] = []
-    match = STABLE_TAG_PATTERN.fullmatch(tag)
-    if match is None:
+    if STABLE_TAG_PATTERN.fullmatch(tag) is None:
         return [f"Release tag must use stable semantic version form vMAJOR.MINOR.PATCH; received {tag!r}."]
 
     tag_version = tag.removeprefix("v")
     android_build = ROOT / "androidApp/build.gradle.kts"
+    desktop_build = ROOT / "desktopApp/build.gradle.kts"
     android_version = read_version(
         android_build,
         ANDROID_VERSION_PATTERN,
@@ -65,9 +69,14 @@ def validate_release_tag(tag: str) -> list[str]:
         ),
     )
     desktop_version = read_version(
-        ROOT / "desktopApp/build.gradle.kts",
+        desktop_build,
         DESKTOP_VERSION_PATTERN,
         "desktop project version",
+    )
+    desktop_package_version = read_version(
+        desktop_build,
+        DESKTOP_PACKAGE_VERSION_PATTERN,
+        "desktop native packageVersion",
     )
 
     if android_version != tag_version:
@@ -78,9 +87,13 @@ def validate_release_tag(tag: str) -> list[str]:
         failures.append(
             f"Desktop project version {desktop_version!r} does not match release tag version {tag_version!r}.",
         )
-    if android_version != desktop_version:
+    if desktop_package_version != tag_version:
         failures.append(
-            f"Android version {android_version!r} and desktop version {desktop_version!r} must match.",
+            f"Desktop packageVersion {desktop_package_version!r} does not match release tag version {tag_version!r}.",
+        )
+    if android_version != desktop_version or desktop_version != desktop_package_version:
+        failures.append(
+            "Android versionName, desktop project version, and desktop native packageVersion must match.",
         )
 
     try:
