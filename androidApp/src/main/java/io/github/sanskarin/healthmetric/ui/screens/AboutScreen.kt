@@ -11,11 +11,13 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.github.sanskarin.healthmetric.BuildConfig
+import io.github.sanskarin.healthmetric.R
 
 @Composable
 fun AboutScreen(onOpenLink: (String) -> Unit) {
@@ -26,31 +28,31 @@ fun AboutScreen(onOpenLink: (String) -> Unit) {
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         Text(
-            text = "About HealthMetric",
+            text = stringResource(R.string.about_healthmetric),
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.semantics { heading() },
         )
-        Text("Version ${BuildConfig.VERSION_NAME}")
+        Text(stringResource(R.string.about_version, BuildConfig.VERSION_NAME))
         Text(
-            text = "HealthMetric is an open-source, offline-first adult BMI and health measurement calculator. Its outputs are educational and non-diagnostic.",
+            text = stringResource(R.string.about_description),
             style = MaterialTheme.typography.bodyLarge,
         )
         Text(
-            text = "Made by the Sanskar",
+            text = stringResource(R.string.made_by),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
         )
-        Text("License: MIT")
+        Text(stringResource(R.string.license_mit))
 
-        LinkButton("GitHub — sanskarIN", "https://github.com/sanskarIN", onOpenLink)
-        LinkButton("Buy Me a Coffee — sanskarIN", "https://buymeacoffee.com/sanskarIN", onOpenLink)
-        LinkButton("Business — sanskarin@outlook.in", "mailto:sanskarin@outlook.in", onOpenLink)
-        LinkButton("Business — sanskarin.business@gmail.com", "mailto:sanskarin.business@gmail.com", onOpenLink)
-        LinkButton("Support — supportramsandesh@gmail.com", "mailto:supportramsandesh@gmail.com", onOpenLink)
+        LinkButton(stringResource(R.string.github_sanskar), "https://github.com/sanskarIN", onOpenLink)
+        LinkButton(stringResource(R.string.bmc_sanskar), "https://buymeacoffee.com/sanskarIN", onOpenLink)
+        LinkButton(stringResource(R.string.business_outlook), "mailto:sanskarin@outlook.in", onOpenLink)
+        LinkButton(stringResource(R.string.business_gmail), "mailto:sanskarin.business@gmail.com", onOpenLink)
+        LinkButton(stringResource(R.string.support_email), "mailto:supportramsandesh@gmail.com", onOpenLink)
 
         Text(
-            text = "Privacy: calculations can run without network access. History can be disabled, exported, restored, or deleted. The app does not include advertising trackers.",
+            text = stringResource(R.string.about_privacy),
             style = MaterialTheme.typography.bodyMedium,
         )
     }
