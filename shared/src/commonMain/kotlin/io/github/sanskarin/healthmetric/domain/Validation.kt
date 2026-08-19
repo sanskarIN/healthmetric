@@ -2,6 +2,7 @@ package io.github.sanskarin.healthmetric.domain
 
 sealed class ValidationError(message: String) : IllegalArgumentException(message) {
     data object WeightOutOfRange : ValidationError("Weight must be between 20 kg and 500 kg for this adult educational calculator.")
+    data object ImperialWeightOutOfRange : ValidationError("Weight must be between 44 lb and 1102.5 lb for this adult educational calculator.")
     data object HeightOutOfRange : ValidationError("Height must be between 100 cm and 250 cm for this adult educational calculator.")
     data object ImperialHeightOutOfRange : ValidationError("Imperial height must resolve to between 100 cm and 250 cm.")
     data object WaistOutOfRange : ValidationError("Waist measurement must be between 30 cm and 250 cm.")
@@ -17,7 +18,7 @@ object InputValidator {
 
     fun requireImperialBodyInput(input: ImperialBodyInput) {
         requireFinite(input.weightLb, input.heightInches)
-        if (input.weightLb !in 44.0..1102.5) throw ValidationError.WeightOutOfRange
+        if (input.weightLb !in 44.0..1102.5) throw ValidationError.ImperialWeightOutOfRange
         if (input.heightFeet !in 0..8 || input.heightInches !in 0.0..<12.0) {
             throw ValidationError.ImperialHeightOutOfRange
         }
