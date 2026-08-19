@@ -44,6 +44,13 @@ class HealthMetricViewModel(application: Application) : AndroidViewModel(applica
         viewModelScope.launch { dataStore.setHistoryEnabled(enabled) }
     }
 
+    fun setHistoryRetentionLimit(limit: Int) {
+        viewModelScope.launch {
+            dataStore.setHistoryRetentionLimit(limit)
+            SafeLogger.info(SafeLogger.Event.HISTORY_RETENTION_CHANGED)
+        }
+    }
+
     fun setThemeMode(mode: AppThemeMode) {
         viewModelScope.launch { dataStore.setThemeMode(mode) }
     }
@@ -61,6 +68,20 @@ class HealthMetricViewModel(application: Application) : AndroidViewModel(applica
                     summary = summary.take(240),
                 ),
             )
+        }
+    }
+
+    fun deleteHistoryEntry(entry: HistoryEntry) {
+        viewModelScope.launch {
+            dataStore.deleteHistoryEntry(entry.id)
+            SafeLogger.info(SafeLogger.Event.HISTORY_ENTRY_DELETED)
+        }
+    }
+
+    fun restoreHistoryEntry(entry: HistoryEntry) {
+        viewModelScope.launch {
+            dataStore.restoreHistoryEntry(entry)
+            SafeLogger.info(SafeLogger.Event.HISTORY_ENTRY_RESTORED)
         }
     }
 
