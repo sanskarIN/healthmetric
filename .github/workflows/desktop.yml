@@ -21,13 +21,19 @@ jobs:
         include:
           - os: ubuntu-latest
             artifact_os: linux
+            native_task: packageDeb
+            native_glob: desktopApp/build/compose/binaries/main/deb/*.deb
           - os: windows-latest
             artifact_os: windows
+            native_task: packageMsi
+            native_glob: desktopApp/build/compose/binaries/main/msi/*.msi
           - os: macos-latest
             artifact_os: macos
+            native_task: packageDmg
+            native_glob: desktopApp/build/compose/binaries/main/dmg/*.dmg
 
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 35
+    timeout-minutes: 45
 
     steps:
       - name: Checkout
@@ -53,10 +59,15 @@ jobs:
       - name: Package current-OS runnable JAR
         run: gradle :desktopApp:packageUberJarForCurrentOS
 
-      - name: Upload runnable JAR
+      - name: Package native desktop installer
+        run: gradle :desktopApp:${{ matrix.native_task }}
+
+      - name: Upload desktop verification artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: healthmetric-desktop-${{ matrix.artifact_os }}-jar
-          path: desktopApp/build/compose/jars/*.jar
+          name: healthmetric-desktop-${{ matrix.artifact_os }}
+          path: |
+            desktopApp/build/compose/jars/*.jar
+            ${{ matrix.native_glob }}
           if-no-files-found: error
           retention-days: 14
