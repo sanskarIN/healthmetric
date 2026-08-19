@@ -3,6 +3,8 @@ package io.github.sanskarin.healthmetric.data
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.io.OutputStream
+import java.nio.ByteBuffer
+import java.nio.charset.CodingErrorAction
 
 object BackupIo {
     const val MAX_BACKUP_BYTES: Int = 1_048_576
@@ -20,7 +22,12 @@ object BackupIo {
             output.write(buffer, 0, read)
         }
 
-        return output.toString(Charsets.UTF_8.name())
+        return Charsets.UTF_8
+            .newDecoder()
+            .onMalformedInput(CodingErrorAction.REPORT)
+            .onUnmappableCharacter(CodingErrorAction.REPORT)
+            .decode(ByteBuffer.wrap(output.toByteArray()))
+            .toString()
     }
 
     fun writeUtf8(output: OutputStream, content: String) {
