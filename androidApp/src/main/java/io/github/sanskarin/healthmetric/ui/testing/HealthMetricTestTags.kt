@@ -1,6 +1,10 @@
 package io.github.sanskarin.healthmetric.ui.testing
 
 object HealthMetricTestTags {
+    const val ONBOARDING_ADULT = "onboarding_adult"
+    const val ONBOARDING_UNDER_18 = "onboarding_under_18"
+    const val ADULT_GATE_RETURN = "adult_gate_return"
+
     const val NAV_BMI = "nav_bmi"
     const val NAV_WAIST = "nav_waist"
     const val NAV_HISTORY = "nav_history"
