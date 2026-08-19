@@ -93,7 +93,7 @@ fun HealthMetricApp(
     }
 
     if (!state.preferences.adultUseConfirmed) {
-        AdultOnlyScreen()
+        AdultOnlyScreen(onReturnToAgeSelection = viewModel::resetAdultUseChoice)
         return
     }
 
