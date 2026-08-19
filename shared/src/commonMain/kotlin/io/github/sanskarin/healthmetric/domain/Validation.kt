@@ -4,8 +4,13 @@ sealed class ValidationError(message: String) : IllegalArgumentException(message
     data object WeightOutOfRange : ValidationError("Weight must be between 20 kg and 500 kg for this adult educational calculator.")
     data object ImperialWeightOutOfRange : ValidationError("Weight must be between 44 lb and 1102.5 lb for this adult educational calculator.")
     data object HeightOutOfRange : ValidationError("Height must be between 100 cm and 250 cm for this adult educational calculator.")
-    data object ImperialHeightOutOfRange : ValidationError("Imperial height must resolve to between 100 cm and 250 cm.")
+    data object ImperialHeightOutOfRange : ValidationError(
+        "Imperial height must resolve to between about 39.37 in and 98.43 in for this adult educational calculator.",
+    )
     data object WaistOutOfRange : ValidationError("Waist measurement must be between 30 cm and 250 cm.")
+    data object ImperialWaistOutOfRange : ValidationError(
+        "Waist measurement must be between about 11.81 in and 98.43 in for this adult educational calculator.",
+    )
     data object NonFiniteNumber : ValidationError("Measurements must be finite numbers.")
 }
 
@@ -30,6 +35,17 @@ object InputValidator {
         requireFinite(waistCm, heightCm)
         if (waistCm !in 30.0..250.0) throw ValidationError.WaistOutOfRange
         if (heightCm !in 100.0..250.0) throw ValidationError.HeightOutOfRange
+    }
+
+    fun requireImperialWaistAndHeight(waistInches: Double, heightInches: Double) {
+        requireFinite(waistInches, heightInches)
+        val minWaistInches = UnitConverter.centimetersToInches(30.0)
+        val maxWaistInches = UnitConverter.centimetersToInches(250.0)
+        val minHeightInches = UnitConverter.centimetersToInches(100.0)
+        val maxHeightInches = UnitConverter.centimetersToInches(250.0)
+
+        if (waistInches !in minWaistInches..maxWaistInches) throw ValidationError.ImperialWaistOutOfRange
+        if (heightInches !in minHeightInches..maxHeightInches) throw ValidationError.ImperialHeightOutOfRange
     }
 
     private fun requireFinite(vararg values: Double) {
