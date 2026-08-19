@@ -9,6 +9,8 @@ class DesktopNumbersTest {
     fun parsesDotAndCommaDecimals() {
         assertEquals(72.5, DesktopNumbers.parseDecimal("72.5"))
         assertEquals(72.5, DesktopNumbers.parseDecimal("72,5"))
+        assertEquals(0.5, DesktopNumbers.parseDecimal(".5"))
+        assertEquals(72.0, DesktopNumbers.parseDecimal("72."))
     }
 
     @Test
@@ -21,9 +23,19 @@ class DesktopNumbersTest {
     fun rejectsMalformedAndNonFiniteDecimals() {
         assertNull(DesktopNumbers.parseDecimal(""))
         assertNull(DesktopNumbers.parseDecimal("72..5"))
+        assertNull(DesktopNumbers.parseDecimal("72,5.1"))
         assertNull(DesktopNumbers.parseDecimal("not-a-number"))
         assertNull(DesktopNumbers.parseDecimal("NaN"))
         assertNull(DesktopNumbers.parseDecimal("Infinity"))
+    }
+
+    @Test
+    fun rejectsNonMeasurementNumberSyntax() {
+        assertNull(DesktopNumbers.parseDecimal("1e2"))
+        assertNull(DesktopNumbers.parseDecimal("+72.5"))
+        assertNull(DesktopNumbers.parseDecimal("-72.5"))
+        assertNull(DesktopNumbers.parseWholeNumber("+5"))
+        assertNull(DesktopNumbers.parseWholeNumber("-5"))
     }
 
     @Test
