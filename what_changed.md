@@ -692,3 +692,295 @@ After this handoff commit:
 9. compare PR #13 against merged `main` and close PR #13 as superseded only if no meaningful unique change remains;
 10. update this handoff on `main` with the actual merged/final status if a post-merge documentation-only change is needed;
 11. do not create `v0.1.0` until the manual/signing release blockers above are actually completed.
+
+## Continuation pass — correctness, state safety, and release integrity
+
+This section records the additional implementation pass performed after the earlier handoff above. It supersedes the older implication that only workflow-failure fixes remained, while preserving the earlier history unchanged.
+
+### Shared-domain corrections completed
+
+Imperial validation was audited end to end rather than only at the presentation layer.
+
+Completed fixes:
+
+- imperial weight range errors now report pounds rather than kilogram limits;
+- imperial waist range errors now report inches rather than centimeter limits;
+- `BmiCalculator.calculateImperial` no longer validates in imperial units and then revalidates converted values through the metric path;
+- documented imperial BMI boundary values therefore remain valid after conversion instead of being rejected by slightly different metric conversion boundaries;
+- `WaistToHeightCalculator.calculateImperial` now preserves an imperial validation contract rather than converting and reusing the metric validator;
+- metric and imperial error messages remain unit-specific and adult/educational in wording.
+
+Regression coverage now locks:
+
+- imperial pound error text;
+- imperial inch error text;
+- lower and upper documented imperial BMI weight boundaries;
+- lower and upper documented imperial waist/height boundaries;
+- desktop presentation of those unit-specific errors.
+
+### Desktop input hardening completed
+
+`DesktopNumbers` now accepts ordinary measurement-number syntax only.
+
+Accepted examples include:
+
+- `72`;
+- `72.5`;
+- `72,5`;
+- `.5`;
+- `72.` after trimming surrounding whitespace.
+
+Rejected examples include:
+
+- scientific notation such as `1e2`;
+- explicit signed values such as `+72.5` and `-72.5`;
+- `NaN`;
+- `Infinity`;
+- malformed mixed/double separators;
+- non-whole imperial feet.
+
+This keeps desktop measurement entry predictable while domain validation remains authoritative for supported adult ranges.
+
+### Android chart arithmetic hardening completed
+
+Schema-v1 history intentionally accepts any finite stored calculation value that passes history sanitation. Extreme but finite imported values could previously make `max - min` overflow to infinity during chart normalization.
+
+Added:
+
+- `ChartScale.kt`;
+- scale-first normalization based on the maximum absolute finite magnitude;
+- flat-series centering;
+- explicit non-finite rejection at the chart utility boundary;
+- unit tests including `-Double.MAX_VALUE`, zero, and `Double.MAX_VALUE`;
+- `HistoryScreen` integration using `ChartScale.normalize` before Canvas coordinates are computed.
+
+This fixes rendering arithmetic without silently changing the portable backup schema contract.
+
+### Android adult-gate correction path completed
+
+An accidental `I am under 18` selection previously persisted `onboardingComplete=true` and `adultUseConfirmed=false`, leaving no in-app path back to age selection.
+
+The correction path now includes:
+
+- `HealthMetricDataStore.resetAdultUseChoice()`;
+- ViewModel exposure;
+- `Return to age selection` action on the blocked adult-reference screen;
+- stable semantics/test tags for adult, under-18, and correction controls;
+- Compose instrumentation coverage for the optional correction action;
+- DataStore regression coverage proving that resetting the age choice preserves unrelated history opt-in, retention, theme, and saved history.
+
+The adult-only safety boundary is not weakened: adult calculators remain unavailable until the adult choice is explicitly selected again.
+
+### Android saved-state hardening completed
+
+Direct `Enum.valueOf` calls on `rememberSaveable` strings could crash composition after a future enum rename/removal while stale saved state remained.
+
+Added:
+
+- `savedEnumValueOrDefault` helper;
+- JVM regression tests for known, stale, and empty saved values;
+- safe restoration of main navigation state;
+- safe restoration of previous About-origin state;
+- safe restoration of the History calculator filter.
+
+Unknown/stale saved names now fall back to a safe default instead of crashing.
+
+### Release tag/version preflight completed
+
+Added `scripts/check_release_version.py` with tests.
+
+The tagged workflow now requires:
+
+- stable `vMAJOR.MINOR.PATCH` syntax;
+- tag version equal to Android `versionName`;
+- tag version equal to the desktop project version;
+- Android and desktop public versions to agree;
+- tag commit to equal the current `main` commit.
+
+The release checkout uses complete history so this comparison is real rather than inferred from a shallow checkout.
+
+### Release permission hardening completed
+
+`.github/workflows/release.yml` now defaults to:
+
+`contents: read`
+
+Only the final publication job receives:
+
+`contents: write`
+
+Build and verification jobs no longer inherit repository write permission they do not need.
+
+### Deterministic cross-platform release staging completed
+
+Added `scripts/stage_release_assets.py` and regression tests.
+
+The tool is used by Android, Linux, Windows, and macOS release jobs and requires exactly one non-empty expected build output for each artifact type.
+
+It stages deterministic versioned names for:
+
+- Android unsigned APK;
+- Android unsigned AAB;
+- Linux JAR and DEB;
+- Windows JAR and MSI;
+- macOS JAR and DMG.
+
+Zero matches, duplicate matches, empty files, unsupported platform values, and invalid release tags fail closed.
+
+This replaces duplicated shell-specific artifact discovery in the release workflow.
+
+### Exact release asset verification and checksums completed
+
+Added `scripts/verify_release_assets.py` and tests.
+
+Before publication it requires exactly the eight expected binary assets and rejects:
+
+- missing assets;
+- unexpected extra files;
+- empty assets.
+
+After exact-set verification it generates:
+
+`SHA256SUMS.txt`
+
+The release command also uses `gh release create --verify-tag`.
+
+The checksum manifest is published alongside the eight binaries.
+
+### Repository-tooling regression tests integrated everywhere
+
+Python tests under `scripts/tests/` now cover:
+
+- tag/version validation;
+- deterministic staging;
+- all supported desktop staging targets;
+- duplicate/empty output rejection;
+- exact final asset-set verification;
+- missing/extra/empty final asset rejection;
+- deterministic SHA-256 manifest output.
+
+They run in:
+
+- main CI;
+- tagged release preflight;
+- `scripts/verify.sh`;
+- `scripts/verify.ps1`.
+
+### Repository invariant audit expanded
+
+`scripts/check_repository.py` now requires and/or machine-checks the newly established guarantees, including:
+
+- release tag validator;
+- release staging/verifier scripts and tests;
+- Python release-tooling tests in CI and both local verification scripts;
+- read-only default release permissions plus final publish write scope;
+- complete-history release preflight;
+- version/main checks;
+- deterministic staging;
+- checksum verification;
+- `--verify-tag` publication;
+- Android chart finite-safe normalization;
+- Android adult-use correction path;
+- saved-enum fallback helper/tests;
+- adult-gate UI coverage;
+- existing AAB, screenshot, desktop package, privacy, and no-probe invariants.
+
+A stale invariant that still expected direct AAB path handling inside the release YAML was corrected to follow the new staging-script architecture.
+
+### Documentation reconciled in this pass
+
+Updated:
+
+- `CHANGELOG.md`;
+- `ROADMAP.md`;
+- `.github/RELEASE_TEMPLATE.md`;
+- `docs/release.md`;
+- `docs/testing.md`;
+- this `what_changed.md`.
+
+The documentation now explicitly covers:
+
+- unit-specific imperial validation fixes;
+- Android chart overflow defense;
+- recoverable adult-use selection;
+- stale saved-state fallback;
+- repository-tooling unit tests;
+- stable release tag/version/current-main gates;
+- least-privilege release permissions;
+- deterministic artifact staging;
+- exact asset-set verification;
+- SHA-256 release checksums;
+- remaining manual device/accessibility/signing limitations.
+
+### Additional focused commits from this pass
+
+The pass deliberately continued the granular-commit strategy. Git history contains focused commits for each implementation/test/documentation unit, including commit messages such as:
+
+- `fix(desktop): restrict measurement parser to decimal input`;
+- `test(desktop): cover strict measurement number syntax`;
+- `fix(shared): report imperial weight validation in pounds`;
+- `test(shared): lock unit-specific weight validation messages`;
+- `test(desktop): verify imperial range errors use pounds`;
+- `fix(shared): avoid metric revalidation of imperial BMI`;
+- `test(shared): cover imperial BMI weight boundaries`;
+- `fix(shared): add unit-specific imperial waist validation`;
+- `fix(shared): avoid metric revalidation of imperial waist ratio`;
+- `test(shared): verify imperial waist errors use inches`;
+- `test(shared): cover imperial waist ratio boundaries`;
+- `test(desktop): verify imperial waist errors use inches`;
+- `release: add cross-platform tag version validator`;
+- `test(release): cover tag version validation rules`;
+- `test(release): derive validator cases from project version`;
+- `security(release): scope write permission to publication`;
+- `release: gate tags on version and current main`;
+- `ci: run release tooling regression tests`;
+- `release: add deterministic cross-platform asset staging`;
+- `test(release): cover deterministic asset staging`;
+- `release: use tested cross-platform asset staging`;
+- `release: add exact asset verification and checksums`;
+- `test(release): cover exact asset verification and checksums`;
+- `release: verify exact asset set and publish checksums`;
+- `fix(android): add overflow-safe history chart scaling`;
+- `test(android): cover finite-safe chart normalization`;
+- `fix(android): render history charts with safe normalized points`;
+- `feat(android): allow resetting the adult-use choice`;
+- `feat(android): expose adult-use choice reset in view model`;
+- `feat(android): label adult gate reset action`;
+- `feat(android): add optional age-selection return control`;
+- `feat(android): wire age-selection reset through app state`;
+- `test(android): verify adult-choice reset preserves local data`;
+- `ci: extend repository audit for new release and safety invariants`;
+- `fix(android): add safe saved enum restoration helper`;
+- `test(android): cover stale saved enum fallback`;
+- `fix(android): tolerate stale saved history filter state`;
+- `fix(android): tolerate stale saved navigation state`;
+- `test(android): add stable age-gate test tags`;
+- `test(android): tag age-gate correction controls`;
+- `test(android): verify adult gate correction control behavior`;
+- `docs: document hardened release integrity workflow`;
+- `docs: record calculation, Android, and release hardening fixes`;
+- `docs: add release integrity checks to release template`;
+- `docs: reconcile roadmap with completed hardening work`;
+- `test: run release tooling tests in Unix verification`;
+- `test: run release tooling tests in PowerShell verification`;
+- `ci: lock saved-state and local verification invariants`;
+- `docs: expand regression and release-tooling test matrix`.
+
+### Exact-head status after this handoff update
+
+This `what_changed.md` update intentionally becomes the new PR #14 head and therefore restarts/cancels older pull-request workflow attempts through the configured concurrency groups.
+
+Do not use results from an earlier commit as release evidence.
+
+The next verifier must:
+
+1. fetch PR #14 again and record its exact head SHA after this commit;
+2. inspect workflow runs only for that SHA;
+3. require CI, Android instrumentation, Desktop, Apple shared core, CodeQL, Dependency Review, and Secret Scan to complete successfully;
+4. inspect any failed job logs and make only a concrete root-cause fix with regression/invariant coverage where appropriate;
+5. verify the Android instrumentation artifact contains all eight required screenshot PNGs;
+6. verify Desktop workflow artifacts contain JAR + DEB on Linux, JAR + MSI on Windows, and JAR + DMG on macOS;
+7. only after exact-head automation is green, merge PR #14 into `main` with normal history-preserving merge behavior;
+8. inspect post-merge `main` automation;
+9. compare PR #13 against merged `main` and close it as superseded only if no meaningful unique change remains;
+10. keep `v0.1.0` untagged until physical Android, TalkBack/visual review, target-host desktop smoke/accessibility review, and protected signing/trust requirements are actually satisfied.
