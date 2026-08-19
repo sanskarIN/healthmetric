@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import io.github.sanskarin.healthmetric.R
 import io.github.sanskarin.healthmetric.data.CalculatorKind
 import io.github.sanskarin.healthmetric.data.HistoryEntry
+import io.github.sanskarin.healthmetric.ui.format.LocalizedNumbers
 import io.github.sanskarin.healthmetric.ui.testing.HealthMetricTestTags
 import java.text.DateFormat
 import java.util.Date
@@ -177,17 +178,17 @@ private fun MeasurementChart(entries: List<HistoryEntry>, label: String) {
         stringResource(
             R.string.chart_summary_one,
             label,
-            formatValue(values.first()),
+            formatValue(values.first(), entries.first().calculator),
         )
     } else {
         stringResource(
             R.string.chart_summary_many,
             label,
             values.size,
-            formatValue(values.first()),
-            formatValue(values.last()),
-            formatValue(minValue),
-            formatValue(maxValue),
+            formatValue(values.first(), entries.first().calculator),
+            formatValue(values.last(), entries.last().calculator),
+            formatValue(minValue, entries.first().calculator),
+            formatValue(maxValue, entries.first().calculator),
         )
     }
 
@@ -270,7 +271,11 @@ private fun HistoryCard(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 Text(
-                    text = stringResource(R.string.history_item_value, label, formatValue(entry.value)),
+                    text = stringResource(
+                        R.string.history_item_value,
+                        label,
+                        formatValue(entry.value, entry.calculator),
+                    ),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Medium,
                 )
@@ -287,4 +292,10 @@ private fun HistoryCard(
     }
 }
 
-private fun formatValue(value: Double): String = ((value * 100.0).toInt() / 100.0).toString()
+private fun formatValue(value: Double, calculator: CalculatorKind): String = LocalizedNumbers.format(
+    value = value,
+    maximumFractionDigits = when (calculator) {
+        CalculatorKind.BMI -> 1
+        CalculatorKind.WAIST_TO_HEIGHT -> 2
+    },
+)
