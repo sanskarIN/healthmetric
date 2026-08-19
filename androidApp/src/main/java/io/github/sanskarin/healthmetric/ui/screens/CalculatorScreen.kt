@@ -25,7 +25,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import io.github.sanskarin.healthmetric.R
 import io.github.sanskarin.healthmetric.domain.BmiCalculator
 import io.github.sanskarin.healthmetric.domain.BmiResult
@@ -33,6 +32,7 @@ import io.github.sanskarin.healthmetric.domain.ImperialBodyInput
 import io.github.sanskarin.healthmetric.domain.MetricBodyInput
 import io.github.sanskarin.healthmetric.domain.UnitSystem
 import io.github.sanskarin.healthmetric.ui.components.MeasurementNumberField
+import io.github.sanskarin.healthmetric.ui.theme.HealthMetricSpacing
 
 @Composable
 fun CalculatorScreen(
@@ -57,8 +57,8 @@ fun CalculatorScreen(
     Column(
         modifier = Modifier
             .verticalScroll(rememberScrollState())
-            .padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+            .padding(HealthMetricSpacing.lg),
+        verticalArrangement = Arrangement.spacedBy(HealthMetricSpacing.md),
     ) {
         Text(
             text = stringResource(R.string.bmi_title),
@@ -71,7 +71,7 @@ fun CalculatorScreen(
             style = MaterialTheme.typography.bodyMedium,
         )
 
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(HealthMetricSpacing.xs)) {
             FilterChip(
                 selected = unitSystem == UnitSystem.METRIC,
                 onClick = {
@@ -173,8 +173,8 @@ fun CalculatorScreen(
         result?.let { bmiResult ->
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(
-                    modifier = Modifier.padding(18.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.padding(HealthMetricSpacing.lg),
+                    verticalArrangement = Arrangement.spacedBy(HealthMetricSpacing.xs),
                 ) {
                     Text(
                         text = stringResource(R.string.bmi_result, bmiResult.displayBmi.toString()),
@@ -186,7 +186,7 @@ fun CalculatorScreen(
                         style = MaterialTheme.typography.titleMedium,
                     )
                     Text(bmiResult.band.explanation)
-                    Spacer(Modifier.height(4.dp))
+                    Spacer(Modifier.height(HealthMetricSpacing.xxs))
                     Text(
                         text = bmiResult.educationalNotice,
                         style = MaterialTheme.typography.bodySmall,
