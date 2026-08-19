@@ -37,7 +37,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import io.github.sanskarin.healthmetric.R
 import io.github.sanskarin.healthmetric.data.CalculatorKind
 import io.github.sanskarin.healthmetric.data.SafeLogger
 import io.github.sanskarin.healthmetric.ui.screens.AboutScreen
@@ -49,12 +51,12 @@ import io.github.sanskarin.healthmetric.ui.screens.SettingsScreen
 import io.github.sanskarin.healthmetric.ui.screens.WaistToHeightScreen
 import kotlinx.coroutines.launch
 
-private enum class AppScreen(val title: String) {
-    CALCULATOR("BMI"),
-    WAIST("Waist ratio"),
-    HISTORY("History"),
-    SETTINGS("Settings"),
-    ABOUT("About"),
+private enum class AppScreen {
+    CALCULATOR,
+    WAIST,
+    HISTORY,
+    SETTINGS,
+    ABOUT,
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -89,18 +91,29 @@ fun HealthMetricApp(
     var screenName by rememberSaveable { mutableStateOf(AppScreen.CALCULATOR.name) }
     val screen = AppScreen.valueOf(screenName)
 
+    val restoreSuccess = stringResource(R.string.restore_success)
+    val restoreInvalid = stringResource(R.string.restore_invalid)
+    val readBackupFailed = stringResource(R.string.read_backup_failed)
+    val openLinkFailed = stringResource(R.string.open_link_failed)
+    val exportChooserFailed = stringResource(R.string.export_chooser_failed)
+    val exportSubject = stringResource(R.string.export_subject)
+    val exportChooserTitle = stringResource(R.string.export_chooser_title)
+    val ratioHistorySummary = stringResource(R.string.ratio_history_summary)
+
     val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
         runCatching {
             context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
-                ?: error("Could not read the selected file.")
+                ?: error(readBackupFailed)
         }.onSuccess { json ->
-            viewModel.restoreData(json) { _, message ->
-                scope.launch { snackbarHostState.showSnackbar(message) }
+            viewModel.restoreData(json) { success, _ ->
+                scope.launch {
+                    snackbarHostState.showSnackbar(if (success) restoreSuccess else restoreInvalid)
+                }
             }
         }.onFailure { error ->
             SafeLogger.warn(SafeLogger.Event.RESTORE_FAILED, error)
-            scope.launch { snackbarHostState.showSnackbar("Could not read the selected backup.") }
+            scope.launch { snackbarHostState.showSnackbar(readBackupFailed) }
         }
     }
 
@@ -109,7 +122,7 @@ fun HealthMetricApp(
             context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(rawUri)))
         }.onFailure { error ->
             SafeLogger.warn(SafeLogger.Event.LINK_OPEN_FAILED, error)
-            scope.launch { snackbarHostState.showSnackbar("No app is available to open this link.") }
+            scope.launch { snackbarHostState.showSnackbar(openLinkFailed) }
         }
     }
 
@@ -118,28 +131,39 @@ fun HealthMetricApp(
             onReady = { json ->
                 val intent = Intent(Intent.ACTION_SEND).apply {
                     type = "application/json"
-                    putExtra(Intent.EXTRA_SUBJECT, "HealthMetric local data export")
+                    putExtra(Intent.EXTRA_SUBJECT, exportSubject)
                     putExtra(Intent.EXTRA_TEXT, json)
                 }
                 runCatching {
-                    context.startActivity(Intent.createChooser(intent, "Export HealthMetric data"))
+                    context.startActivity(Intent.createChooser(intent, exportChooserTitle))
                 }.onFailure { error ->
                     SafeLogger.warn(SafeLogger.Event.EXPORT_FAILED, error)
-                    scope.launch { snackbarHostState.showSnackbar("No compatible app is available for export.") }
+                    scope.launch { snackbarHostState.showSnackbar(exportChooserFailed) }
                 }
             },
             onError = { message -> scope.launch { snackbarHostState.showSnackbar(message) } },
         )
     }
 
+    val screenTitle = when (screen) {
+        AppScreen.CALCULATOR -> stringResource(R.string.screen_bmi)
+        AppScreen.WAIST -> stringResource(R.string.screen_waist_ratio)
+        AppScreen.HISTORY -> stringResource(R.string.screen_history)
+        AppScreen.SETTINGS -> stringResource(R.string.screen_settings)
+        AppScreen.ABOUT -> stringResource(R.string.screen_about)
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("HealthMetric · ${screen.title}") },
+                title = { Text(stringResource(R.string.top_bar_title, screenTitle)) },
                 actions = {
                     if (screen != AppScreen.ABOUT) {
                         IconButton(onClick = { screenName = AppScreen.ABOUT.name }) {
-                            Icon(Icons.Outlined.Info, contentDescription = "About")
+                            Icon(
+                                Icons.Outlined.Info,
+                                contentDescription = stringResource(R.string.about_content_description),
+                            )
                         }
                     }
                 },
@@ -153,25 +177,25 @@ fun HealthMetricApp(
                         selected = screen == AppScreen.CALCULATOR,
                         onClick = { screenName = AppScreen.CALCULATOR.name },
                         icon = { Icon(Icons.Outlined.Calculate, contentDescription = null) },
-                        label = { Text("BMI") },
+                        label = { Text(stringResource(R.string.screen_bmi)) },
                     )
                     NavigationBarItem(
                         selected = screen == AppScreen.WAIST,
                         onClick = { screenName = AppScreen.WAIST.name },
                         icon = { Icon(Icons.Outlined.Straighten, contentDescription = null) },
-                        label = { Text("Ratio") },
+                        label = { Text(stringResource(R.string.nav_ratio)) },
                     )
                     NavigationBarItem(
                         selected = screen == AppScreen.HISTORY,
                         onClick = { screenName = AppScreen.HISTORY.name },
                         icon = { Icon(Icons.Outlined.History, contentDescription = null) },
-                        label = { Text("History") },
+                        label = { Text(stringResource(R.string.screen_history)) },
                     )
                     NavigationBarItem(
                         selected = screen == AppScreen.SETTINGS,
                         onClick = { screenName = AppScreen.SETTINGS.name },
                         icon = { Icon(Icons.Outlined.Settings, contentDescription = null) },
-                        label = { Text("Settings") },
+                        label = { Text(stringResource(R.string.screen_settings)) },
                     )
                 }
             }
@@ -206,7 +230,7 @@ fun HealthMetricApp(
                             viewModel.recordCalculation(
                                 kind = CalculatorKind.WAIST_TO_HEIGHT,
                                 value = result.displayRatio,
-                                summary = "Neutral adult waist-to-height measurement",
+                                summary = ratioHistorySummary,
                             )
                         },
                     )
