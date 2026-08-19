@@ -5,5 +5,12 @@
         <item name="android:windowLightStatusBar">true</item>
         <item name="android:windowActionModeOverlay">true</item>
         <item name="android:colorAccent">#0B6E69</item>
+        <item name="android:windowBackground">#F5FBF9</item>
+    </style>
+
+    <style name="Theme.HealthMetric.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">#F5FBF9</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_healthmetric</item>
+        <item name="postSplashScreenTheme">@style/Theme.HealthMetric</item>
     </style>
 </resources>
