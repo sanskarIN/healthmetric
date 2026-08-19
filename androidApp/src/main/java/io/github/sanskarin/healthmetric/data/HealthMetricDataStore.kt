@@ -114,6 +114,10 @@ class HealthMetricDataStore(private val context: Context) {
     }
 
     suspend fun restoreFromJson(rawJson: String) {
+        require(rawJson.toByteArray(Charsets.UTF_8).size <= BackupIo.MAX_BACKUP_BYTES) {
+            "Backup data is too large."
+        }
+
         val root = JSONObject(rawJson)
         require(root.optInt("schemaVersion", -1) == BACKUP_SCHEMA_VERSION) {
             "Unsupported backup schema."
