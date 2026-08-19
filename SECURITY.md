@@ -10,6 +10,8 @@ Security fixes are applied to the latest development line and the latest publish
 | Latest release | Yes |
 | Older releases | Best effort |
 
+The currently prepared release candidate is `2.0.12`; it is not considered published merely because version metadata is configured.
+
 ## Reporting a vulnerability
 
 Do **not** open a public issue for a vulnerability that could expose user data, enable code execution, compromise release artifacts, or reveal security-sensitive details.
@@ -43,6 +45,7 @@ HealthMetric intentionally minimizes attack surface:
 - Android export/restore is explicit and user-initiated;
 - Android restore requires confirmation before portable data is replaced;
 - Android backup reads/writes are limited to 1 MiB;
+- selected Android backup bytes must be well-formed UTF-8 and malformed/unmappable sequences fail before JSON parsing;
 - restored Android JSON is schema/structure checked, record-validated, deduplicated, chronologically normalized, and history-bounded;
 - malformed backup structure or a non-empty all-invalid history array fails before DataStore mutation;
 - portable Android restore cannot change current history opt-in, adult-use confirmation, or onboarding safety state;
@@ -54,7 +57,7 @@ HealthMetric intentionally minimizes attack surface:
 - desktop external links require an explicit button action;
 - backup contents and measurement values are not intentionally written to logs;
 - signing keys and secrets are excluded from source control;
-- release tags/assets are validated before publication and release write permission is scoped to the final publish job;
+- release tags/version metadata/assets are validated before publication and release write permission is scoped to the final publish job;
 - CodeQL, dependency review, full-history secret scanning, Android instrumentation, desktop multi-OS verification, Apple shared-core compilation, and standard build/test checks run in GitHub Actions;
 - every tracked repository file must be documented by the exhaustive file-reference invariant;
 - Dependabot monitors Gradle and GitHub Actions dependencies.
@@ -67,7 +70,8 @@ A selected Android backup document is untrusted input even though the user expli
 
 HealthMetric therefore:
 
-- bounds the UTF-8 payload before JSON parsing;
+- bounds the byte payload before JSON parsing;
+- decodes with a strict UTF-8 decoder configured to report malformed/unmappable input rather than silently insert replacement characters;
 - accepts only the supported top-level schema version;
 - requires top-level `history` to be a JSON array before persistence mutation;
 - distinguishes an explicit empty array from a damaged non-empty array;
@@ -80,7 +84,7 @@ HealthMetric therefore:
 - sorts valid history newest-first before applying retention;
 - caps final restored history;
 - keeps consent/safety state device-local;
-- performs structural/content validation before opening the DataStore mutation;
+- performs decoding/structural/content validation before opening the DataStore mutation;
 - performs the DataStore mutation only after explicit user confirmation.
 
 A future schema must retain equivalent protections or record the reviewed replacement in an ADR.
@@ -161,10 +165,20 @@ Before tagging, the exact release commit should have successful:
 - dependency review where applicable;
 - repository-history secret scanning.
 
+For the prepared `2.0.12` candidate, release metadata must be:
+
+- stable tag `v2.0.12`;
+- Android `versionName = 2.0.12`;
+- Android `versionCode = 20012` using the repository semantic mapping;
+- desktop project `version = 2.0.12`;
+- desktop native `packageVersion = 2.0.12`.
+
 Tagged release preflight additionally requires:
 
 - stable `vMAJOR.MINOR.PATCH` syntax;
-- tag version agreement with Android and desktop project versions;
+- tag agreement with Android `versionName`;
+- Android `versionCode` agreement with `MAJOR * 10000 + MINOR * 100 + PATCH`;
+- tag agreement with desktop project version and desktop native package version;
 - tag commit equal to current `main`;
 - complete history checkout for the tag/main comparison;
 - read-only repository permission until final publication;
