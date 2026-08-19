@@ -30,6 +30,22 @@ class DesktopCalculationsTest {
     }
 
     @Test
+    fun imperialBmiReportsWeightRangeInPounds() {
+        val outcome =
+            DesktopCalculations.imperialBmi(
+                weightLb = "20",
+                feet = "5",
+                inches = "8",
+            )
+        val failure = assertIs<DesktopCalculationOutcome.Failure>(outcome)
+
+        assertEquals(
+            "Weight must be between 44 lb and 1102.5 lb for this adult educational calculator.",
+            failure.message,
+        )
+    }
+
+    @Test
     fun metricRatioReturnsNeutralContext() {
         val outcome = DesktopCalculations.metricWaistToHeight(waistCm = "80", heightCm = "175")
         val success = assertIs<DesktopCalculationOutcome.Success>(outcome)
