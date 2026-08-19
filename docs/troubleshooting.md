@@ -73,7 +73,7 @@ python3 scripts/check_repository.py
 python3 scripts/check_markdown_links.py
 ```
 
-The first command verifies required repository files, offline Android manifest invariants, README project/contact/funding metadata, and key privacy documentation. The second verifies relative Markdown link targets.
+The repository audit verifies required project/documentation/workflow paths, offline Android manifest invariants, required README/contact/funding metadata, key privacy documentation, APK/AAB release-pipeline configuration, the eight required screenshot-evidence captures, and the absence of known forbidden temporary probe files. The Markdown audit verifies relative internal links.
 
 Fix the missing/inconsistent source rather than bypassing the audit.
 
@@ -103,11 +103,23 @@ The current adult BMI and waist-to-height reference calculators are intentionall
 
 Do not edit a backup to try to change age-gate state; those fields are not portable and are ignored on restore.
 
+## About has no bottom navigation
+
+This is intentional. About is a secondary destination and hides bottom navigation. Use its top-bar **Back** action or Android system back to return to the screen that opened About.
+
+If either action does not return to the originating screen, reproduce with `AboutNavigationUiTest` before changing navigation code.
+
 ## History is not saving
 
 Open Settings and check **Save local history**. History is disabled by default. When disabled, calculations remain available but new history entries are intentionally not stored.
 
 Importing a backup does not enable history saving. This is intentional: history opt-in remains a device-local privacy choice.
+
+## History order changes unexpectedly
+
+Persisted and imported history is canonical newest-first by `timestampEpochMillis`. Undoing deletion of an older entry should restore it to chronological position rather than moving it to the top.
+
+If an imported JSON array is out of order, HealthMetric validates/deduplicates accepted records, sorts them newest-first, then applies the selected retention cap. Array position is not authoritative chronology.
 
 ## Older history disappeared after changing retention
 
@@ -154,6 +166,20 @@ This is expected. **Save JSON backup to a file** uses Android's Storage Access F
 
 This is expected. HealthMetric first reads the bounded selected document, then requires explicit confirmation before portable history/settings are replaced.
 
+## Release App Bundle is missing
+
+Run:
+
+```bash
+gradle :androidApp:bundleRelease --stacktrace
+```
+
+The expected output is under:
+
+`androidApp/build/outputs/bundle/release/`
+
+The main CI and tagged release workflows also require the `.aab` artifact. If documentation says AAB packaging is available while this task/artifact is missing, treat that as release-pipeline drift and fix the implementation rather than weakening repository invariants.
+
 ## Android emulator CI fails
 
 Reproduce with:
@@ -162,7 +188,17 @@ Reproduce with:
 gradle :androidApp:connectedDebugAndroidTest --stacktrace
 ```
 
-Use an API 35 emulator where practical to match the dedicated workflow. Check instrumentation reports uploaded by the workflow before changing production code.
+Use an API 35 Pixel 7-style emulator where practical to match the dedicated workflow. Check instrumentation reports uploaded by the workflow before changing production code.
+
+The emulator workflow also expects the release screenshot test to create eight PNG files under the app-scoped `release-screenshots` directory. Missing PNGs cause the `android-release-screenshots` artifact upload to fail.
+
+## Screenshot evidence artifact is missing
+
+First confirm `ReleaseScreenshotCaptureTest` passed. Then verify the workflow can pull:
+
+`/sdcard/Android/data/io.github.sanskarin.healthmetric/files/release-screenshots/`
+
+Expected files are listed in [`assets/screenshots/README.md`](assets/screenshots/README.md). Do not work around a missing artifact by uploading fabricated/mock screenshots.
 
 ## CI differs from local results
 
@@ -173,7 +209,7 @@ Match CI's baseline:
 - Gradle 8.13;
 - Android SDK 36;
 - Build Tools 35.0.0;
-- API 35 emulator for connected tests;
+- API 35 Pixel 7 emulator for connected tests/screenshot evidence;
 - macOS runner for Apple shared-target compilation.
 
 Then rerun the exact commands from `.github/workflows/`.
