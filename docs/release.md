@@ -21,12 +21,15 @@ Keep `androidApp` `versionCode` monotonic and update `versionName` to the releas
 1. Update `CHANGELOG.md`.
 2. Update `ROADMAP.md` and `what_changed.md`.
 3. Verify reference source metadata and adult-only copy.
-4. Run formatting/lint/tests/build.
-5. Run connected UI tests.
-6. Manually test onboarding, BMI, ratio, history disabled/enabled, export, restore, deletion, themes, About links, and large text.
-7. Capture release screenshots with fictional/example data.
-8. Confirm dependency/security checks are green.
-9. Confirm no secrets/signing material are in Git history.
+4. Run formatting, shared tests, Android unit tests, release lint, debug assembly, and release assembly.
+5. Run the connected Android instrumentation suite.
+6. Confirm GitHub CI, Android instrumentation, CodeQL, dependency review, and secret scanning are green for the release commit/PR.
+7. Manually test onboarding, BMI, ratio, history disabled/enabled, retention changes, entry deletion/undo, erase-all confirmation, file backup, share backup, restore, delete-all-data, themes, release link, About links, and large text.
+8. Test one valid backup round trip and confirm malformed/unsupported files produce safe errors rather than partial uncontrolled writes.
+9. Capture release screenshots with fictional/example data only.
+10. Complete the manual TalkBack/accessibility checklist and record evidence.
+11. Confirm no secrets/signing material are in Git history.
+12. Configure production signing only in the protected distribution environment.
 
 ## Verification commands
 
@@ -35,6 +38,7 @@ gradle :shared:ktlintCheck :androidApp:ktlintCheck
 gradle :shared:desktopTest
 gradle :androidApp:testDebugUnitTest
 gradle :androidApp:lintRelease
+gradle :androidApp:assembleDebug
 gradle :androidApp:assembleRelease
 ```
 
@@ -43,6 +47,24 @@ With a connected emulator/device:
 ```bash
 gradle :androidApp:connectedDebugAndroidTest
 ```
+
+The repository's `android-instrumentation.yml` workflow performs the connected test command on an API 35 emulator for pull requests and `main` pushes.
+
+## Release data/privacy checks
+
+Before tagging, verify:
+
+- fresh install history is disabled;
+- selecting 50/100/250/500 retention trims history as documented;
+- raw weight, height, and waist fields do not appear in persisted history/export;
+- individual deletion can be undone without enabling future history saving;
+- erase-all requires confirmation;
+- delete-all returns to onboarding/privacy defaults;
+- file backup uses Android's document picker;
+- share backup uses an explicit chooser;
+- restore rejects unsupported schema versions and oversized payloads;
+- imported history never exceeds the selected supported retention limit;
+- app manifest still has no Internet permission and keeps Android backup disabled.
 
 ## Tagging
 
@@ -61,10 +83,12 @@ The workflow:
 
 1. sets up JDK 17 and Gradle 8.13;
 2. installs Android SDK packages;
-3. runs shared tests, ktlint, and release lint;
-4. assembles the release build;
+3. runs shared tests, Android unit tests, ktlint, and release lint;
+4. assembles the unsigned release build;
 5. uploads the unsigned APK as a workflow artifact;
 6. creates a GitHub Release with generated notes and the unsigned APK.
+
+The release workflow intentionally does not replace the pull-request emulator gate. A tag should be created only after the release commit has already passed connected instrumentation and security checks.
 
 ## Signing
 
@@ -81,6 +105,8 @@ If a release has a blocker defect:
 - publish a patch release;
 - do not rewrite a published Git tag to hide history.
 
+If a release changes backup behavior, retain compatibility with supported schema versions or explicitly document a migration before shipping.
+
 ## Release notes content
 
 Include:
@@ -91,4 +117,5 @@ Include:
 - accessibility improvements;
 - fixed defects;
 - known limitations;
-- upgrade/migration notes.
+- backup/migration notes;
+- verification status.
