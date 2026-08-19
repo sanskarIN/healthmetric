@@ -103,8 +103,9 @@ object BmiCalculator {
     ): BmiResult {
         InputValidator.requireImperialBodyInput(input)
         val kilograms = UnitConverter.poundsToKilograms(input.weightLb)
-        val centimeters = UnitConverter.imperialHeightToCentimeters(input.heightFeet, input.heightInches)
-        return calculateMetric(MetricBodyInput(kilograms, centimeters), reference)
+        val heightMeters = UnitConverter.imperialHeightToCentimeters(input.heightFeet, input.heightInches) / 100.0
+        val bmi = kilograms / heightMeters.pow(2)
+        return resultFor(bmi, reference)
     }
 
     private fun resultFor(bmi: Double, reference: BmiReferenceProfile): BmiResult {
