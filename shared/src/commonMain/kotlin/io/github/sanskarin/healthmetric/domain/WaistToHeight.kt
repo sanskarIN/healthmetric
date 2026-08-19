@@ -12,17 +12,19 @@ data class WaistToHeightResult(
 object WaistToHeightCalculator {
     fun calculateMetric(waistCm: Double, heightCm: Double): WaistToHeightResult {
         InputValidator.requireWaistAndHeight(waistCm, heightCm)
-        val ratio = waistCm / heightCm
+        return resultFor(waist = waistCm, height = heightCm)
+    }
+
+    fun calculateImperial(waistInches: Double, heightInches: Double): WaistToHeightResult {
+        InputValidator.requireImperialWaistAndHeight(waistInches, heightInches)
+        return resultFor(waist = waistInches, height = heightInches)
+    }
+
+    private fun resultFor(waist: Double, height: Double): WaistToHeightResult {
+        val ratio = waist / height
         return WaistToHeightResult(
             ratio = ratio,
             displayRatio = round(ratio * 100.0) / 100.0,
         )
-    }
-
-    fun calculateImperial(waistInches: Double, heightInches: Double): WaistToHeightResult {
-        if (!waistInches.isFinite() || !heightInches.isFinite()) throw ValidationError.NonFiniteNumber
-        val waistCm = UnitConverter.inchesToCentimeters(waistInches)
-        val heightCm = UnitConverter.inchesToCentimeters(heightInches)
-        return calculateMetric(waistCm, heightCm)
     }
 }

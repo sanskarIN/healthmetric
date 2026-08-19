@@ -13,7 +13,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import kotlin.random.Random
+import java.util.UUID
 
 data class HealthMetricUiState(
     val preferences: AppPreferences = AppPreferences(),
@@ -40,6 +40,10 @@ class HealthMetricViewModel(application: Application) : AndroidViewModel(applica
         viewModelScope.launch { dataStore.completeOnboarding(adultUseConfirmed) }
     }
 
+    fun resetAdultUseChoice() {
+        viewModelScope.launch { dataStore.resetAdultUseChoice() }
+    }
+
     fun setHistoryEnabled(enabled: Boolean) {
         viewModelScope.launch { dataStore.setHistoryEnabled(enabled) }
     }
@@ -58,11 +62,10 @@ class HealthMetricViewModel(application: Application) : AndroidViewModel(applica
     fun recordCalculation(kind: CalculatorKind, value: Double, summary: String) {
         if (!value.isFinite()) return
         viewModelScope.launch {
-            val timestamp = System.currentTimeMillis()
             dataStore.addHistory(
                 HistoryEntry(
-                    id = "$timestamp-${Random.nextInt(100_000, 999_999)}",
-                    timestampEpochMillis = timestamp,
+                    id = UUID.randomUUID().toString(),
+                    timestampEpochMillis = System.currentTimeMillis(),
                     calculator = kind,
                     value = value,
                     summary = summary.take(240),

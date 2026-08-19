@@ -1,22 +1,26 @@
 # Backup Format
 
-HealthMetric uses a small versioned JSON document for explicit user-initiated backup and restore. This document defines schema version `1`.
+HealthMetric uses a small versioned JSON document for explicit user-initiated Android backup and restore. This document defines schema version `1`.
+
+The desktop client intentionally has no HealthMetric persistence/backup layer; its measurement/session state is ephemeral. See [`desktop.md`](desktop.md) and ADR 0005.
 
 ## Goals
 
-The format is designed to be:
+The Android format is designed to be:
 
 - human-readable;
 - bounded in size;
 - explicit about version compatibility;
 - recoverable when individual history records are damaged;
+- fail-closed when the required top-level history collection is missing, has the wrong JSON type, or is non-empty but contains no valid records;
+- deterministically ordered after restore;
 - unable to transfer device-local privacy consent or adult-use gate decisions.
 
-## Size limit
+## Size and encoding limit
 
-HealthMetric accepts and writes backup payloads up to **1 MiB (1,048,576 bytes)** of UTF-8 JSON.
+HealthMetric accepts and writes Android backup payloads up to **1 MiB (1,048,576 bytes)** of well-formed UTF-8 JSON.
 
-The Android document layer enforces this while reading/writing streams, and the DataStore restore boundary independently checks the raw UTF-8 byte size before JSON parsing.
+The Android document layer enforces the byte limit while reading/writing streams, and the DataStore restore boundary independently checks the raw UTF-8 byte size before JSON parsing. Malformed UTF-8 byte sequences are rejected at the document-read boundary rather than being silently replaced with Unicode replacement characters.
 
 ## Schema version 1
 
@@ -29,17 +33,17 @@ A current backup has this shape:
   "themeMode": "SYSTEM",
   "history": [
     {
-      "id": "1700000000000-123456",
+      "id": "9c2058d8-0bda-4703-8e84-e9c4b8971228",
       "timestampEpochMillis": 1700000000000,
       "calculator": "BMI",
       "value": 22.9,
-      "summary": "Within adult reference range"
+      "summary": "Example adult reference summary"
     }
   ]
 }
 ```
 
-Example values are fictional.
+Example values are fictional. New locally recorded Android entries use UUID identifiers; imported schema-v1 IDs are not required to be UUIDs as long as they satisfy the validation rules below.
 
 ## Top-level fields
 
@@ -48,7 +52,11 @@ Example values are fictional.
 | `schemaVersion` | integer | Must equal `1`; unsupported versions are rejected before mutation. |
 | `historyRetentionLimit` | integer | Supported values: `50`, `100`, `250`, `500`; unsupported/missing values normalize to `100`. |
 | `themeMode` | string | `SYSTEM`, `LIGHT`, or `DARK`; invalid/missing values normalize to `SYSTEM`. |
-| `history` | array | Malformed/missing arrays restore as an empty valid history collection. |
+| `history` | array | Required. A missing field or non-array value rejects the backup before any local DataStore mutation. An empty array is valid. A non-empty array must contain at least one valid history record after sanitation. |
+
+The top-level `history` container is intentionally stricter than the records inside it. Treating a missing or wrong-type container as a valid empty history could silently erase the user's existing local history after a restore confirmation. HealthMetric therefore rejects that document instead.
+
+An explicitly empty `history: []` is a valid request to restore a backup with no portable history. By contrast, a non-empty array from which every record is invalid is rejected before mutation rather than being interpreted as an intentional empty-history restore.
 
 ## History record fields
 
@@ -60,13 +68,15 @@ Example values are fictional.
 | `value` | number | Must be finite. |
 | `summary` | string | Optional on import; capped to 240 characters. |
 
-Invalid records are skipped independently so one damaged entry does not discard valid neighboring entries. If multiple valid records normalize to the same ID, the first valid record is retained.
+Invalid records inside a valid `history` array are skipped independently so one damaged entry does not discard valid neighboring entries. If multiple valid records normalize to the same ID, the first valid record in the input document is retained. At least one valid record must survive when the input array itself is non-empty.
 
-Restored history is capped to the normalized `historyRetentionLimit` and can never exceed the application-wide maximum of 500 records.
+After validation/deduplication, accepted records are sorted by `timestampEpochMillis` descending (newest first). The normalized `historyRetentionLimit` is applied after that sort, and restored history can never exceed the application-wide maximum of 500 records. This means arbitrary JSON array order cannot decide which chronologically newest records survive the cap.
+
+The same newest-first invariant is applied when Android records a result or restores a deleted entry through Undo.
 
 ## Deliberately non-portable state
 
-The following DataStore values are **not exported** and are **not changed by restore**:
+The following Android DataStore values are **not exported** and are **not changed by restore**:
 
 - `history_enabled` — consent to save future calculation results;
 - `adult_use_confirmed` — the adult-only reference eligibility choice;
@@ -76,15 +86,26 @@ Older schema-v1 documents may contain JSON fields named `historyEnabled`, `adult
 
 ## Restore transaction behavior
 
-The UI reads the chosen file into a bounded string and asks the user for confirmation. Only after confirmation does the ViewModel call the DataStore restore operation.
+The Android UI reads the chosen file into a bounded string and asks the user for confirmation. Only after confirmation does the ViewModel call the DataStore restore operation.
 
-The restore operation validates size and top-level schema before opening the DataStore edit transaction. Portable settings and sanitized history are then written together in one DataStore edit.
+Before opening the DataStore edit transaction, the restore path validates:
+
+1. that the selected document is bounded and well-formed UTF-8;
+2. the UTF-8 payload size at the DataStore boundary;
+3. parseable top-level JSON;
+4. supported `schemaVersion`;
+5. presence and array type of the required `history` field;
+6. portable setting normalization;
+7. individual history records, deduplication, chronology, and retention bounds;
+8. that a non-empty history array retains at least one valid record after sanitation.
+
+Only after those preconditions are resolved are portable settings and sanitized, deduplicated, newest-first bounded history written together in one DataStore edit. A malformed UTF-8 document, missing/non-array `history` field, or non-empty all-invalid history array therefore cannot clear existing local data or change portable preferences.
 
 Current device-local consent/safety values are left untouched.
 
 ## Forward compatibility
 
-A future incompatible backup format must increment `schemaVersion` rather than silently changing version `1` semantics.
+A future incompatible Android backup format must increment `schemaVersion` rather than silently changing version `1` semantics.
 
 When adding a new schema version:
 
@@ -92,9 +113,15 @@ When adding a new schema version:
 2. define explicit migration behavior;
 3. add deterministic migration tests;
 4. retain bounded payload/history protections or document an ADR for any reviewed replacement;
-5. never make consent/adult-gate state portable without a dedicated privacy and safety review;
-6. update `PRIVACY.md`, `CHANGELOG.md`, `docs/release.md`, and `what_changed.md`.
+5. retain strict UTF-8 decoding at the document boundary;
+6. retain required top-level structural validation before mutation;
+7. retain the distinction between intentional empty history and non-empty all-invalid history unless a reviewed migration explicitly changes it;
+8. retain deterministic history ordering or explicitly document a reviewed alternative;
+9. never make consent/adult-gate state portable without a dedicated privacy and safety review;
+10. update `PRIVACY.md`, `CHANGELOG.md`, `docs/release.md`, and `what_changed.md`.
 
 ## Privacy note
 
-A HealthMetric backup contains calculated measurement history and should be treated as private data. HealthMetric does not automatically upload it. The user explicitly selects the destination file or receiving application, and copies outside HealthMetric are governed by that destination.
+A HealthMetric Android backup contains calculated measurement history and should be treated as private data. HealthMetric does not automatically upload it. The user explicitly selects the destination file or receiving application, and copies outside HealthMetric are governed by that destination.
+
+Desktop currently creates no equivalent backup because the desktop client deliberately does not persist measurement/session data.

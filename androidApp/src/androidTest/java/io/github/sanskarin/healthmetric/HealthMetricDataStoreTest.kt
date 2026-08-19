@@ -47,7 +47,13 @@ class HealthMetricDataStoreTest {
         dataStore.setHistoryRetentionLimit(50)
 
         repeat(55) { index ->
-            dataStore.addHistory(entry(id = "entry-$index", value = 20.0 + index / 100.0))
+            dataStore.addHistory(
+                entry(
+                    id = "entry-$index",
+                    value = 20.0 + index / 100.0,
+                    timestampEpochMillis = 1_700_000_000_000L + index,
+                ),
+            )
         }
 
         val history = dataStore.history.first()
@@ -92,6 +98,106 @@ class HealthMetricDataStoreTest {
     }
 
     @Test
+    fun missingHistoryArrayIsRejectedBeforeLocalMutation() = runBlocking {
+        dataStore.setHistoryEnabled(true)
+        dataStore.setThemeMode(AppThemeMode.DARK)
+        dataStore.addHistory(entry(id = "existing", value = 22.4))
+
+        val result = runCatching {
+            dataStore.restoreFromJson(
+                """
+                    {
+                      "schemaVersion": 1,
+                      "historyRetentionLimit": 50,
+                      "themeMode": "LIGHT"
+                    }
+                """.trimIndent(),
+            )
+        }
+
+        assertTrue(result.isFailure)
+        assertEquals(AppThemeMode.DARK, dataStore.preferences.first().themeMode)
+        assertEquals("existing", dataStore.history.first().single().id)
+    }
+
+    @Test
+    fun nonArrayHistoryIsRejectedBeforeLocalMutation() = runBlocking {
+        dataStore.setHistoryEnabled(true)
+        dataStore.setThemeMode(AppThemeMode.DARK)
+        dataStore.addHistory(entry(id = "existing", value = 22.4))
+
+        val result = runCatching {
+            dataStore.restoreFromJson(
+                """
+                    {
+                      "schemaVersion": 1,
+                      "historyRetentionLimit": 50,
+                      "themeMode": "LIGHT",
+                      "history": {}
+                    }
+                """.trimIndent(),
+            )
+        }
+
+        assertTrue(result.isFailure)
+        assertEquals(AppThemeMode.DARK, dataStore.preferences.first().themeMode)
+        assertEquals("existing", dataStore.history.first().single().id)
+    }
+
+    @Test
+    fun nonEmptyHistoryWithNoValidEntriesIsRejectedBeforeLocalMutation() = runBlocking {
+        dataStore.setHistoryEnabled(true)
+        dataStore.setThemeMode(AppThemeMode.DARK)
+        dataStore.addHistory(entry(id = "existing", value = 22.4))
+
+        val result = runCatching {
+            dataStore.restoreFromJson(
+                """
+                    {
+                      "schemaVersion": 1,
+                      "historyRetentionLimit": 50,
+                      "themeMode": "LIGHT",
+                      "history": [
+                        {
+                          "id": "",
+                          "timestampEpochMillis": -1,
+                          "calculator": "UNKNOWN",
+                          "value": 22.0
+                        }
+                      ]
+                    }
+                """.trimIndent(),
+            )
+        }
+
+        assertTrue(result.isFailure)
+        assertEquals(AppThemeMode.DARK, dataStore.preferences.first().themeMode)
+        assertEquals("existing", dataStore.history.first().single().id)
+    }
+
+    @Test
+    fun explicitEmptyHistoryArrayCanIntentionallyClearPortableHistory() = runBlocking {
+        dataStore.setHistoryEnabled(true)
+        dataStore.setThemeMode(AppThemeMode.DARK)
+        dataStore.addHistory(entry(id = "existing", value = 22.4))
+
+        dataStore.restoreFromJson(
+            """
+                {
+                  "schemaVersion": 1,
+                  "historyRetentionLimit": 50,
+                  "themeMode": "LIGHT",
+                  "history": []
+                }
+            """.trimIndent(),
+        )
+
+        assertTrue(dataStore.history.first().isEmpty())
+        assertEquals(AppThemeMode.LIGHT, dataStore.preferences.first().themeMode)
+        assertTrue(dataStore.preferences.first().historyEnabled)
+    }
+
+    @Test
     fun entryCanBeDeletedAndRestoredWithoutChangingHistoryPreference() = runBlocking {
         dataStore.setHistoryEnabled(true)
         val saved = entry(id = "undo-me", value = 21.8)
@@ -107,7 +213,38 @@ class HealthMetricDataStoreTest {
     }
 
     @Test
-    fun restoreSalvagesValidEntriesAndDeduplicatesIds() = runBlocking {
+    fun restoringDeletedOlderEntryPreservesChronologicalOrder() = runBlocking {
+        dataStore.setHistoryEnabled(true)
+        val oldest = entry(
+            id = "oldest",
+            value = 21.0,
+            timestampEpochMillis = 1_700_000_000_000L,
+        )
+        val middle = entry(
+            id = "middle",
+            value = 22.0,
+            timestampEpochMillis = 1_700_000_001_000L,
+        )
+        val newest = entry(
+            id = "newest",
+            value = 23.0,
+            timestampEpochMillis = 1_700_000_002_000L,
+        )
+        dataStore.addHistory(oldest)
+        dataStore.addHistory(middle)
+        dataStore.addHistory(newest)
+
+        dataStore.deleteHistoryEntry(middle.id)
+        dataStore.restoreHistoryEntry(middle)
+
+        assertEquals(
+            listOf("newest", "middle", "oldest"),
+            dataStore.history.first().map(HistoryEntry::id),
+        )
+    }
+
+    @Test
+    fun restoreSalvagesValidEntriesDeduplicatesIdsAndOrdersNewestFirst() = runBlocking {
         val backup = """
             {
               "schemaVersion": 1,
@@ -161,8 +298,8 @@ class HealthMetricDataStoreTest {
         val history = dataStore.history.first()
         val preferences = dataStore.preferences.first()
         assertEquals(2, history.size)
-        assertEquals(listOf("same-id", "second-valid"), history.map { it.id })
-        assertEquals(22.1, history.first().value, 0.0001)
+        assertEquals(listOf("second-valid", "same-id"), history.map { it.id })
+        assertEquals(0.47, history.first().value, 0.0001)
         assertFalse(preferences.historyEnabled)
         assertFalse(preferences.adultUseConfirmed)
         assertFalse(preferences.onboardingComplete)
@@ -193,15 +330,38 @@ class HealthMetricDataStoreTest {
         assertEquals(AppThemeMode.LIGHT, preferences.themeMode)
     }
 
+    @Test
+    fun resettingAdultChoicePreservesUnrelatedLocalPreferencesAndHistory() = runBlocking {
+        dataStore.setHistoryEnabled(true)
+        dataStore.setHistoryRetentionLimit(250)
+        dataStore.setThemeMode(AppThemeMode.DARK)
+        dataStore.completeOnboarding(adultUseConfirmed = true)
+        dataStore.addHistory(entry(id = "preserved", value = 22.3))
+
+        dataStore.resetAdultUseChoice()
+
+        val preferences = dataStore.preferences.first()
+        assertFalse(preferences.adultUseConfirmed)
+        assertFalse(preferences.onboardingComplete)
+        assertTrue(preferences.historyEnabled)
+        assertEquals(250, preferences.historyRetentionLimit)
+        assertEquals(AppThemeMode.DARK, preferences.themeMode)
+        assertEquals("preserved", dataStore.history.first().single().id)
+    }
+
     @Test(expected = IllegalArgumentException::class)
     fun invalidProgrammaticHistoryEntryIsRejected() = runBlocking {
         dataStore.setHistoryEnabled(true)
         dataStore.addHistory(entry(id = " ", value = 22.0))
     }
 
-    private fun entry(id: String, value: Double): HistoryEntry = HistoryEntry(
+    private fun entry(
+        id: String,
+        value: Double,
+        timestampEpochMillis: Long = 1_700_000_000_000L,
+    ): HistoryEntry = HistoryEntry(
         id = id,
-        timestampEpochMillis = 1_700_000_000_000L,
+        timestampEpochMillis = timestampEpochMillis,
         calculator = CalculatorKind.BMI,
         value = value,
         summary = "Neutral test entry",

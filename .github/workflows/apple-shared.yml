@@ -17,7 +17,7 @@ concurrency:
 jobs:
   compile-ios:
     runs-on: macos-latest
-    timeout-minutes: 30
+    timeout-minutes: 35
 
     steps:
       - name: Checkout
@@ -34,11 +34,12 @@ jobs:
         with:
           gradle-version: "8.13"
 
+      - name: Set up Android SDK command-line tools
+        uses: android-actions/setup-android@v4
+
       - name: Install Android compile SDK for project configuration
         shell: bash
-        run: |
-          yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager "platforms;android-36" "build-tools;35.0.0"
+        run: sdkmanager "platforms;android-36" "build-tools;35.0.0"
 
       - name: Verify shared JVM tests on macOS
         run: gradle :shared:desktopTest

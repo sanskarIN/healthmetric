@@ -2,6 +2,7 @@ package io.github.sanskarin.healthmetric.data
 
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
+import java.nio.charset.CharacterCodingException
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -15,6 +16,18 @@ class BackupIoTest {
         val restored = BackupIo.readUtf8(ByteArrayInputStream(output.toByteArray()))
 
         assertEquals(original, restored)
+    }
+
+    @Test(expected = CharacterCodingException::class)
+    fun malformedUtf8BackupReadIsRejected() {
+        val malformed = byteArrayOf(
+            '"'.code.toByte(),
+            0xC3.toByte(),
+            0x28.toByte(),
+            '"'.code.toByte(),
+        )
+
+        BackupIo.readUtf8(ByteArrayInputStream(malformed))
     }
 
     @Test(expected = IllegalArgumentException::class)

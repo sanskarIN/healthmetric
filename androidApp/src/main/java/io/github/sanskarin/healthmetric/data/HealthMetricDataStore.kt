@@ -55,6 +55,13 @@ class HealthMetricDataStore(private val context: Context) {
         }
     }
 
+    suspend fun resetAdultUseChoice() {
+        context.healthMetricDataStore.edit {
+            it.remove(Keys.adultUseConfirmed)
+            it.remove(Keys.onboardingComplete)
+        }
+    }
+
     suspend fun addHistory(entry: HistoryEntry) {
         val safeEntry = sanitizeEntry(entry)
         context.healthMetricDataStore.edit { preferences ->
@@ -64,8 +71,10 @@ class HealthMetricDataStore(private val context: Context) {
             )
             val current = decodeHistory(preferences[Keys.historyJson]).toMutableList()
             current.removeAll { it.id == safeEntry.id }
-            current.add(0, safeEntry)
-            preferences[Keys.historyJson] = encodeHistory(current.take(retentionLimit))
+            current.add(safeEntry)
+            preferences[Keys.historyJson] = encodeHistory(
+                current.sortedByDescending(HistoryEntry::timestampEpochMillis).take(retentionLimit),
+            )
         }
     }
 
@@ -77,8 +86,10 @@ class HealthMetricDataStore(private val context: Context) {
             )
             val current = decodeHistory(preferences[Keys.historyJson]).toMutableList()
             current.removeAll { it.id == safeEntry.id }
-            current.add(0, safeEntry)
-            preferences[Keys.historyJson] = encodeHistory(current.take(retentionLimit))
+            current.add(safeEntry)
+            preferences[Keys.historyJson] = encodeHistory(
+                current.sortedByDescending(HistoryEntry::timestampEpochMillis).take(retentionLimit),
+            )
         }
     }
 
@@ -122,6 +133,9 @@ class HealthMetricDataStore(private val context: Context) {
         require(root.optInt("schemaVersion", -1) == BACKUP_SCHEMA_VERSION) {
             "Unsupported backup schema."
         }
+        val historyArray = requireNotNull(root.optJSONArray("history")) {
+            "Backup history must be a JSON array."
+        }
 
         val restoredTheme = runCatching {
             AppThemeMode.valueOf(root.optString("themeMode", AppThemeMode.SYSTEM.name))
@@ -129,8 +143,11 @@ class HealthMetricDataStore(private val context: Context) {
         val restoredRetentionLimit = HistoryRetentionPolicy.normalize(
             root.optInt("historyRetentionLimit", HistoryRetentionPolicy.DEFAULT_LIMIT),
         )
-        val restoredHistory = decodeHistory(root.optJSONArray("history")?.toString())
-            .take(restoredRetentionLimit)
+        val decodedHistory = decodeHistory(historyArray.toString())
+        require(historyArray.length() == 0 || decodedHistory.isNotEmpty()) {
+            "Backup history contains no valid entries."
+        }
+        val restoredHistory = decodedHistory.take(restoredRetentionLimit)
 
         context.healthMetricDataStore.edit { preferences ->
             preferences[Keys.historyRetentionLimit] = restoredRetentionLimit
@@ -169,8 +186,7 @@ class HealthMetricDataStore(private val context: Context) {
         if (rawJson.isNullOrBlank()) return emptyList()
         val array = runCatching { JSONArray(rawJson) }.getOrElse { return emptyList() }
         val seenIds = mutableSetOf<String>()
-
-        return buildList {
+        val decoded = buildList {
             for (index in 0 until array.length()) {
                 val entry = runCatching {
                     val item = array.getJSONObject(index)
@@ -186,9 +202,12 @@ class HealthMetricDataStore(private val context: Context) {
                 }.getOrNull() ?: continue
 
                 if (seenIds.add(entry.id)) add(entry)
-                if (size >= HistoryRetentionPolicy.MAX_LIMIT) break
             }
         }
+
+        return decoded
+            .sortedByDescending(HistoryEntry::timestampEpochMillis)
+            .take(HistoryRetentionPolicy.MAX_LIMIT)
     }
 
     private fun sanitizeEntry(entry: HistoryEntry): HistoryEntry {
