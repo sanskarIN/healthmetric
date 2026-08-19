@@ -11,6 +11,8 @@ if str(SCRIPTS_DIR) not in sys.path:
 from check_release_version import (  # noqa: E402
     ANDROID_VERSION_CODE_PATTERN,
     ANDROID_VERSION_PATTERN,
+    DESKTOP_PACKAGE_VERSION_PATTERN,
+    DESKTOP_VERSION_PATTERN,
     ROOT,
     android_version_code_for,
     read_version,
@@ -35,8 +37,27 @@ class ReleaseVersionCheckTest(unittest.TestCase):
             ),
         )
 
+    def desktop_version(self) -> str:
+        return read_version(
+            ROOT / "desktopApp/build.gradle.kts",
+            DESKTOP_VERSION_PATTERN,
+            "desktop project version",
+        )
+
+    def desktop_package_version(self) -> str:
+        return read_version(
+            ROOT / "desktopApp/build.gradle.kts",
+            DESKTOP_PACKAGE_VERSION_PATTERN,
+            "desktop native packageVersion",
+        )
+
     def test_current_project_version_accepts_matching_stable_tag(self) -> None:
         self.assertEqual([], validate_release_tag(f"v{self.current_version()}"))
+
+    def test_current_release_versions_are_all_2_0_12(self) -> None:
+        self.assertEqual("2.0.12", self.current_version())
+        self.assertEqual("2.0.12", self.desktop_version())
+        self.assertEqual("2.0.12", self.desktop_package_version())
 
     def test_current_android_version_code_matches_semantic_version(self) -> None:
         self.assertEqual(
@@ -78,6 +99,7 @@ class ReleaseVersionCheckTest(unittest.TestCase):
 
         self.assertTrue(any("Android versionName" in failure for failure in failures))
         self.assertTrue(any("Desktop project version" in failure for failure in failures))
+        self.assertTrue(any("Desktop packageVersion" in failure for failure in failures))
 
 
 if __name__ == "__main__":
