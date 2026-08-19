@@ -64,8 +64,10 @@ class HealthMetricDataStore(private val context: Context) {
             )
             val current = decodeHistory(preferences[Keys.historyJson]).toMutableList()
             current.removeAll { it.id == safeEntry.id }
-            current.add(0, safeEntry)
-            preferences[Keys.historyJson] = encodeHistory(current.take(retentionLimit))
+            current.add(safeEntry)
+            preferences[Keys.historyJson] = encodeHistory(
+                current.sortedByDescending(HistoryEntry::timestampEpochMillis).take(retentionLimit),
+            )
         }
     }
 
@@ -77,8 +79,10 @@ class HealthMetricDataStore(private val context: Context) {
             )
             val current = decodeHistory(preferences[Keys.historyJson]).toMutableList()
             current.removeAll { it.id == safeEntry.id }
-            current.add(0, safeEntry)
-            preferences[Keys.historyJson] = encodeHistory(current.take(retentionLimit))
+            current.add(safeEntry)
+            preferences[Keys.historyJson] = encodeHistory(
+                current.sortedByDescending(HistoryEntry::timestampEpochMillis).take(retentionLimit),
+            )
         }
     }
 
@@ -169,8 +173,7 @@ class HealthMetricDataStore(private val context: Context) {
         if (rawJson.isNullOrBlank()) return emptyList()
         val array = runCatching { JSONArray(rawJson) }.getOrElse { return emptyList() }
         val seenIds = mutableSetOf<String>()
-
-        return buildList {
+        val decoded = buildList {
             for (index in 0 until array.length()) {
                 val entry = runCatching {
                     val item = array.getJSONObject(index)
@@ -186,9 +189,12 @@ class HealthMetricDataStore(private val context: Context) {
                 }.getOrNull() ?: continue
 
                 if (seenIds.add(entry.id)) add(entry)
-                if (size >= HistoryRetentionPolicy.MAX_LIMIT) break
             }
         }
+
+        return decoded
+            .sortedByDescending(HistoryEntry::timestampEpochMillis)
+            .take(HistoryRetentionPolicy.MAX_LIMIT)
     }
 
     private fun sanitizeEntry(entry: HistoryEntry): HistoryEntry {
