@@ -144,6 +144,9 @@ def main() -> int:
     for fragment in [
         'implementation(project(":shared"))',
         "compose.desktop.currentOs",
+        "TargetFormat.Dmg",
+        "TargetFormat.Msi",
+        "TargetFormat.Deb",
         "HealthMetric",
     ]:
         if fragment not in desktop_build:
@@ -189,7 +192,7 @@ def main() -> int:
         (".github/workflows/ci.yml", ":androidApp:bundleRelease", "App Bundle build task"),
         (".github/workflows/ci.yml", "androidApp/build/outputs/bundle/release/*.aab", "App Bundle artifact"),
         (".github/workflows/release.yml", ":androidApp:bundleRelease", "App Bundle build task"),
-        (".github/workflows/release.yml", "androidApp/build/outputs/bundle/release/*.aab", "App Bundle release attachment"),
+        (".github/workflows/release.yml", "androidApp/build/outputs/bundle/release", "App Bundle release attachment"),
         ("scripts/verify.sh", ":androidApp:bundleRelease", "App Bundle verification task"),
         ("scripts/verify.ps1", ":androidApp:bundleRelease", "App Bundle verification task"),
     ]
@@ -220,13 +223,29 @@ def main() -> int:
         if file_name not in screenshot_test:
             failures.append(f"release screenshot test is missing required capture: {file_name}")
 
-    desktop_workflow = read(".github/workflows/desktop.yml")
+    desktop_workflow = ".github/workflows/desktop.yml"
     for fragment in [
         ":desktopApp:test",
         ":desktopApp:packageUberJarForCurrentOS",
+        "packageDeb",
+        "packageMsi",
+        "packageDmg",
+        "*.deb",
+        "*.msi",
+        "*.dmg",
     ]:
-        if fragment not in desktop_workflow:
-            failures.append(f"desktop workflow is missing required verification task: {fragment}")
+        require_fragment(failures, desktop_workflow, fragment, "desktop verification/package configuration")
+
+    release_workflow = ".github/workflows/release.yml"
+    for fragment in [
+        "packageDeb",
+        "packageMsi",
+        "packageDmg",
+        "desktop-linux.deb",
+        "desktop-windows.msi",
+        "desktop-macos.dmg",
+    ]:
+        require_fragment(failures, release_workflow, fragment, "native desktop release asset")
 
     if failures:
         print("Repository invariant audit failed:")
