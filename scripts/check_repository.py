@@ -23,6 +23,7 @@ REQUIRED_PATHS = [
     ".env.example",
     "docs/architecture.md",
     "docs/backup-format.md",
+    "docs/desktop.md",
     "docs/setup.md",
     "docs/development.md",
     "docs/testing.md",
@@ -36,9 +37,16 @@ REQUIRED_PATHS = [
     "docs/adr/0002-local-privacy-first-persistence.md",
     "docs/adr/0003-versioned-adult-reference-profiles.md",
     "docs/adr/0004-bounded-user-controlled-local-data.md",
+    "desktopApp/build.gradle.kts",
+    "desktopApp/src/main/kotlin/io/github/sanskarin/healthmetric/desktop/Main.kt",
+    "desktopApp/src/main/kotlin/io/github/sanskarin/healthmetric/desktop/DesktopCalculations.kt",
+    "desktopApp/src/main/kotlin/io/github/sanskarin/healthmetric/desktop/DesktopNumbers.kt",
+    "desktopApp/src/test/kotlin/io/github/sanskarin/healthmetric/desktop/DesktopCalculationsTest.kt",
+    "desktopApp/src/test/kotlin/io/github/sanskarin/healthmetric/desktop/DesktopNumbersTest.kt",
     ".github/workflows/ci.yml",
     ".github/workflows/android-instrumentation.yml",
     ".github/workflows/apple-shared.yml",
+    ".github/workflows/desktop.yml",
     ".github/workflows/codeql.yml",
     ".github/workflows/dependency-review.yml",
     ".github/workflows/secret-scan.yml",
@@ -64,6 +72,32 @@ def main() -> int:
         failures.append("AndroidManifest.xml must keep android:allowBackup=\"false\"")
     if 'android:usesCleartextTraffic="false"' not in manifest:
         failures.append("AndroidManifest.xml must keep cleartext traffic disabled")
+
+    settings = read("settings.gradle.kts")
+    if 'include(":desktopApp")' not in settings:
+        failures.append("settings.gradle.kts must include the desktop application module")
+
+    desktop_build = read("desktopApp/build.gradle.kts")
+    for fragment in [
+        'implementation(project(":shared"))',
+        "compose.desktop.currentOs",
+        "HealthMetric",
+    ]:
+        if fragment not in desktop_build:
+            failures.append(f"desktopApp/build.gradle.kts is missing required configuration: {fragment}")
+
+    desktop_main = read("desktopApp/src/main/kotlin/io/github/sanskarin/healthmetric/desktop/Main.kt")
+    required_desktop_fragments = [
+        "I am 18 or older",
+        "I am under 18",
+        "adult BMI",
+        "adult waist-to-height",
+        "does not persist measurement inputs",
+        "Made by the Sanskar",
+    ]
+    for fragment in required_desktop_fragments:
+        if fragment not in desktop_main:
+            failures.append(f"desktop Main.kt is missing required safety/product text: {fragment}")
 
     readme = read("README.md")
     required_readme_fragments = [
