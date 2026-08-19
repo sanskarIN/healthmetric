@@ -40,6 +40,10 @@ class HealthMetricViewModel(application: Application) : AndroidViewModel(applica
         viewModelScope.launch { dataStore.completeOnboarding(adultUseConfirmed) }
     }
 
+    fun resetAdultUseChoice() {
+        viewModelScope.launch { dataStore.resetAdultUseChoice() }
+    }
+
     fun setHistoryEnabled(enabled: Boolean) {
         viewModelScope.launch { dataStore.setHistoryEnabled(enabled) }
     }
