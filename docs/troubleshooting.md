@@ -1,5 +1,17 @@
 # Troubleshooting
 
+## Python is not found
+
+Repository/documentation/release tooling requires Python 3 and currently uses only the Python standard library.
+
+```bash
+python3 --version
+```
+
+On Windows the executable may be named `python`. `scripts/verify.ps1` supports overriding it with `PYTHON_BIN`.
+
+Do not skip the Python checks just because the Kotlin/Gradle build succeeds; repository, documentation and release-integrity failures are independent quality gates.
+
 ## Gradle is not found
 
 Install/use Gradle 8.13 or configure an IDE-managed Gradle environment.
@@ -60,14 +72,49 @@ Open the HTML report under `androidApp/build/reports/` and fix the root cause ra
 
 ## Repository/documentation audit failure
 
+Run:
+
 ```bash
 python3 scripts/check_repository.py
 python3 scripts/check_markdown_links.py
 ```
 
-The repository audit verifies required Android/desktop/docs/workflow paths, Android manifest privacy invariants, README metadata, desktop adult/privacy structure, and key privacy documentation. The Markdown audit verifies internal relative targets.
+The repository audit checks required project/workflow paths, Android manifest privacy invariants, shared/Android/desktop safety and release contracts, and **exhaustive tracked-file documentation coverage**.
 
-Fix the missing/inconsistent source rather than bypassing the audit.
+If it reports:
+
+```text
+docs/repository-file-reference.md must document tracked file: <path>
+```
+
+then `<path>` is returned by `git ls-files` but is missing from the exhaustive file reference. Add the exact backticked path to [`repository-file-reference.md`](repository-file-reference.md) with a real explanation of its responsibility. If the file should not be tracked at all, remove it appropriately instead of documenting accidental/generated state.
+
+Use [`documentation-map.md`](documentation-map.md) to determine whether the behavior also requires updates to architecture, privacy, backup, testing, release or another canonical document.
+
+The Markdown audit validates repository-local relative targets. Fix broken/moved targets rather than disabling the check.
+
+## Repository audit cannot run `git ls-files`
+
+`scripts/check_repository.py` must run inside a real Git checkout because exhaustive documentation coverage is defined against Git's tracked set.
+
+Confirm:
+
+```bash
+git rev-parse --show-toplevel
+git ls-files
+```
+
+Running a copied subset of source files without `.git` metadata is not equivalent to repository verification.
+
+## Release-tooling Python tests fail
+
+Run:
+
+```bash
+python3 -m unittest discover -s scripts/tests -p "test_*.py" -v
+```
+
+The suite covers release version/tag validation, deterministic artifact staging, exact final asset verification and checksums. Treat failures as release-infrastructure defects even when application tests pass.
 
 ## Shared tests fail
 
@@ -75,7 +122,7 @@ Fix the missing/inconsistent source rather than bypassing the audit.
 gradle :shared:desktopTest --stacktrace
 ```
 
-Calculation failures should be reproduced with deterministic example inputs and regression coverage.
+Calculation failures should be reproduced with deterministic example inputs and regression coverage. Platform UI code should not patch around a shared formula/validation defect.
 
 ## Desktop tests fail
 
@@ -83,7 +130,20 @@ Calculation failures should be reproduced with deterministic example inputs and 
 gradle :desktopApp:test --stacktrace
 ```
 
-Use `DesktopNumbersTest` for text parsing and `DesktopCalculationsTest` for shared-core/presentation integration. Calculation thresholds/formulas should be fixed/tested in `shared`, not duplicated in desktop code.
+Use `DesktopNumbersTest` for text syntax parsing and `DesktopCalculationsTest` for shared-core/presentation integration, including split imperial-height component checks. Calculation thresholds/formulas should be fixed/tested in `shared`, not duplicated in desktop code.
+
+## Desktop imperial height says remaining inches are invalid
+
+This can be intentional. Desktop imperial forms use **whole feet + remaining inches**, and the remaining-inch component must be in `[0, 12)`.
+
+Examples:
+
+- `5 ft 8 in` — valid component shape;
+- `5 ft 11.9 in` — valid component shape;
+- `5 ft 12 in` — rejected;
+- `5 ft 20 in` — rejected.
+
+HealthMetric does not silently normalize `5 ft 20 in` to another feet/inches representation. Once the component shape is valid, total adult height-range validation remains in the shared domain.
 
 ## Desktop app does not start
 
@@ -113,9 +173,22 @@ Do not hard-code a different generated path into release automation without veri
 
 ## Desktop native package task fails
 
-Native DMG/MSI/DEB packaging is platform-specific. Build the target format on its matching operating system and inspect the Compose Desktop Gradle task failure.
+Native DMG/MSI/DEB packaging is platform-specific. Use the matching operating system:
 
-The standard cross-platform CI/release flow validates runnable JARs. Native installer publication requires additional manual platform checks and, if introduced, protected signing/notarization outside source control.
+```bash
+# Linux
+gradle :desktopApp:packageDeb --stacktrace
+
+# Windows
+gradle :desktopApp:packageMsi --stacktrace
+
+# macOS
+gradle :desktopApp:packageDmg --stacktrace
+```
+
+The dedicated `Desktop` workflow verifies JAR **and** matching native package creation on Linux, Windows, and macOS. The tagged release workflow also stages those packages.
+
+Build success still does not prove production signing/notarization or human host-platform acceptance. Certificates/private keys/notarization credentials stay outside source control.
 
 ## Desktop state resets after restart
 
@@ -137,9 +210,13 @@ gradle :shared:compileKotlinIosSimulatorArm64 :shared:compileKotlinIosArm64 --st
 
 If Android project configuration reports a missing compile SDK, install Android SDK Platform 36/Build Tools 35.0.0. Compare with `.github/workflows/apple-shared.yml`.
 
+Compiling these shared targets does not mean the repository contains an iOS UI application.
+
 ## Android app opens the adult-only unavailable screen
 
 The adult BMI/waist reference calculators are intentionally unavailable when onboarding indicates the user is under 18. Portable backups cannot change the adult-use gate.
+
+If the choice was accidental, use **Return to age selection**. That correction clears only the Android adult/onboarding choice and preserves unrelated local settings/history.
 
 Do not edit a backup to try to change age-gate state; those fields are non-portable/ignored on restore.
 
@@ -151,22 +228,43 @@ Open Settings and check **Save local history**. History is disabled by default. 
 
 Lowering **History retention** immediately trims older entries beyond the selected maximum. Supported limits are 50, 100, 250, and 500.
 
+History is normalized newest-first by timestamp before retention is applied.
+
 ## Decimal input is rejected
 
-Android decimal measurement fields accept digits plus one `.` or `,` separator and format results using the active locale. Desktop fields likewise accept dot/comma decimal text but do not interpret grouping separators, unit suffixes, multiple separators, `NaN`, or infinity as valid measurements.
+Android decimal measurement fields accept digits plus one `.` or `,` separator and format results using the active locale.
+
+Desktop measurement fields accept ordinary dot/comma decimal text but intentionally reject grouping separators, unit suffixes, multiple separators, explicit signs, scientific notation, `NaN`, and infinity. Desktop feet must be whole numbers, and remaining inches must stay below 12.
 
 ## Restore says backup is invalid
 
-Android currently supports backup schema version `1`. Common causes:
+Android currently supports backup schema version `1`. Common causes include:
 
 - unsupported/missing `schemaVersion`;
 - file larger than 1 MiB;
 - invalid top-level JSON;
+- missing top-level `history`;
+- `history` is not a JSON array;
+- `history` is non-empty but **no valid history entry survives sanitation**;
 - document is not a HealthMetric backup.
 
-Malformed individual history records are skipped when the top-level document is otherwise valid. See [`backup-format.md`](backup-format.md).
+Important distinction:
+
+- `"history": []` is a valid intentional empty-history backup;
+- a non-empty array containing only malformed/invalid records is rejected before DataStore mutation;
+- when at least one record is valid, malformed neighboring records can be skipped independently.
+
+This fail-closed rule prevents a damaged non-empty backup from being interpreted as a deliberate empty-history restore and replacing valid local portable data.
+
+See [`backup-format.md`](backup-format.md).
 
 Desktop does not currently import HealthMetric backups.
+
+## Failed restore changed nothing
+
+For unsupported schema, malformed/missing/non-array history structure, oversized data, or a non-empty all-invalid history array, this is intentional: structural validation happens before the DataStore edit transaction.
+
+If a failed restore changes theme/history/retention, treat it as a regression and add DataStore instrumentation coverage before fixing it.
 
 ## Restore does not change history opt-in or adult-use screen
 
@@ -180,6 +278,14 @@ Expected. **Save JSON backup to a file** uses Android Storage Access Framework; 
 
 Expected. HealthMetric reads the bounded selected document first, then requires explicit confirmation before portable history/settings are replaced.
 
+## Android history chart fails with extreme imported values
+
+The UI should normalize any finite imported result safely through `ChartScale` before Canvas positioning. A crash/non-finite coordinate from extreme finite values is a regression; reproduce it in `ChartScaleTest` rather than clamping or rewriting backup data silently.
+
+## Android navigation crashes after an app update
+
+Saved navigation/history-filter enum names should pass through `savedEnumValueOrDefault`, so stale/removed names fall back safely. Add a `SavedEnumTest` regression for any newly discovered state-restoration crash.
+
 ## Android emulator CI fails
 
 ```bash
@@ -187,6 +293,8 @@ gradle :androidApp:connectedDebugAndroidTest --stacktrace
 ```
 
 Use an API 35 emulator where practical and inspect uploaded instrumentation reports before changing production code.
+
+The workflow also requires the eight release screenshot PNGs. A screenshot-artifact failure may be a capture/path/evidence failure even when earlier UI assertions passed.
 
 ## Desktop CI fails only on one operating system
 
@@ -196,12 +304,34 @@ Reproduce on that OS with:
 gradle :desktopApp:ktlintCheck :desktopApp:test :desktopApp:packageUberJarForCurrentOS --stacktrace
 ```
 
-Treat platform-specific failures as real until explained; do not remove the OS from the matrix just to make checks green.
+Then run the matching native package task. Treat platform-specific failures as real until explained; do not remove the OS from the matrix just to make checks green.
+
+## Tagged release preflight fails
+
+Check these independently:
+
+```bash
+python3 scripts/check_repository.py
+python3 scripts/check_markdown_links.py
+python3 -m unittest discover -s scripts/tests -p "test_*.py"
+python3 scripts/check_release_version.py v0.1.0
+```
+
+A valid release tag must use stable `vMAJOR.MINOR.PATCH`, match both configured Android/desktop public versions, and point to the current `main` commit. The release checkout uses complete history for that comparison.
+
+Do not bypass a preflight failure by weakening the tag/current-main/documentation checks.
+
+## Tagged release says artifact count is wrong
+
+`scripts/stage_release_assets.py` requires exactly one non-empty expected build output for each artifact type. Duplicate old build outputs in a workspace are intentionally treated as ambiguous rather than selecting one arbitrarily.
+
+The final `scripts/verify_release_assets.py` step requires exactly eight versioned binary assets with no missing, unexpected, or empty files and writes `SHA256SUMS.txt` before publication.
 
 ## CI differs from local results
 
 Match the relevant workflow baseline:
 
+- Python 3 for repository/release tooling;
 - JDK 17 and Gradle 8.13 across build workflows;
 - Android SDK 36/Build Tools 35.0.0 for Android/main CI;
 - API 35 emulator for connected Android tests;
@@ -209,6 +339,8 @@ Match the relevant workflow baseline:
 - macOS runner for Apple shared-target compilation.
 
 Then rerun the exact commands from `.github/workflows/`.
+
+For pull-request release readiness, compare workflow results only for the exact current head commit; a green superseded head is not evidence for a newer commit.
 
 ## Security/privacy bug
 
