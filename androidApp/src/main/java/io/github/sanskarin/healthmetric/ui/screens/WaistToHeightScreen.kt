@@ -19,6 +19,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -27,6 +28,7 @@ import io.github.sanskarin.healthmetric.R
 import io.github.sanskarin.healthmetric.domain.WaistToHeightCalculator
 import io.github.sanskarin.healthmetric.domain.WaistToHeightResult
 import io.github.sanskarin.healthmetric.ui.components.MeasurementNumberField
+import io.github.sanskarin.healthmetric.ui.testing.HealthMetricTestTags
 import io.github.sanskarin.healthmetric.ui.theme.HealthMetricSpacing
 
 @Composable
@@ -80,6 +82,7 @@ fun WaistToHeightScreen(
             } else {
                 stringResource(R.string.waist_inches)
             },
+            testTag = HealthMetricTestTags.WAIST_VALUE,
         )
         MeasurementNumberField(
             value = height,
@@ -89,6 +92,7 @@ fun WaistToHeightScreen(
             } else {
                 stringResource(R.string.height_inches)
             },
+            testTag = HealthMetricTestTags.WAIST_HEIGHT,
         )
         Button(
             onClick = {
@@ -110,7 +114,9 @@ fun WaistToHeightScreen(
                     error = it.message ?: measurementError
                 }
             },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag(HealthMetricTestTags.WAIST_CALCULATE),
         ) {
             Text(
                 if (historyEnabled) {
@@ -127,7 +133,11 @@ fun WaistToHeightScreen(
             )
         }
         result?.let { ratioResult ->
-            Card(modifier = Modifier.fillMaxWidth()) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag(HealthMetricTestTags.WAIST_RESULT),
+            ) {
                 Column(
                     modifier = Modifier.padding(HealthMetricSpacing.lg),
                     verticalArrangement = Arrangement.spacedBy(HealthMetricSpacing.xs),
