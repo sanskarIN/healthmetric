@@ -1,20 +1,23 @@
 # Backup Format
 
-HealthMetric uses a small versioned JSON document for explicit user-initiated backup and restore. This document defines schema version `1`.
+HealthMetric uses a small versioned JSON document for explicit user-initiated Android backup and restore. This document defines schema version `1`.
+
+The desktop client intentionally has no HealthMetric persistence/backup layer; its measurement/session state is ephemeral. See [`desktop.md`](desktop.md) and ADR 0005.
 
 ## Goals
 
-The format is designed to be:
+The Android format is designed to be:
 
 - human-readable;
 - bounded in size;
 - explicit about version compatibility;
 - recoverable when individual history records are damaged;
+- deterministically ordered after restore;
 - unable to transfer device-local privacy consent or adult-use gate decisions.
 
 ## Size limit
 
-HealthMetric accepts and writes backup payloads up to **1 MiB (1,048,576 bytes)** of UTF-8 JSON.
+HealthMetric accepts and writes Android backup payloads up to **1 MiB (1,048,576 bytes)** of UTF-8 JSON.
 
 The Android document layer enforces this while reading/writing streams, and the DataStore restore boundary independently checks the raw UTF-8 byte size before JSON parsing.
 
@@ -29,17 +32,17 @@ A current backup has this shape:
   "themeMode": "SYSTEM",
   "history": [
     {
-      "id": "1700000000000-123456",
+      "id": "9c2058d8-0bda-4703-8e84-e9c4b8971228",
       "timestampEpochMillis": 1700000000000,
       "calculator": "BMI",
       "value": 22.9,
-      "summary": "Within adult reference range"
+      "summary": "Example adult reference summary"
     }
   ]
 }
 ```
 
-Example values are fictional.
+Example values are fictional. New locally recorded Android entries use UUID identifiers; imported schema-v1 IDs are not required to be UUIDs as long as they satisfy the validation rules below.
 
 ## Top-level fields
 
@@ -60,13 +63,15 @@ Example values are fictional.
 | `value` | number | Must be finite. |
 | `summary` | string | Optional on import; capped to 240 characters. |
 
-Invalid records are skipped independently so one damaged entry does not discard valid neighboring entries. If multiple valid records normalize to the same ID, the first valid record is retained.
+Invalid records are skipped independently so one damaged entry does not discard valid neighboring entries. If multiple valid records normalize to the same ID, the first valid record in the input document is retained.
 
-Restored history is capped to the normalized `historyRetentionLimit` and can never exceed the application-wide maximum of 500 records.
+After validation/deduplication, accepted records are sorted by `timestampEpochMillis` descending (newest first). The normalized `historyRetentionLimit` is applied after that sort, and restored history can never exceed the application-wide maximum of 500 records. This means arbitrary JSON array order cannot decide which chronologically newest records survive the cap.
+
+The same newest-first invariant is applied when Android records a result or restores a deleted entry through Undo.
 
 ## Deliberately non-portable state
 
-The following DataStore values are **not exported** and are **not changed by restore**:
+The following Android DataStore values are **not exported** and are **not changed by restore**:
 
 - `history_enabled` — consent to save future calculation results;
 - `adult_use_confirmed` — the adult-only reference eligibility choice;
@@ -76,15 +81,15 @@ Older schema-v1 documents may contain JSON fields named `historyEnabled`, `adult
 
 ## Restore transaction behavior
 
-The UI reads the chosen file into a bounded string and asks the user for confirmation. Only after confirmation does the ViewModel call the DataStore restore operation.
+The Android UI reads the chosen file into a bounded string and asks the user for confirmation. Only after confirmation does the ViewModel call the DataStore restore operation.
 
-The restore operation validates size and top-level schema before opening the DataStore edit transaction. Portable settings and sanitized history are then written together in one DataStore edit.
+The restore operation validates size and top-level schema before opening the DataStore edit transaction. Portable settings and sanitized, deduplicated, newest-first bounded history are then written together in one DataStore edit.
 
 Current device-local consent/safety values are left untouched.
 
 ## Forward compatibility
 
-A future incompatible backup format must increment `schemaVersion` rather than silently changing version `1` semantics.
+A future incompatible Android backup format must increment `schemaVersion` rather than silently changing version `1` semantics.
 
 When adding a new schema version:
 
@@ -92,9 +97,12 @@ When adding a new schema version:
 2. define explicit migration behavior;
 3. add deterministic migration tests;
 4. retain bounded payload/history protections or document an ADR for any reviewed replacement;
-5. never make consent/adult-gate state portable without a dedicated privacy and safety review;
-6. update `PRIVACY.md`, `CHANGELOG.md`, `docs/release.md`, and `what_changed.md`.
+5. retain deterministic history ordering or explicitly document a reviewed alternative;
+6. never make consent/adult-gate state portable without a dedicated privacy and safety review;
+7. update `PRIVACY.md`, `CHANGELOG.md`, `docs/release.md`, and `what_changed.md`.
 
 ## Privacy note
 
-A HealthMetric backup contains calculated measurement history and should be treated as private data. HealthMetric does not automatically upload it. The user explicitly selects the destination file or receiving application, and copies outside HealthMetric are governed by that destination.
+A HealthMetric Android backup contains calculated measurement history and should be treated as private data. HealthMetric does not automatically upload it. The user explicitly selects the destination file or receiving application, and copies outside HealthMetric are governed by that destination.
+
+Desktop currently creates no equivalent backup because the desktop client deliberately does not persist measurement/session data.
