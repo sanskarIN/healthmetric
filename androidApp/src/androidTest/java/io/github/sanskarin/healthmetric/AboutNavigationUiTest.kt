@@ -2,6 +2,7 @@ package io.github.sanskarin.healthmetric
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -25,7 +26,9 @@ class AboutNavigationUiTest {
     @Before
     fun clearStateBeforeTest() = runBlocking {
         dataStore.deleteAllLocalData()
-        composeRule.waitForIdle()
+        composeRule.waitUntil(timeoutMillis = UI_STATE_TIMEOUT_MILLIS) {
+            composeRule.onAllNodesWithText("I am 18 or older").fetchSemanticsNodes().isNotEmpty()
+        }
     }
 
     @After
@@ -48,5 +51,9 @@ class AboutNavigationUiTest {
         composeRule.onNodeWithTag(HealthMetricTestTags.ABOUT_OPEN).performClick()
         composeRule.onNodeWithTag(HealthMetricTestTags.ABOUT_BACK).performClick()
         composeRule.onNodeWithText("Privacy & data").assertIsDisplayed()
+    }
+
+    companion object {
+        private const val UI_STATE_TIMEOUT_MILLIS = 5_000L
     }
 }
