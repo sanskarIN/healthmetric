@@ -27,7 +27,7 @@ All notable HealthMetric changes are documented here. The project follows Semant
 - Overflow-safe Android history-chart normalization for extreme finite imported values.
 - Confirmation for destructive Android history deletion, complete local-data deletion, and backup restore.
 - Storage Access Framework JSON backup-to-file flow in addition to explicit share export.
-- Defensive JSON restore with 1 MiB backup size cap, schema validation, malformed-record recovery, duplicate-ID handling, bounded history, and chronological normalization.
+- Defensive JSON restore with 1 MiB backup size cap, schema/top-level structure validation, malformed-record recovery, duplicate-ID handling, bounded history, chronological normalization, and fail-closed all-invalid backup handling.
 - Device-local consent/safety boundary that keeps history opt-in, adult-use confirmation, and onboarding state out of portable Android backup restore.
 - Locale-aware decimal parsing and numeric formatting for Android calculator inputs/results/history.
 - Light, dark, system, and Android dynamic-color theming.
@@ -49,10 +49,13 @@ All notable HealthMetric changes are documented here. The project follows Semant
 - Exact release-asset set verification plus generated `SHA256SUMS.txt` for published binaries.
 - Python regression tests for release tag validation, asset staging, and final asset/checksum verification.
 - Real-app Android instrumentation capture of the eight required release-evidence screenshots, uploaded by CI as `android-release-screenshots`.
-- Repository invariant checks for desktop module presence, required screenshot evidence, AAB packaging tasks/artifacts, hardened release tooling, chart safety, adult-gate correction, and accidental temporary probe files.
+- Repository invariant checks for desktop module presence, required screenshot evidence, AAB packaging tasks/artifacts, hardened release tooling, chart safety, adult-gate correction, backup structure, and accidental temporary probe files.
+- Exhaustive `docs/repository-file-reference.md` documenting every tracked repository file by exact path, responsibility, and maintenance boundary.
+- `docs/documentation-map.md` defining canonical documentation ownership, audience entry points, ADR policy, and a change-to-document update matrix.
+- Automated tracked-file documentation coverage: repository verification compares `git ls-files` with the exhaustive file reference and fails when a tracked file is undocumented.
 - Domain unit, boundary, conversion, validation, deterministic property, onboarding UI, adult-gate, privacy-default, retention-policy, locale-number, bounded backup IO, and desktop calculation/parser tests.
 - Instrumentation tests for BMI/ratio success and error journeys, About return navigation, privacy settings, history controls, retention, adult-gate controls, DataStore export/restore, malformed backups, consent/safety boundaries, chronology, and deletion/restore behavior.
-- Repository community, security, support, privacy, desktop, design-system, evidence, and contribution documentation.
+- Repository community, security, support, privacy, desktop, architecture, setup, testing, release, design-system, evidence, governance, troubleshooting, and contribution documentation.
 
 ### Changed
 
@@ -66,11 +69,14 @@ All notable HealthMetric changes are documented here. The project follows Semant
 - Android history storage is normalized newest-first across new calculations, imports, and delete/undo restoration before retention limits are applied.
 - Lowering the Android local history retention limit immediately trims older entries beyond the newly selected limit.
 - Portable Android backups contain only portable settings/history; current history opt-in and adult-use/onboarding state remain device-local.
-- Schema-v1 Android restore now requires the documented top-level `history` value to be a JSON array before any DataStore mutation; malformed individual entries inside a valid array remain independently recoverable.
+- Schema-v1 Android restore now requires the documented top-level `history` value to be a JSON array before any DataStore mutation; an explicit empty array is valid, while a non-empty array that yields zero valid entries is rejected before mutation.
 - Android file export generates backup content after the user selects the destination document, avoiding reliance on transient pre-launch payload state.
 - Release screenshot automation resets local Android app state before capture so results are independent of instrumentation test execution order.
 - Desktop measurement parsing accepts ordinary dot/comma decimal syntax while rejecting scientific notation, signed input, malformed separators, and non-finite literals.
+- Desktop split imperial height now treats the second field as a true remaining-inch component and rejects values outside `[0, 12)` instead of silently normalizing them into extra feet.
 - Documentation now distinguishes persistent Android behavior from the intentionally ephemeral desktop client and documents release-integrity/checksum gates.
+- README, setup, development, architecture, desktop, testing, release, troubleshooting, privacy, security, repository governance, contribution guidance, and the PR template now cross-reference one canonical documentation ownership system.
+- Repository documentation now treats every tracked source, test, resource, build file, workflow, script, configuration file, ADR, and documentation asset as an explicitly owned file rather than documenting only major modules.
 
 ### Fixed
 
@@ -82,33 +88,49 @@ All notable HealthMetric changes are documented here. The project follows Semant
 - Fixed stale saved Android navigation/history-filter enum values being able to crash composition after enum changes.
 - Fixed extreme finite imported Android history values being able to overflow chart range arithmetic.
 - Fixed malformed Android backups with a missing or non-array top-level `history` value being accepted as empty history and potentially replacing valid local history/preferences after confirmation.
+- Fixed non-empty Android backups containing zero valid history entries being accepted as intentional empty history and potentially replacing valid portable local data.
 - Fixed imperial weight validation reporting kilogram bounds instead of pound bounds.
 - Fixed imperial waist validation reporting metric bounds instead of inch bounds.
 - Fixed imperial BMI revalidating converted values against metric boundaries after valid imperial validation, which could reject documented pound-boundary inputs.
 - Fixed imperial waist-to-height calculation revalidating converted values through the metric path instead of preserving the imperial validation contract.
+- Fixed desktop imperial forms accepting invalid remaining-inch components such as `12` or `20` and converting them into a different total height.
 - Removed the avoidable timestamp-plus-small-random-suffix collision path for newly recorded Android history IDs.
 - Corrected release documentation drift where AAB packaging had been documented before CI/release/verification scripts actually implemented `bundleRelease`.
+- Corrected setup documentation that omitted Python 3 even though repository/release verification depends on Python tooling.
+- Corrected troubleshooting documentation that understated native desktop CI/release packaging and omitted current backup/documentation-integrity diagnostics.
 - Reconciled the desktop/release-readiness branch with the separate Android release-hardening branch so neither set of changes is lost.
 
 ### Security and privacy
 
-- Android backup disabled.
+- Android application backup disabled.
 - Android cleartext traffic disabled.
 - Android manifest requests no Internet permission; core calculation behavior remains offline-capable.
 - No advertising or analytics trackers are included.
-- Android restore validates supported schema, requires a structurally valid top-level history array before mutation, and caps history size.
+- Android restore validates supported schema, requires a structurally valid top-level history array before mutation, distinguishes explicit empty history from corrupted all-invalid history, and caps final history size.
 - Android backup file reads and writes are capped at 1 MiB.
-- Malformed Android history records inside a valid history array are ignored individually instead of invalidating valid neighboring records.
+- Malformed Android history records inside a valid history array are ignored individually when valid neighboring entries survive.
 - Duplicate/blank Android history identifiers, negative timestamps, non-finite values, and unknown calculator types are rejected during restore.
 - Android local history requires explicit opt-in on fresh/default state.
 - Android import cannot enable adult-only reference calculators or silently enable future history saving.
 - Adult-use-choice correction clears only adult/onboarding state and preserves unrelated local history/preferences.
+- Extreme finite imported history values cannot overflow the chart normalization path.
+- Stale Android saved enum names cannot directly crash navigation/filter state restoration.
 - Desktop measurement/session state is deliberately not persisted.
+- Desktop input rejects ambiguous/signed/scientific/non-finite measurement syntax and invalid split-height remaining-inch components.
 - Secret scanning checks repository history in CI.
 - Release tags fail closed unless they use stable SemVer form, match configured Android/desktop versions, and target current `main`.
 - Release asset publication fails closed on missing, unexpected, or empty files and publishes SHA-256 checksums.
 - Release workflow write privilege is isolated to the final publication job.
-- Repository invariants reject the known accidental write-probe path and verify expected release packaging/evidence/desktop/security configuration.
+- Repository invariants reject the known accidental write-probe path, verify expected release packaging/evidence/desktop/security configuration, and require documentation for every tracked file.
+
+### Documentation and governance
+
+- Added a canonical documentation map that identifies which file owns each detailed product, privacy, architecture, evidence, testing, release, governance, and continuation contract.
+- Added an exhaustive file-by-file repository reference covering root metadata, GitHub automation/templates, Android production/resources/tests, shared code/tests, desktop code/tests, Gradle catalog, scripts/tests, all project documents, ADRs, logo and screenshot policy.
+- Contributor instructions and the pull-request checklist now require file-reference reconciliation for every tracked-file add/delete/rename.
+- Repository governance explicitly treats file-level documentation completeness as a CI-enforced rule.
+- Release documentation treats exact tracked-file documentation and canonical-document agreement as pre-tag gates.
+- Troubleshooting explains how to diagnose undocumented tracked files and why copied source directories without Git metadata cannot satisfy the repository audit.
 
 ### Remaining release verification
 
@@ -117,8 +139,9 @@ All notable HealthMetric changes are documented here. The project follows Semant
 - Manual TalkBack, maximum-font/display, keyboard/DPAD where applicable, and final visual review remain release-candidate tasks.
 - CI-generated Android screenshots must receive final human visual/privacy review before permanent store/README publication.
 - Android release signing remains intentionally external to source control and must be configured through a protected distribution process.
-- Desktop native packages should receive host-platform smoke testing before being promoted as release assets.
+- Desktop native packages should receive host-platform smoke/accessibility/install-uninstall testing before being promoted as release assets.
+- Desktop production signing/notarization, if used, remains external to source control.
 
 ## [0.1.0] - Planned
 
-First development release candidate after the exact release commit passes automation, required platform/device review, final screenshot/accessibility review, protected Android signing setup, and the release checklist.
+First development release candidate after the exact release commit passes automation, required platform/device review, final screenshot/accessibility review, protected signing/trust setup, and the release checklist.
