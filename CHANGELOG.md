@@ -32,7 +32,8 @@ All notable HealthMetric changes are documented here. The project follows Semant
 - Externalized Android UI strings for localization-ready presentation.
 - Privacy-safe structured operational logger with fixed event names.
 - GitHub Actions CI, CodeQL, dependency review, secret scanning, Android emulator instrumentation, Apple shared-core compilation, tagged release automation, and Dependabot.
-- CI assembly of both debug and unsigned release APKs.
+- CI assembly and artifact upload for the debug APK, unsigned release APK, and unsigned release Android App Bundle.
+- Tagged release workflow packaging for both the unsigned release APK and unsigned App Bundle.
 - Domain unit, boundary, conversion, validation, deterministic property, onboarding UI, adult-gate, privacy-default, retention-policy, locale-number, and bounded backup IO tests.
 - Instrumentation tests for BMI/ratio success and error journeys, privacy settings, history controls, retention, DataStore export/restore, malformed backups, consent/safety boundaries, and deletion/restore behavior.
 - Repository community, security, support, privacy, design-system, evidence, and contribution documentation.
@@ -40,7 +41,8 @@ All notable HealthMetric changes are documented here. The project follows Semant
 ### Changed
 
 - GitHub Actions workflow dependencies were updated to current supported major versions for checkout, Java setup, Gradle setup, CodeQL, dependency review, and artifact upload where applicable.
-- Release CI now runs Android unit tests and release lint before creating an unsigned APK.
+- Release CI now runs Android unit tests and release lint before creating unsigned APK/App Bundle artifacts.
+- Local Unix and Windows verification scripts now include `:androidApp:bundleRelease`.
 - Lowering the local history retention limit immediately trims older entries beyond the newly selected limit.
 - Portable backups now contain only portable settings/history; current history opt-in and adult-use/onboarding state remain device-local.
 - File export generates backup content after the user selects the destination document, avoiding reliance on transient pre-launch payload state.
