@@ -20,7 +20,7 @@ data class HistoryEntry(
 )
 
 data class AppPreferences(
-    val historyEnabled: Boolean = true,
+    val historyEnabled: Boolean = false,
     val themeMode: AppThemeMode = AppThemeMode.SYSTEM,
     val adultUseConfirmed: Boolean = false,
     val onboardingComplete: Boolean = false,
