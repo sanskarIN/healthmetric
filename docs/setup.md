@@ -61,6 +61,26 @@ The repository contains three primary Gradle modules:
 
 Use [`repository-file-reference.md`](repository-file-reference.md) for the exact responsibility of every tracked file and [`documentation-map.md`](documentation-map.md) for canonical documentation ownership.
 
+## Current release target
+
+The prepared release candidate is **2.0.12**.
+
+Configured metadata:
+
+- Android `versionName = "2.0.12"`;
+- Android `versionCode = 20012`;
+- desktop project `version = "2.0.12"`;
+- desktop native `packageVersion = "2.0.12"`;
+- planned stable tag `v2.0.12` after all exact-head and manual release gates pass.
+
+Verify the release metadata locally with:
+
+```bash
+python3 scripts/check_release_version.py v2.0.12
+```
+
+On Windows, replace `python3` with the configured Python executable when necessary.
+
 ## Verify the toolchain
 
 Confirm Python:
@@ -123,11 +143,14 @@ Run the portable repository checks independently with:
 python3 scripts/check_repository.py
 python3 scripts/check_markdown_links.py
 python3 -m unittest discover -s scripts/tests -p "test_*.py"
+python3 scripts/check_release_version.py v2.0.12
 ```
 
 `check_repository.py` includes exhaustive file-documentation verification: every path returned by `git ls-files` must be documented in `docs/repository-file-reference.md`.
 
 If a newly tracked file causes this check to fail, document the file's responsibility rather than weakening or bypassing the invariant.
+
+`check_release_version.py` verifies stable tag syntax plus Android `versionName`, Android semantic `versionCode` mapping, desktop project version, and desktop native `packageVersion` agreement.
 
 ## Command-line verification
 
@@ -237,6 +260,8 @@ Do not add secrets to `.env.example` or commit local `.env` files. Signing keys,
 ## Android backup/restore development note
 
 Android backups contain portable history/settings only. Current history opt-in, adult-use confirmation, and onboarding state remain local to the Android installation and are not imported.
+
+Backup document reads are bounded to 1 MiB and require well-formed UTF-8. Malformed UTF-8 bytes are rejected before JSON restore parsing rather than silently replacement-decoded.
 
 Restore schema v1 requires `history` to be a JSON array. `history: []` is an intentional empty-history backup, while a non-empty array from which no valid record survives is rejected before DataStore mutation.
 
