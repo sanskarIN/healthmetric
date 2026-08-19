@@ -7,7 +7,7 @@ HealthMetric favors small, reviewable changes and a deterministic shared domain 
 Before editing:
 
 1. read `what_changed.md`;
-2. inspect recent commits and open issues;
+2. inspect recent commits and open issues/PRs;
 3. identify the smallest module that owns the behavior;
 4. add or update tests with the behavior change.
 
@@ -80,6 +80,8 @@ Windows PowerShell:
 
 Set `GRADLE_BIN` if the executable is not named `gradle`.
 
+The verification scripts include repository formatting/tests/lint plus debug APK, unsigned release APK, and unsigned release App Bundle assembly.
+
 ## Testing while developing
 
 Shared domain behavior:
@@ -106,7 +108,7 @@ On macOS, compile Apple targets:
 gradle :shared:compileKotlinIosSimulatorArm64 :shared:compileKotlinIosArm64
 ```
 
-Pull requests run standard CI, an API 35 emulator workflow, and a macOS Apple-target workflow. Keep direct-screen Compose tests deterministic: avoid real health data, network access, timing assumptions, and locale-sensitive selectors unless locale behavior itself is under test.
+Pull requests run standard CI, an API 35 Pixel 7 emulator workflow, and a macOS Apple-target workflow. The emulator suite also produces the `android-release-screenshots` artifact. Keep direct-screen Compose tests deterministic: avoid real health data, network access, timing assumptions, and locale-sensitive selectors unless locale behavior itself is under test.
 
 ## Local data invariants
 
@@ -114,8 +116,11 @@ Changes to history/backup behavior must preserve these invariants unless an ADR 
 
 - history is disabled on fresh/default state;
 - raw weight, height, and waist fields are not persisted in history;
+- new locally recorded history entries use UUID identifiers;
+- imported/programmatic history identifiers remain validated, bounded, and deduplicated;
+- history is normalized newest-first by `timestampEpochMillis` after add, import, and delete/undo restoration;
 - supported retention limits are 50, 100, 250, and 500;
-- local history never grows beyond the selected retention limit;
+- retention is applied after canonical ordering and local history never grows beyond the selected limit;
 - individual undo does not enable future history saving;
 - backup payloads are limited to 1 MiB before parsing/writing;
 - unsupported top-level backup schemas are rejected;
@@ -125,7 +130,7 @@ Changes to history/backup behavior must preserve these invariants unless an ADR 
 - restore requires explicit confirmation after the file is read;
 - logging never receives backup contents or measurements.
 
-`BackupIo` is the stream boundary. `HealthMetricDataStore` must still enforce size/schema/record invariants so alternate callers cannot bypass document-flow protections.
+`BackupIo` is the stream boundary. `HealthMetricDataStore` must still enforce size/schema/record/order invariants so alternate callers cannot bypass document-flow protections.
 
 See [`backup-format.md`](backup-format.md) and ADR 0004 before changing backup semantics.
 
@@ -141,6 +146,24 @@ When changing numeric input:
 - do not interpret grouping separators as measurement decimal data;
 - keep displayed history/result precision intentional and covered by tests.
 
+## Navigation/testability invariants
+
+App-level navigation must remain recoverable without forcing an activity restart. The About destination hides bottom navigation, so both its explicit top-bar back action and Android system back must return to the originating screen.
+
+Critical UI automation uses `HealthMetricTestTags` for stable selectors while retaining user-facing accessibility semantics. Add a stable tag when a release-critical automated journey would otherwise depend on duplicated/brittle visible text.
+
+## Screenshot evidence
+
+`ReleaseScreenshotCaptureTest` captures the real app, not mock composables. Keep its dataset fictional/example-only and its setup independent from test execution order.
+
+If the required screenshot set changes:
+
+1. update the screenshot test;
+2. update `.github/workflows/android-instrumentation.yml` if collection paths change;
+3. update `docs/assets/screenshots/README.md`;
+4. update repository invariant checks;
+5. visually/privacy-review the exact release-candidate artifact before publication.
+
 ## Data model changes
 
 Current persistence uses Preferences DataStore and an explicit JSON backup schema.
@@ -150,7 +173,7 @@ If persistence structure changes:
 1. preserve reading of the previous released format when practical;
 2. increment backup `schemaVersion` for breaking portable format changes;
 3. add migration/restore tests;
-4. retain strict payload/history limits or document a reviewed replacement;
+4. retain strict payload/history limits and deterministic ordering or document a reviewed replacement;
 5. keep consent/adult-gate state device-local unless a dedicated safety/privacy ADR explicitly changes that invariant;
 6. update `PRIVACY.md` if stored data changes;
 7. add/update an ADR for meaningful persistence/security decisions;
@@ -185,6 +208,7 @@ Prefer the design with less data, bounded inputs, fewer permissions, and explici
 - Are controls screen-reader labeled?
 - Is meaning available without color alone?
 - Does a destructive/replacement action have appropriate confirmation/undo?
+- Can every modal/secondary destination be exited predictably?
 - Does the layout remain usable on wider screens?
 - Does numeric input/display behave predictably in comma- and dot-decimal locales?
 - Do automation tags supplement rather than replace accessible semantics?
@@ -195,7 +219,7 @@ Use the version catalog in `gradle/libs.versions.toml`. Prefer maintained librar
 
 When updating GitHub Actions, check the action owner's current supported major version and keep workflow permissions least-privilege. Pull-request code must never receive unnecessary write permissions or repository secrets.
 
-Shared Kotlin changes must pass both JVM tests and Apple-target compilation before release.
+Shared Kotlin changes must pass both JVM tests and Apple-target compilation before release. Android release packaging must continue to exercise both `assembleRelease` and `bundleRelease`.
 
 ## Commit strategy
 
