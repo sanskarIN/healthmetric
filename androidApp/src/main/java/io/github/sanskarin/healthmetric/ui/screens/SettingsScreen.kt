@@ -26,6 +26,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import io.github.sanskarin.healthmetric.BuildConfig
 import io.github.sanskarin.healthmetric.data.AppThemeMode
 
 @Composable
@@ -37,6 +38,7 @@ fun SettingsScreen(
     onExport: () -> Unit,
     onImport: () -> Unit,
     onDeleteAllData: () -> Unit,
+    onOpenReleases: () -> Unit,
     onAbout: () -> Unit,
 ) {
     var confirmDelete by remember { mutableStateOf(false) }
@@ -108,6 +110,17 @@ fun SettingsScreen(
                 text = "HealthMetric uses semantic labels, scalable text, large touch targets, keyboard-compatible controls, and chart summaries that do not rely on color alone.",
                 style = MaterialTheme.typography.bodyMedium,
             )
+        }
+
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Updates", style = MaterialTheme.typography.titleMedium)
+            Text(
+                text = "Installed version ${BuildConfig.VERSION_NAME}. HealthMetric never requires an account to check the public release page.",
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            OutlinedButton(onClick = onOpenReleases, modifier = Modifier.fillMaxWidth()) {
+                Text("View GitHub releases")
+            }
         }
 
         OutlinedButton(onClick = onAbout, modifier = Modifier.fillMaxWidth()) {
