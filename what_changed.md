@@ -189,6 +189,8 @@ Portable top-level fields:
 - `themeMode`;
 - `history`.
 
+The top-level `history` field is required to be a JSON array. Missing or wrong-type `history` is rejected before DataStore mutation; an empty array is valid.
+
 Deliberately non-portable state:
 
 - history-saving consent;
@@ -205,9 +207,10 @@ Protections include:
 - bounded write;
 - independent restore-boundary UTF-8 size check;
 - top-level schema validation;
+- required top-level history-array validation before mutation;
 - supported retention normalization;
 - theme normalization;
-- malformed-record recovery;
+- malformed-record recovery inside a structurally valid history array;
 - non-blank/length-bounded IDs;
 - non-negative timestamps;
 - finite values;
@@ -412,6 +415,7 @@ No iOS user interface is claimed.
 
 - repository invariants;
 - internal Markdown links;
+- repository/release tooling regression tests;
 - JDK 17 / Gradle 8.13 setup;
 - Android SDK setup;
 - shared/Android/desktop ktlint;
@@ -454,7 +458,17 @@ Configured:
 
 ### Tagged release workflow
 
-`.github/workflows/release.yml` separates verification/build from publication.
+`.github/workflows/release.yml` separates preflight verification/build from publication.
+
+Preflight requires:
+
+- stable `vMAJOR.MINOR.PATCH` tag form;
+- tag version matching Android and desktop public versions;
+- tag commit equal to the current `main` commit;
+- repository/docs audits;
+- repository/release tooling tests.
+
+Release permissions are read-only by default; only the final publication job has `contents: write`.
 
 Android job creates/stages:
 
@@ -470,7 +484,7 @@ Desktop host matrix creates/stages:
 - `healthmetric-<tag>-desktop-macos.jar`;
 - `healthmetric-<tag>-desktop-macos.dmg`.
 
-The publish job starts only after Android and all desktop build jobs succeed, downloads the versioned assets, checks the complete expected eight-file set is non-empty, and then creates the GitHub Release.
+Staging requires exactly one non-empty expected build output per artifact type. The publish job starts only after Android and all desktop build jobs succeed, requires exactly the expected eight non-empty binaries with no extras, writes `SHA256SUMS.txt`, verifies the tag, and then creates the GitHub Release.
 
 ## Repository invariant audit
 
@@ -482,6 +496,7 @@ It checks, among other requirements:
 - Android manifest requests no Internet permission;
 - Android backup stays disabled;
 - Android cleartext traffic stays disabled;
+- Android restore requires a top-level `history` JSON array before mutation;
 - the desktop module is included;
 - desktop depends on the shared module;
 - desktop native distribution formats remain configured;
@@ -492,7 +507,7 @@ It checks, among other requirements:
 - Android screenshot workflow/artifact configuration remains present;
 - all eight screenshot names remain in the capture test;
 - desktop workflow contains tests, JAR packaging, and DEB/MSI/DMG packaging;
-- release workflow retains all native desktop release assets;
+- release tag/version/main/checksum/permission invariants remain present;
 - accidental `docs/.noop-probe` is forbidden.
 
 ## Internal documentation link audit
@@ -503,6 +518,8 @@ It checks, among other requirements:
 
 `scripts/verify.sh` and `scripts/verify.ps1` run the portable non-device suite including:
 
+- repository/docs audits;
+- repository/release tooling regression tests;
 - shared/Android/desktop formatting;
 - shared JVM tests;
 - desktop JVM tests;
@@ -683,11 +700,11 @@ After this handoff commit:
 
 1. fetch PR #14 metadata and exact head SHA;
 2. inspect only workflow runs associated with that exact head;
-3. wait for/inspect CI, Android instrumentation, Desktop, Apple shared core, CodeQL, Dependency Review, and Secret Scan;
+3. inspect CI, Android instrumentation, Desktop, Apple shared core, CodeQL, Dependency Review, and Secret Scan;
 4. if a workflow fails, inspect its jobs/logs and fix the root cause on PR #14;
 5. verify Android screenshot artifact contents;
 6. verify desktop artifact sets from Linux/Windows/macOS;
-7. merge PR #14 into `main` using a normal merge commit to preserve the meaningful granular history;
+7. merge PR #14 into `main` using a normal merge commit to preserve the meaningful granular history only after all required exact-head automation is green;
 8. inspect post-merge `main` automation;
 9. compare PR #13 against merged `main` and close PR #13 as superseded only if no meaningful unique change remains;
 10. update this handoff on `main` with the actual merged/final status if a post-merge documentation-only change is needed;
@@ -784,6 +801,21 @@ Added:
 - safe restoration of the History calculator filter.
 
 Unknown/stale saved names now fall back to a safe default instead of crashing.
+
+### Android backup top-level structure hardening completed
+
+A late audit found that schema-v1 restore used `optJSONArray("history")` and passed a missing/non-array result into the tolerant history decoder. That could interpret a structurally damaged backup as an intentional empty history and, after user confirmation, replace existing history/theme/retention state while reporting restore success.
+
+The restore path now:
+
+- requires `history` to exist as a JSON array after schema validation;
+- rejects a missing or non-array `history` before the DataStore edit transaction;
+- keeps an empty array valid;
+- continues to salvage malformed individual records only after the top-level container is structurally valid.
+
+Regression instrumentation seeds existing history/theme state, attempts both missing-history and object-instead-of-array backups, confirms the restore fails, and verifies the original local data remains unchanged.
+
+`docs/backup-format.md` now defines this fail-closed behavior as part of schema version 1. `scripts/check_repository.py` also locks the required top-level-array guard so later refactors cannot silently remove it.
 
 ### Release tag/version preflight completed
 
@@ -882,6 +914,7 @@ They run in:
 - Android chart finite-safe normalization;
 - Android adult-use correction path;
 - saved-enum fallback helper/tests;
+- required top-level Android backup history-array validation;
 - adult-gate UI coverage;
 - existing AAB, screenshot, desktop package, privacy, and no-probe invariants.
 
@@ -896,6 +929,7 @@ Updated:
 - `.github/RELEASE_TEMPLATE.md`;
 - `docs/release.md`;
 - `docs/testing.md`;
+- `docs/backup-format.md`;
 - this `what_changed.md`.
 
 The documentation now explicitly covers:
@@ -904,6 +938,7 @@ The documentation now explicitly covers:
 - Android chart overflow defense;
 - recoverable adult-use selection;
 - stale saved-state fallback;
+- fail-closed top-level backup structure validation;
 - repository-tooling unit tests;
 - stable release tag/version/current-main gates;
 - least-privilege release permissions;
@@ -964,7 +999,13 @@ The pass deliberately continued the granular-commit strategy. Git history contai
 - `test: run release tooling tests in Unix verification`;
 - `test: run release tooling tests in PowerShell verification`;
 - `ci: lock saved-state and local verification invariants`;
-- `docs: expand regression and release-tooling test matrix`.
+- `docs: expand regression and release-tooling test matrix`;
+- `fix(android): reject malformed top-level backup history`;
+- `test(android): protect local data from malformed backup history`;
+- `docs: require valid top-level history array before restore`;
+- `docs: record fail-closed backup structure validation`;
+- `ci: enforce fail-closed backup history structure`;
+- `docs: add backup structure regression coverage`.
 
 ### Exact-head status after this handoff update
 
@@ -982,5 +1023,5 @@ The next verifier must:
 6. verify Desktop workflow artifacts contain JAR + DEB on Linux, JAR + MSI on Windows, and JAR + DMG on macOS;
 7. only after exact-head automation is green, merge PR #14 into `main` with normal history-preserving merge behavior;
 8. inspect post-merge `main` automation;
-9. compare PR #13 against merged `main` and close it as superseded only if no meaningful unique change remains;
+9. compare PR #13 against merged `main` and close PR #13 as superseded only if no meaningful unique change remains;
 10. keep `v0.1.0` untagged until physical Android, TalkBack/visual review, target-host desktop smoke/accessibility review, and protected signing/trust requirements are actually satisfied.
