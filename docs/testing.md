@@ -2,7 +2,7 @@
 
 ## Objectives
 
-HealthMetric tests focus on deterministic calculations, validation boundaries, privacy-sensitive persistence behavior, bounded backup handling, adult-only safety behavior, locale-aware presentation, and primary adult user journeys.
+HealthMetric tests focus on deterministic calculations, validation boundaries, privacy-sensitive persistence behavior, bounded backup handling, adult-only safety behavior, locale-aware presentation, navigation resilience, chronological history integrity, release packaging, and primary adult user journeys.
 
 ## Current automated coverage
 
@@ -61,7 +61,9 @@ Located in `androidApp/src/androidTest/`:
 - `WaistToHeightUiTest` — ratio success result and missing-waist validation;
 - `SettingsUiTest` — explicit history opt-in, retention selection, save-file, and share-backup actions;
 - `HistoryUiTest` — per-entry deletion and erase-all confirmation;
-- `HealthMetricDataStoreTest` — privacy opt-in, retention trimming, portable export/restore, unsupported schemas, device-local consent/adult-gate preservation, entry delete/restore, malformed-record recovery, duplicate-ID handling, and invalid entry rejection.
+- `AboutNavigationUiTest` — About opens from multiple origins and returns to the correct origin through the explicit back action;
+- `HealthMetricDataStoreTest` — privacy opt-in, retention trimming, portable export/restore, unsupported schemas, device-local consent/adult-gate preservation, canonical newest-first ordering, entry delete/restore, malformed-record recovery, duplicate-ID handling, and invalid entry rejection;
+- `ReleaseScreenshotCaptureTest` — deterministic real-app release evidence for onboarding, BMI, ratio, history, settings, About, and dark theme.
 
 Run with a connected device/emulator:
 
@@ -69,7 +71,22 @@ Run with a connected device/emulator:
 gradle :androidApp:connectedDebugAndroidTest
 ```
 
-The dedicated `.github/workflows/android-instrumentation.yml` workflow provisions an Android API 35 emulator and runs this connected test suite for pull requests and `main` pushes.
+The dedicated `.github/workflows/android-instrumentation.yml` workflow provisions an Android API 35 Pixel 7 emulator, runs this connected test suite for pull requests and `main` pushes, pulls the generated PNG set from app-scoped external storage, and uploads it as the `android-release-screenshots` artifact.
+
+## Release screenshot evidence
+
+`ReleaseScreenshotCaptureTest` resets local app state before capture and uses fictional/example measurements only. It produces:
+
+- `01-onboarding.png`;
+- `02-bmi-metric.png`;
+- `03-bmi-result.png`;
+- `04-waist-ratio.png`;
+- `05-history.png`;
+- `06-settings.png`;
+- `07-about.png`;
+- `08-dark-theme.png`.
+
+CI treats missing screenshot files as an error when uploading the release-evidence artifact. Generated images still require a final human visual/privacy review before permanent README/store publication.
 
 ## Stable UI automation tags
 
@@ -77,6 +94,8 @@ Critical controls use constants in `HealthMetricTestTags` rather than brittle te
 
 Covered tagged journeys include:
 
+- bottom navigation for BMI, ratio, history, and settings;
+- About open/back navigation;
 - BMI weight, height, calculate, and result;
 - waist/height ratio inputs, calculate, and result;
 - history list;
@@ -94,6 +113,19 @@ A portable backup must not export or restore:
 
 Legacy schema-v1 documents containing similarly named fields must not override the current installation's values.
 
+## History regression invariants
+
+History is canonical newest-first by `timestampEpochMillis` after:
+
+- adding a new result;
+- replacing an entry with the same ID;
+- restoring a deleted entry through Undo;
+- importing a valid backup.
+
+Retention is applied after canonical ordering. This prevents an older undone item from jumping to the top and prevents arbitrary JSON array ordering from deciding which records survive a retention cap.
+
+Newly recorded entries use UUID identifiers. Imported IDs remain bounded/validated/deduplicated by the persistence layer.
+
 ## Required regression policy
 
 Every confirmed defect should receive a regression test at the lowest practical layer before or with the fix.
@@ -104,8 +136,9 @@ Examples:
 - malformed backup crash → DataStore instrumentation test;
 - backup size bypass → `BackupIoTest` plus restore test where relevant;
 - consent/adult-gate restore regression → DataStore instrumentation test;
+- history-order regression → DataStore instrumentation test;
 - locale parsing regression → `LocalizedNumbersTest`;
-- screen state regression → Compose UI test;
+- screen/navigation state regression → Compose UI test;
 - accessibility label regression → Compose semantics test/manual accessibility check.
 
 ## Validation edge cases
@@ -122,11 +155,13 @@ Test at minimum:
 - corrupted/unsupported backup schema;
 - oversized backup payloads;
 - malformed and duplicate history records;
+- out-of-order imported history records;
 - legacy backups containing non-portable consent/safety fields;
 - empty history;
 - disabled history;
 - retention-limit trimming;
-- delete/restore behavior while history saving is disabled.
+- delete/restore behavior while history saving is disabled;
+- About navigation from multiple originating screens.
 
 ## Property/fuzz testing
 
@@ -144,6 +179,7 @@ Automated semantics tests are only one layer. Release candidates should also be 
 - keyboard/DPAD navigation where relevant;
 - chart content descriptions;
 - deletion button labels and undo action;
+- About back-navigation label;
 - restore/destructive confirmation dialogs;
 - non-color-only status interpretation;
 - dot- and comma-decimal locale presentation.
@@ -154,16 +190,21 @@ See [`accessibility.md`](accessibility.md).
 
 The main CI workflow fails on:
 
+- repository invariant failures;
+- broken internal Markdown links;
 - ktlint style failures;
 - shared JVM test failures;
 - Android JVM unit test failures;
 - Android release lint failures;
-- Android debug assembly failures;
-- Android unsigned release assembly failures.
+- Android debug APK assembly failures;
+- Android unsigned release APK assembly failures;
+- Android unsigned release App Bundle assembly failures;
+- missing expected APK/AAB artifacts.
 
 Additional workflows fail on:
 
 - connected Android emulator test failures;
+- missing release screenshot evidence files;
 - iOS device/simulator shared-core compilation failures on macOS;
 - CodeQL analysis failures;
 - high-severity pull-request dependency review findings;
@@ -183,6 +224,8 @@ or the Windows equivalent:
 .\scripts\verify.ps1
 ```
 
+The scripts include `:androidApp:bundleRelease` in addition to APK builds.
+
 Then run:
 
 ```bash
@@ -195,4 +238,4 @@ On macOS also run:
 gradle :shared:compileKotlinIosSimulatorArm64 :shared:compileKotlinIosArm64
 ```
 
-Finally perform the manual accessibility/device checks documented in [`accessibility.md`](accessibility.md) and the release checklist in [`release.md`](release.md).
+Finally inspect the CI-generated `android-release-screenshots` artifact, perform the manual accessibility/device checks documented in [`accessibility.md`](accessibility.md), and complete the release checklist in [`release.md`](release.md).
