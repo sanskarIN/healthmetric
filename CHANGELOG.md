@@ -62,10 +62,11 @@ All notable HealthMetric changes are documented here. The project follows Semant
 - Release build jobs now use tested Python staging logic instead of duplicated shell-specific artifact discovery.
 - The final release publication step rejects missing, extra, or empty binary assets before creating the GitHub Release.
 - Release workflow repository permissions are read-only by default; `contents: write` is scoped only to the final publication job.
-- Local Unix and Windows verification scripts include desktop tests/packaging and `:androidApp:bundleRelease`.
+- Local Unix and Windows verification scripts include repository-tooling regression tests, desktop tests/packaging, and `:androidApp:bundleRelease`.
 - Android history storage is normalized newest-first across new calculations, imports, and delete/undo restoration before retention limits are applied.
 - Lowering the Android local history retention limit immediately trims older entries beyond the newly selected limit.
 - Portable Android backups contain only portable settings/history; current history opt-in and adult-use/onboarding state remain device-local.
+- Schema-v1 Android restore now requires the documented top-level `history` value to be a JSON array before any DataStore mutation; malformed individual entries inside a valid array remain independently recoverable.
 - Android file export generates backup content after the user selects the destination document, avoiding reliance on transient pre-launch payload state.
 - Release screenshot automation resets local Android app state before capture so results are independent of instrumentation test execution order.
 - Desktop measurement parsing accepts ordinary dot/comma decimal syntax while rejecting scientific notation, signed input, malformed separators, and non-finite literals.
@@ -80,6 +81,7 @@ All notable HealthMetric changes are documented here. The project follows Semant
 - Fixed an accidental under-18 Android selection requiring complete app-data clearing before age selection could be revisited.
 - Fixed stale saved Android navigation/history-filter enum values being able to crash composition after enum changes.
 - Fixed extreme finite imported Android history values being able to overflow chart range arithmetic.
+- Fixed malformed Android backups with a missing or non-array top-level `history` value being accepted as empty history and potentially replacing valid local history/preferences after confirmation.
 - Fixed imperial weight validation reporting kilogram bounds instead of pound bounds.
 - Fixed imperial waist validation reporting metric bounds instead of inch bounds.
 - Fixed imperial BMI revalidating converted values against metric boundaries after valid imperial validation, which could reject documented pound-boundary inputs.
@@ -94,9 +96,9 @@ All notable HealthMetric changes are documented here. The project follows Semant
 - Android cleartext traffic disabled.
 - Android manifest requests no Internet permission; core calculation behavior remains offline-capable.
 - No advertising or analytics trackers are included.
-- Android restore validates supported schema and caps history size.
+- Android restore validates supported schema, requires a structurally valid top-level history array before mutation, and caps history size.
 - Android backup file reads and writes are capped at 1 MiB.
-- Malformed Android history records are ignored individually instead of invalidating valid neighboring records.
+- Malformed Android history records inside a valid history array are ignored individually instead of invalidating valid neighboring records.
 - Duplicate/blank Android history identifiers, negative timestamps, non-finite values, and unknown calculator types are rejected during restore.
 - Android local history requires explicit opt-in on fresh/default state.
 - Android import cannot enable adult-only reference calculators or silently enable future history saving.
