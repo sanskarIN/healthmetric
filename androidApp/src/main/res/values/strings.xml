@@ -1,7 +1,108 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">HealthMetric</string>
+    <string name="app_name" translatable="false">HealthMetric</string>
     <string name="app_tagline">Private, neutral adult health measurements</string>
     <string name="adult_only_notice">HealthMetric uses adult reference information. It is not intended for people under 18 and does not provide medical diagnosis.</string>
-    <string name="made_by">Made by the Sanskar</string>
+    <string name="made_by" translatable="false">Made by the Sanskar</string>
+
+    <string name="onboarding_privacy_intro">The BMI and waist-to-height references in this app are intended for adults age 18 or older. They are educational screening information only—not a diagnosis, appearance score, or personal body target.</string>
+    <string name="onboarding_offline_intro">HealthMetric works offline, has no ad trackers, and lets you disable or erase local history at any time. History is off until you explicitly enable it.</string>
+    <string name="onboarding_adult_confirm">I am 18 or older</string>
+    <string name="onboarding_under_18">I am under 18</string>
+    <string name="adult_only_title">Adult reference calculators unavailable</string>
+    <string name="adult_only_body">HealthMetric intentionally does not apply adult BMI or waist-to-height reference calculations to people under 18. Age-specific growth and health questions should be discussed with a parent, guardian, or qualified healthcare professional.</string>
+
+    <string name="screen_bmi">BMI</string>
+    <string name="screen_waist_ratio">Waist ratio</string>
+    <string name="screen_history">History</string>
+    <string name="screen_settings">Settings</string>
+    <string name="screen_about">About</string>
+    <string name="top_bar_title">HealthMetric · %1$s</string>
+    <string name="about_content_description">About</string>
+    <string name="nav_ratio">Ratio</string>
+
+    <string name="bmi_title">Adult BMI calculator</string>
+    <string name="bmi_intro">BMI is a population screening measure. HealthMetric does not use it as a diagnosis, appearance score, or personal body goal.</string>
+    <string name="metric">Metric</string>
+    <string name="imperial">Imperial</string>
+    <string name="weight_kg">Weight (kg)</string>
+    <string name="height_cm">Height (cm)</string>
+    <string name="weight_lb">Weight (lb)</string>
+    <string name="height_feet">Height (feet)</string>
+    <string name="height_inches_additional">Additional height (inches)</string>
+    <string name="calculate">Calculate</string>
+    <string name="calculate_save">Calculate and save locally</string>
+    <string name="bmi_result">BMI %1$s</string>
+    <string name="reference_source">Reference: %1$s — %2$s</string>
+    <string name="invalid_weight">Enter a valid weight.</string>
+    <string name="invalid_height">Enter a valid height.</string>
+    <string name="invalid_feet">Enter valid feet.</string>
+    <string name="invalid_inches">Enter valid inches.</string>
+    <string name="measurement_error">Check the measurements and try again.</string>
+
+    <string name="waist_title">Adult waist-to-height ratio</string>
+    <string name="waist_intro">A neutral measurement tool for adults. The result is not a diagnosis and is not presented as an appearance target.</string>
+    <string name="centimetres">Centimetres</string>
+    <string name="inches">Inches</string>
+    <string name="waist_cm">Waist (cm)</string>
+    <string name="waist_inches">Waist (inches)</string>
+    <string name="height_inches">Height (inches)</string>
+    <string name="invalid_waist">Enter a valid waist measurement.</string>
+    <string name="ratio_result">Ratio %1$s</string>
+    <string name="ratio_neutral_note">This value is shown neutrally without appearance rankings or pressure-oriented goals.</string>
+    <string name="ratio_history_summary">Neutral adult waist-to-height measurement</string>
+
+    <string name="history_title">Local history</string>
+    <string name="history_enabled_message">History is stored only on this device and can be disabled or erased at any time.</string>
+    <string name="history_disabled_message">History saving is disabled. Existing local entries remain until you erase them.</string>
+    <string name="history_bmi">BMI</string>
+    <string name="history_waist">Waist ratio</string>
+    <string name="history_empty_bmi">No saved BMI measurements yet.</string>
+    <string name="history_empty_waist">No saved waist ratio measurements yet.</string>
+    <string name="measurement_history">Measurement history</string>
+    <string name="chart_accessibility_note">Chart values are also summarized for screen readers; color is not used to assign health meaning.</string>
+    <string name="erase_history">Erase all local history</string>
+    <string name="history_item_bmi">BMI</string>
+    <string name="history_item_waist">Waist-to-height ratio</string>
+
+    <string name="settings_title">Settings</string>
+    <string name="privacy_data">Privacy &amp; data</string>
+    <string name="save_local_history">Save local history</string>
+    <string name="save_local_history_description">Off by default. When enabled, results are stored only on this device. No ad trackers are used.</string>
+    <string name="export_local_data">Export my local data</string>
+    <string name="restore_json_backup">Restore from JSON backup</string>
+    <string name="delete_all_local_data">Delete all local data</string>
+    <string name="appearance">Appearance</string>
+    <string name="accessibility">Accessibility</string>
+    <string name="accessibility_description">HealthMetric uses semantic labels, scalable text, large touch targets, keyboard-compatible controls, and chart summaries that do not rely on color alone.</string>
+    <string name="updates">Updates</string>
+    <string name="installed_version">Installed version %1$s. HealthMetric never requires an account to check the public release page.</string>
+    <string name="view_github_releases">View GitHub releases</string>
+    <string name="about_healthmetric">About HealthMetric</string>
+    <string name="delete_data_title">Delete all local data?</string>
+    <string name="delete_data_body">This removes saved history and settings from this device. This action cannot be undone.</string>
+    <string name="delete">Delete</string>
+    <string name="cancel">Cancel</string>
+    <string name="theme_system">System</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+
+    <string name="about_version">Version %1$s</string>
+    <string name="about_description">HealthMetric is an open-source, offline-first adult BMI and health measurement calculator. Its outputs are educational and non-diagnostic.</string>
+    <string name="license_mit">License: MIT</string>
+    <string name="github_sanskar">GitHub — sanskarIN</string>
+    <string name="bmc_sanskar">Buy Me a Coffee — sanskarIN</string>
+    <string name="business_outlook">Business — sanskarin@outlook.in</string>
+    <string name="business_gmail">Business — sanskarin.business@gmail.com</string>
+    <string name="support_email">Support — supportramsandesh@gmail.com</string>
+    <string name="about_privacy">Privacy: calculations can run without network access. History starts disabled and can be enabled, exported, restored, or deleted. The app does not include advertising trackers.</string>
+
+    <string name="restore_success">Local backup restored.</string>
+    <string name="restore_invalid">The selected backup is invalid or unsupported.</string>
+    <string name="export_failed">Could not export local data.</string>
+    <string name="read_backup_failed">Could not read the selected backup.</string>
+    <string name="open_link_failed">No app is available to open this link.</string>
+    <string name="export_chooser_failed">No compatible app is available for export.</string>
+    <string name="export_subject">HealthMetric local data export</string>
+    <string name="export_chooser_title">Export HealthMetric data</string>
 </resources>
