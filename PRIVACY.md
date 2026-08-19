@@ -16,7 +16,7 @@ These inputs are processed locally on the device.
 
 ## Local history
 
-Local history is optional and enabled by default in the current development build. It can be turned off in Settings. When enabled, HealthMetric stores a bounded history containing:
+Local history is optional and **disabled by default**. A user must explicitly enable it in Settings before new calculation results are stored. When enabled, HealthMetric stores a bounded history containing:
 
 - a locally generated entry identifier;
 - timestamp;
@@ -30,7 +30,7 @@ Raw weight, height, and waist inputs are not stored in history by the current im
 
 The user can explicitly export local HealthMetric data as JSON through Android's share flow. Once exported to another app or location, that copy is governed by the destination's privacy/security behavior.
 
-The user can restore a HealthMetric JSON backup. Restore accepts only the supported schema and caps imported history size.
+The user can restore a HealthMetric JSON backup. Restore accepts only the supported schema and caps imported history size. A backup that omits the history preference restores with history disabled.
 
 ## Deletion controls
 
@@ -40,11 +40,11 @@ Users can:
 - erase saved history;
 - delete all HealthMetric local data and settings.
 
-Deleting all local data returns the app to first-run onboarding.
+Deleting all local data returns the app to first-run onboarding and restores privacy-first defaults.
 
 ## Network behavior
 
-Core functionality does not require network access. The current Android manifest does not request the Internet permission and disallows cleartext traffic. External links in the About screen are opened only when the user explicitly selects them.
+Core functionality does not require network access. The current Android manifest does not request the Internet permission and disallows cleartext traffic. External links in the About and Settings screens are opened only when the user explicitly selects them.
 
 ## Backups
 
@@ -52,7 +52,7 @@ Android application backup is disabled (`android:allowBackup="false"`) to reduce
 
 ## Logging
 
-HealthMetric must not log raw measurements, exported backup content, credentials, tokens, or other sensitive content. Any future structured logging must use fixed event names and redacted/non-sensitive metadata.
+HealthMetric uses a small structured logger for operational events such as deletion or export/restore/link failures. It accepts fixed event names and a sanitized exception type only. It does not accept raw measurements, backup contents, email addresses, tokens, credentials, or arbitrary user-provided text.
 
 ## Children and teens
 
