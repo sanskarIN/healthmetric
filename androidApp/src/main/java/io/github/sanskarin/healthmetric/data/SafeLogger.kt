@@ -8,6 +8,9 @@ import android.util.Log
  */
 object SafeLogger {
     enum class Event {
+        HISTORY_ENTRY_DELETED,
+        HISTORY_ENTRY_RESTORED,
+        HISTORY_RETENTION_CHANGED,
         HISTORY_CLEARED,
         ALL_LOCAL_DATA_CLEARED,
         EXPORT_FAILED,
