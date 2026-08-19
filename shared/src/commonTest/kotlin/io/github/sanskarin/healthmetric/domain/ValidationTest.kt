@@ -52,6 +52,21 @@ class ValidationTest {
     }
 
     @Test
+    fun reportsImperialWaistRangeInInches() {
+        val error = assertFailsWith<ValidationError.ImperialWaistOutOfRange> {
+            WaistToHeightCalculator.calculateImperial(
+                waistInches = 5.0,
+                heightInches = 68.0,
+            )
+        }
+
+        assertEquals(
+            "Waist measurement must be between about 11.81 in and 98.43 in for this adult educational calculator.",
+            error.message,
+        )
+    }
+
+    @Test
     fun rejectsImperialInchesOutsideSingleFoot() {
         assertFailsWith<ValidationError.ImperialHeightOutOfRange> {
             BmiCalculator.calculateImperial(
