@@ -6,8 +6,11 @@ import re
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
-STABLE_TAG_PATTERN = re.compile(r"^v(?P<version>0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)$")
+STABLE_TAG_PATTERN = re.compile(
+    r"^v(?P<major>0|[1-9]\d*)\.(?P<minor>0|[1-9]\d*)\.(?P<patch>0|[1-9]\d*)$",
+)
 ANDROID_VERSION_PATTERN = re.compile(r'^\s*versionName\s*=\s*"([^"]+)"\s*$', re.MULTILINE)
+ANDROID_VERSION_CODE_PATTERN = re.compile(r"^\s*versionCode\s*=\s*(\d+)\s*$", re.MULTILINE)
 DESKTOP_VERSION_PATTERN = re.compile(r'^\s*version\s*=\s*"([^"]+)"\s*$', re.MULTILINE)
 
 
@@ -18,6 +21,29 @@ def read_version(path: Path, pattern: re.Pattern[str], label: str) -> str:
     return match.group(1)
 
 
+def android_version_code_for(version: str) -> int:
+    match = re.fullmatch(
+        r"(?P<major>0|[1-9]\d*)\.(?P<minor>0|[1-9]\d*)\.(?P<patch>0|[1-9]\d*)",
+        version,
+    )
+    if match is None:
+        raise ValueError(f"Android version code mapping requires MAJOR.MINOR.PATCH; received {version!r}.")
+
+    major = int(match.group("major"))
+    minor = int(match.group("minor"))
+    patch = int(match.group("patch"))
+    if minor > 99 or patch > 99:
+        raise ValueError(
+            "Android version code mapping reserves two digits each for MINOR and PATCH; "
+            f"received {version!r}.",
+        )
+
+    version_code = major * 10_000 + minor * 100 + patch
+    if not 1 <= version_code <= 2_100_000_000:
+        raise ValueError(f"Derived Android versionCode is outside the supported range: {version_code}.")
+    return version_code
+
+
 def validate_release_tag(tag: str) -> list[str]:
     failures: list[str] = []
     match = STABLE_TAG_PATTERN.fullmatch(tag)
@@ -25,10 +51,18 @@ def validate_release_tag(tag: str) -> list[str]:
         return [f"Release tag must use stable semantic version form vMAJOR.MINOR.PATCH; received {tag!r}."]
 
     tag_version = tag.removeprefix("v")
+    android_build = ROOT / "androidApp/build.gradle.kts"
     android_version = read_version(
-        ROOT / "androidApp/build.gradle.kts",
+        android_build,
         ANDROID_VERSION_PATTERN,
         "Android versionName",
+    )
+    android_version_code = int(
+        read_version(
+            android_build,
+            ANDROID_VERSION_CODE_PATTERN,
+            "Android versionCode",
+        ),
     )
     desktop_version = read_version(
         ROOT / "desktopApp/build.gradle.kts",
@@ -48,6 +82,17 @@ def validate_release_tag(tag: str) -> list[str]:
         failures.append(
             f"Android version {android_version!r} and desktop version {desktop_version!r} must match.",
         )
+
+    try:
+        expected_version_code = android_version_code_for(android_version)
+    except ValueError as error:
+        failures.append(str(error))
+    else:
+        if android_version_code != expected_version_code:
+            failures.append(
+                f"Android versionCode {android_version_code} does not match "
+                f"the documented semantic mapping for {android_version!r}: {expected_version_code}.",
+            )
 
     return failures
 
