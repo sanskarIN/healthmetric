@@ -57,6 +57,7 @@ import io.github.sanskarin.healthmetric.ui.screens.HistoryScreen
 import io.github.sanskarin.healthmetric.ui.screens.OnboardingScreen
 import io.github.sanskarin.healthmetric.ui.screens.SettingsScreen
 import io.github.sanskarin.healthmetric.ui.screens.WaistToHeightScreen
+import io.github.sanskarin.healthmetric.ui.state.savedEnumValueOrDefault
 import io.github.sanskarin.healthmetric.ui.testing.HealthMetricTestTags
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -103,7 +104,7 @@ fun HealthMetricApp(
     var screenName by rememberSaveable { mutableStateOf(AppScreen.CALCULATOR.name) }
     var previousScreenName by rememberSaveable { mutableStateOf(AppScreen.CALCULATOR.name) }
     var pendingRestoreJson by remember { mutableStateOf<String?>(null) }
-    val screen = AppScreen.valueOf(screenName)
+    val screen = savedEnumValueOrDefault(screenName, AppScreen.CALCULATOR)
 
     val restoreSuccess = stringResource(R.string.restore_success)
     val restoreInvalid = stringResource(R.string.restore_invalid)
@@ -127,8 +128,7 @@ fun HealthMetricApp(
     }
 
     fun closeAbout() {
-        val previousScreen = runCatching { AppScreen.valueOf(previousScreenName) }
-            .getOrDefault(AppScreen.CALCULATOR)
+        val previousScreen = savedEnumValueOrDefault(previousScreenName, AppScreen.CALCULATOR)
         screenName = if (previousScreen == AppScreen.ABOUT) {
             AppScreen.CALCULATOR.name
         } else {
