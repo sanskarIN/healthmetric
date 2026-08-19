@@ -55,6 +55,13 @@ class HealthMetricDataStore(private val context: Context) {
         }
     }
 
+    suspend fun resetAdultUseChoice() {
+        context.healthMetricDataStore.edit {
+            it.remove(Keys.adultUseConfirmed)
+            it.remove(Keys.onboardingComplete)
+        }
+    }
+
     suspend fun addHistory(entry: HistoryEntry) {
         val safeEntry = sanitizeEntry(entry)
         context.healthMetricDataStore.edit { preferences ->
