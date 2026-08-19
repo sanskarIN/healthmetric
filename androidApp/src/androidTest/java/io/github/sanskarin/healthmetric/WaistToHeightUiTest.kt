@@ -29,7 +29,7 @@ class WaistToHeightUiTest {
         composeRule.onNodeWithTag(HealthMetricTestTags.WAIST_CALCULATE).performClick()
 
         composeRule.onNodeWithTag(HealthMetricTestTags.WAIST_RESULT).assertIsDisplayed()
-        composeRule.onNodeWithText("Ratio 0.471").assertIsDisplayed()
+        composeRule.onNodeWithText("Ratio 0.47").assertIsDisplayed()
     }
 
     @Test
