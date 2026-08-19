@@ -16,7 +16,7 @@ concurrency:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 40
 
     steps:
       - name: Checkout
@@ -46,10 +46,13 @@ jobs:
           sdkmanager "platforms;android-36" "build-tools;35.0.0"
 
       - name: Verify Kotlin formatting and style
-        run: gradle :shared:ktlintCheck :androidApp:ktlintCheck
+        run: gradle :shared:ktlintCheck :androidApp:ktlintCheck :desktopApp:ktlintCheck
 
       - name: Run shared JVM tests
         run: gradle :shared:desktopTest
+
+      - name: Run desktop JVM tests
+        run: gradle :desktopApp:test
 
       - name: Run Android unit tests
         run: gradle :androidApp:testDebugUnitTest
