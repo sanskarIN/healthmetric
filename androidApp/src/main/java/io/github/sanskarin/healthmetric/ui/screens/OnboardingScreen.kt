@@ -18,10 +18,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import io.github.sanskarin.healthmetric.R
 
 @Composable
 fun OnboardingScreen(
@@ -43,24 +45,24 @@ fun OnboardingScreen(
             )
             Spacer(Modifier.height(20.dp))
             Text(
-                text = "HealthMetric",
+                text = stringResource(R.string.app_name),
                 style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.semantics { heading() },
             )
             Spacer(Modifier.height(12.dp))
             Text(
-                text = "Private, neutral health measurements for adults.",
+                text = stringResource(R.string.app_tagline),
                 style = MaterialTheme.typography.titleMedium,
             )
             Spacer(Modifier.height(24.dp))
             Text(
-                text = "The BMI and waist-to-height references in this app are intended for adults age 18 or older. They are educational screening information only—not a diagnosis, appearance score, or personal body target.",
+                text = stringResource(R.string.onboarding_privacy_intro),
                 style = MaterialTheme.typography.bodyLarge,
             )
             Spacer(Modifier.height(12.dp))
             Text(
-                text = "HealthMetric works offline, has no ad trackers, and lets you disable or erase local history at any time.",
+                text = stringResource(R.string.onboarding_offline_intro),
                 style = MaterialTheme.typography.bodyMedium,
             )
             Spacer(Modifier.height(28.dp))
@@ -68,14 +70,14 @@ fun OnboardingScreen(
                 onClick = onAdultConfirmed,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text("I am 18 or older")
+                Text(stringResource(R.string.onboarding_adult_confirm))
             }
             Spacer(Modifier.height(10.dp))
             OutlinedButton(
                 onClick = onUnder18,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text("I am under 18")
+                Text(stringResource(R.string.onboarding_under_18))
             }
         }
     }
@@ -91,14 +93,14 @@ fun AdultOnlyScreen() {
             verticalArrangement = Arrangement.Center,
         ) {
             Text(
-                text = "Adult reference calculators unavailable",
+                text = stringResource(R.string.adult_only_title),
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.semantics { heading() },
             )
             Spacer(Modifier.height(12.dp))
             Text(
-                text = "HealthMetric intentionally does not apply adult BMI or waist-to-height reference calculations to people under 18. Age-specific growth and health questions should be discussed with a parent, guardian, or qualified healthcare professional.",
+                text = stringResource(R.string.adult_only_body),
                 style = MaterialTheme.typography.bodyLarge,
             )
         }
