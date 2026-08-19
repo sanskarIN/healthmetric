@@ -1,0 +1,50 @@
+name: Apple shared core
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: apple-shared-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  compile-ios:
+    runs-on: macos-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: "8.13"
+
+      - name: Install Android compile SDK for project configuration
+        shell: bash
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-36" "build-tools;35.0.0"
+
+      - name: Verify shared JVM tests on macOS
+        run: gradle :shared:desktopTest
+
+      - name: Compile shared core for iOS simulator
+        run: gradle :shared:compileKotlinIosSimulatorArm64
+
+      - name: Compile shared core for iOS device
+        run: gradle :shared:compileKotlinIosArm64
