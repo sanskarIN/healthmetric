@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import io.github.sanskarin.healthmetric.R
 import io.github.sanskarin.healthmetric.data.CalculatorKind
 import io.github.sanskarin.healthmetric.data.HistoryEntry
+import io.github.sanskarin.healthmetric.ui.format.ChartScale
 import io.github.sanskarin.healthmetric.ui.format.LocalizedNumbers
 import io.github.sanskarin.healthmetric.ui.testing.HealthMetricTestTags
 import java.text.DateFormat
@@ -171,9 +172,9 @@ private fun MeasurementChart(entries: List<HistoryEntry>, label: String) {
     val lineColor = MaterialTheme.colorScheme.primary
     val axisColor = MaterialTheme.colorScheme.outline
     val values = entries.map { it.value }
+    val normalizedValues = ChartScale.normalize(values)
     val minValue = values.minOrNull() ?: 0.0
     val maxValue = values.maxOrNull() ?: 1.0
-    val range = (maxValue - minValue).takeIf { it > 0.0001 } ?: 1.0
     val summary = if (values.size == 1) {
         stringResource(
             R.string.chart_summary_one,
@@ -219,9 +220,8 @@ private fun MeasurementChart(entries: List<HistoryEntry>, label: String) {
                             center = Offset(size.width / 2f, size.height / 2f),
                         )
                     } else {
-                        val points = values.mapIndexed { index, value ->
-                            val x = index.toFloat() / values.lastIndex.toFloat() * size.width
-                            val normalized = ((value - minValue) / range).toFloat()
+                        val points = normalizedValues.mapIndexed { index, normalized ->
+                            val x = index.toFloat() / normalizedValues.lastIndex.toFloat() * size.width
                             val y = size.height - (normalized * size.height)
                             Offset(x, y)
                         }
