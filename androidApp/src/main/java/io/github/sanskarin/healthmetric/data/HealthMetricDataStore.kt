@@ -46,7 +46,7 @@ class HealthMetricDataStore(private val context: Context) {
 
     suspend fun addHistory(entry: HistoryEntry) {
         context.healthMetricDataStore.edit { preferences ->
-            if (preferences[Keys.historyEnabled] == false) return@edit
+            if (preferences[Keys.historyEnabled] != true) return@edit
             val current = decodeHistory(preferences[Keys.historyJson]).toMutableList()
             current.add(0, entry)
             preferences[Keys.historyJson] = encodeHistory(current.take(MAX_HISTORY_ITEMS))
@@ -65,7 +65,7 @@ class HealthMetricDataStore(private val context: Context) {
         val preferences = context.healthMetricDataStore.data.first()
         return JSONObject().apply {
             put("schemaVersion", 1)
-            put("historyEnabled", preferences[Keys.historyEnabled] ?: true)
+            put("historyEnabled", preferences[Keys.historyEnabled] ?: false)
             put("themeMode", preferences[Keys.themeMode] ?: AppThemeMode.SYSTEM.name)
             put("adultUseConfirmed", preferences[Keys.adultUseConfirmed] ?: false)
             put("onboardingComplete", preferences[Keys.onboardingComplete] ?: false)
@@ -83,7 +83,7 @@ class HealthMetricDataStore(private val context: Context) {
         }.getOrDefault(AppThemeMode.SYSTEM)
 
         context.healthMetricDataStore.edit { preferences ->
-            preferences[Keys.historyEnabled] = root.optBoolean("historyEnabled", true)
+            preferences[Keys.historyEnabled] = root.optBoolean("historyEnabled", false)
             preferences[Keys.themeMode] = restoredTheme.name
             preferences[Keys.adultUseConfirmed] = root.optBoolean("adultUseConfirmed", false)
             preferences[Keys.onboardingComplete] = root.optBoolean("onboardingComplete", false)
@@ -92,7 +92,7 @@ class HealthMetricDataStore(private val context: Context) {
     }
 
     private fun decodePreferences(preferences: Preferences): AppPreferences = AppPreferences(
-        historyEnabled = preferences[Keys.historyEnabled] ?: true,
+        historyEnabled = preferences[Keys.historyEnabled] ?: false,
         themeMode = runCatching {
             AppThemeMode.valueOf(preferences[Keys.themeMode] ?: AppThemeMode.SYSTEM.name)
         }.getOrDefault(AppThemeMode.SYSTEM),
