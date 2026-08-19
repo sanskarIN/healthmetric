@@ -8,14 +8,24 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
-  release:
+  android-release:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 45
 
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+
+      - name: Audit repository invariants
+        run: python3 scripts/check_repository.py
+
+      - name: Verify internal Markdown links
+        run: python3 scripts/check_markdown_links.py
 
       - name: Set up JDK 17
         uses: actions/setup-java@v5
@@ -34,19 +44,128 @@ jobs:
           yes | sdkmanager --licenses >/dev/null || true
           sdkmanager "platforms;android-36" "build-tools;35.0.0"
 
-      - name: Verify release inputs
-        run: gradle :shared:desktopTest :shared:ktlintCheck :androidApp:ktlintCheck :androidApp:testDebugUnitTest :androidApp:lintRelease
+      - name: Verify Android release inputs
+        run: >-
+          gradle
+          :shared:desktopTest
+          :shared:ktlintCheck
+          :androidApp:ktlintCheck
+          :androidApp:testDebugUnitTest
+          :androidApp:lintRelease
 
-      - name: Assemble unsigned release APK
-        run: gradle :androidApp:assembleRelease
+      - name: Assemble unsigned Android artifacts
+        run: gradle :androidApp:assembleRelease :androidApp:bundleRelease
 
-      - name: Upload release artifact
+      - name: Stage Android release assets
+        shell: bash
+        run: |
+          mkdir -p release-assets
+          cp androidApp/build/outputs/apk/release/*-unsigned.apk \
+            "release-assets/healthmetric-${GITHUB_REF_NAME}-android-unsigned.apk"
+          cp androidApp/build/outputs/bundle/release/*.aab \
+            "release-assets/healthmetric-${GITHUB_REF_NAME}-android-unsigned.aab"
+
+      - name: Upload Android release assets
         uses: actions/upload-artifact@v7
         with:
-          name: healthmetric-${{ github.ref_name }}-unsigned-apk
-          path: androidApp/build/outputs/apk/release/*-unsigned.apk
+          name: healthmetric-${{ github.ref_name }}-release-android
+          path: release-assets/*
           if-no-files-found: error
           retention-days: 30
+
+  desktop-release:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact_os: linux
+          - os: windows-latest
+            artifact_os: windows
+          - os: macos-latest
+            artifact_os: macos
+
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: "8.13"
+
+      - name: Verify desktop release inputs
+        run: gradle :desktopApp:ktlintCheck :desktopApp:test
+
+      - name: Package current-OS runnable JAR
+        run: gradle :desktopApp:packageUberJarForCurrentOS
+
+      - name: Stage Unix desktop release asset
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          mkdir -p release-assets
+          jar_file="$(find desktopApp/build/compose/jars -type f -name '*.jar' -print -quit)"
+          test -n "${jar_file}"
+          cp "${jar_file}" \
+            "release-assets/healthmetric-${GITHUB_REF_NAME}-desktop-${{ matrix.artifact_os }}.jar"
+
+      - name: Stage Windows desktop release asset
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path release-assets -Force | Out-Null
+          $jar = Get-ChildItem "desktopApp/build/compose/jars/*.jar" | Select-Object -First 1
+          if (-not $jar) { throw "No desktop runnable JAR was produced." }
+          Copy-Item $jar.FullName "release-assets/healthmetric-${env:GITHUB_REF_NAME}-desktop-windows.jar"
+
+      - name: Upload desktop release asset
+        uses: actions/upload-artifact@v7
+        with:
+          name: healthmetric-${{ github.ref_name }}-release-desktop-${{ matrix.artifact_os }}
+          path: release-assets/*.jar
+          if-no-files-found: error
+          retention-days: 30
+
+  publish:
+    needs:
+      - android-release
+      - desktop-release
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Download verified release assets
+        uses: actions/download-artifact@v8
+        with:
+          pattern: healthmetric-${{ github.ref_name }}-release-*
+          path: release-assets
+          merge-multiple: true
+
+      - name: Verify release asset set
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected=(
+            "healthmetric-${GITHUB_REF_NAME}-android-unsigned.apk"
+            "healthmetric-${GITHUB_REF_NAME}-android-unsigned.aab"
+            "healthmetric-${GITHUB_REF_NAME}-desktop-linux.jar"
+            "healthmetric-${GITHUB_REF_NAME}-desktop-windows.jar"
+            "healthmetric-${GITHUB_REF_NAME}-desktop-macos.jar"
+          )
+          for asset in "${expected[@]}"; do
+            test -s "release-assets/${asset}"
+          done
+          ls -lah release-assets
 
       - name: Create GitHub release
         env:
@@ -54,7 +173,7 @@ jobs:
         shell: bash
         run: |
           gh release create "${GITHUB_REF_NAME}" \
-            androidApp/build/outputs/apk/release/*-unsigned.apk \
+            release-assets/* \
             --repo "${GITHUB_REPOSITORY}" \
             --generate-notes \
             --title "HealthMetric ${GITHUB_REF_NAME}"
