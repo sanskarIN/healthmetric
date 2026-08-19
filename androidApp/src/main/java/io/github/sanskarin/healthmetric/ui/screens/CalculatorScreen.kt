@@ -23,11 +23,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import io.github.sanskarin.healthmetric.R
 import io.github.sanskarin.healthmetric.domain.BmiCalculator
 import io.github.sanskarin.healthmetric.domain.BmiResult
 import io.github.sanskarin.healthmetric.domain.ImperialBodyInput
@@ -48,6 +50,12 @@ fun CalculatorScreen(
     var result by remember { mutableStateOf<BmiResult?>(null) }
     var error by rememberSaveable { mutableStateOf<String?>(null) }
 
+    val invalidWeight = stringResource(R.string.invalid_weight)
+    val invalidHeight = stringResource(R.string.invalid_height)
+    val invalidFeet = stringResource(R.string.invalid_feet)
+    val invalidInches = stringResource(R.string.invalid_inches)
+    val measurementError = stringResource(R.string.measurement_error)
+
     Column(
         modifier = Modifier
             .verticalScroll(rememberScrollState())
@@ -55,13 +63,13 @@ fun CalculatorScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text(
-            text = "Adult BMI calculator",
+            text = stringResource(R.string.bmi_title),
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.semantics { heading() },
         )
         Text(
-            text = "BMI is a population screening measure. HealthMetric does not use it as a diagnosis, appearance score, or personal body goal.",
+            text = stringResource(R.string.bmi_intro),
             style = MaterialTheme.typography.bodyMedium,
         )
 
@@ -73,7 +81,7 @@ fun CalculatorScreen(
                     result = null
                     error = null
                 },
-                label = { Text("Metric") },
+                label = { Text(stringResource(R.string.metric)) },
             )
             FilterChip(
                 selected = unitSystem == UnitSystem.IMPERIAL,
@@ -82,7 +90,7 @@ fun CalculatorScreen(
                     result = null
                     error = null
                 },
-                label = { Text("Imperial") },
+                label = { Text(stringResource(R.string.imperial)) },
             )
         }
 
@@ -90,28 +98,28 @@ fun CalculatorScreen(
             NumberField(
                 value = weight,
                 onValueChange = { weight = it },
-                label = "Weight (kg)",
+                label = stringResource(R.string.weight_kg),
             )
             NumberField(
                 value = heightCm,
                 onValueChange = { heightCm = it },
-                label = "Height (cm)",
+                label = stringResource(R.string.height_cm),
             )
         } else {
             NumberField(
                 value = weight,
                 onValueChange = { weight = it },
-                label = "Weight (lb)",
+                label = stringResource(R.string.weight_lb),
             )
             NumberField(
                 value = feet,
                 onValueChange = { feet = it.filter(Char::isDigit).take(1) },
-                label = "Height (feet)",
+                label = stringResource(R.string.height_feet),
             )
             NumberField(
                 value = inches,
                 onValueChange = { inches = it },
-                label = "Additional height (inches)",
+                label = stringResource(R.string.height_inches_additional),
             )
         }
 
@@ -121,20 +129,15 @@ fun CalculatorScreen(
                     when (unitSystem) {
                         UnitSystem.METRIC -> BmiCalculator.calculateMetric(
                             MetricBodyInput(
-                                weightKg = weight.toDoubleOrNull()
-                                    ?: error("Enter a valid weight."),
-                                heightCm = heightCm.toDoubleOrNull()
-                                    ?: error("Enter a valid height."),
+                                weightKg = weight.toDoubleOrNull() ?: error(invalidWeight),
+                                heightCm = heightCm.toDoubleOrNull() ?: error(invalidHeight),
                             ),
                         )
                         UnitSystem.IMPERIAL -> BmiCalculator.calculateImperial(
                             ImperialBodyInput(
-                                weightLb = weight.toDoubleOrNull()
-                                    ?: error("Enter a valid weight."),
-                                heightFeet = feet.toIntOrNull()
-                                    ?: error("Enter valid feet."),
-                                heightInches = inches.toDoubleOrNull()
-                                    ?: error("Enter valid inches."),
+                                weightLb = weight.toDoubleOrNull() ?: error(invalidWeight),
+                                heightFeet = feet.toIntOrNull() ?: error(invalidFeet),
+                                heightInches = inches.toDoubleOrNull() ?: error(invalidInches),
                             ),
                         )
                     }
@@ -145,12 +148,18 @@ fun CalculatorScreen(
                     onRecord(it)
                 }.onFailure {
                     result = null
-                    error = it.message ?: "Check the measurements and try again."
+                    error = it.message ?: measurementError
                 }
             },
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text(if (historyEnabled) "Calculate and save locally" else "Calculate")
+            Text(
+                if (historyEnabled) {
+                    stringResource(R.string.calculate_save)
+                } else {
+                    stringResource(R.string.calculate)
+                },
+            )
         }
 
         error?.let {
@@ -168,7 +177,7 @@ fun CalculatorScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Text(
-                        text = "BMI ${bmiResult.displayBmi}",
+                        text = stringResource(R.string.bmi_result, bmiResult.displayBmi.toString()),
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.SemiBold,
                     )
@@ -183,7 +192,11 @@ fun CalculatorScreen(
                         style = MaterialTheme.typography.bodySmall,
                     )
                     Text(
-                        text = "Reference: ${bmiResult.reference.source.publisher} — ${bmiResult.reference.source.title}",
+                        text = stringResource(
+                            R.string.reference_source,
+                            bmiResult.reference.source.publisher,
+                            bmiResult.reference.source.title,
+                        ),
                         style = MaterialTheme.typography.labelMedium,
                     )
                 }
