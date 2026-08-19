@@ -64,6 +64,8 @@
     <string name="chart_summary_one">%1$s history chart with one value: %2$s.</string>
     <string name="chart_summary_many">%1$s history chart with %2$d values, from %3$s to %4$s. Minimum %5$s, maximum %6$s.</string>
     <string name="erase_history">Erase all local history</string>
+    <string name="erase_history_title">Erase all local history?</string>
+    <string name="erase_history_body">This removes every saved calculation result from this device. Your settings remain unchanged.</string>
     <string name="history_item_bmi">BMI</string>
     <string name="history_item_waist">Waist-to-height ratio</string>
     <string name="history_item_value">%1$s %2$s</string>
