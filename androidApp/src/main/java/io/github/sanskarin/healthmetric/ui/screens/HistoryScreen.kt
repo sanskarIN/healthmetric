@@ -11,14 +11,17 @@ import androidx.compose.foundation.layout.matchParentSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -42,6 +45,7 @@ fun HistoryScreen(
     onDeleteAll: () -> Unit,
 ) {
     var selectedKindName by rememberSaveable { mutableStateOf(CalculatorKind.BMI.name) }
+    var confirmErase by remember { mutableStateOf(false) }
     val selectedKind = CalculatorKind.valueOf(selectedKindName)
     val filtered = history.filter { it.calculator == selectedKind }
 
@@ -113,7 +117,7 @@ fun HistoryScreen(
         if (history.isNotEmpty()) {
             item {
                 Button(
-                    onClick = onDeleteAll,
+                    onClick = { confirmErase = true },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 12.dp),
@@ -122,6 +126,29 @@ fun HistoryScreen(
                 }
             }
         }
+    }
+
+    if (confirmErase) {
+        AlertDialog(
+            onDismissRequest = { confirmErase = false },
+            title = { Text(stringResource(R.string.erase_history_title)) },
+            text = { Text(stringResource(R.string.erase_history_body)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        confirmErase = false
+                        onDeleteAll()
+                    },
+                ) {
+                    Text(stringResource(R.string.delete))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmErase = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            },
+        )
     }
 }
 
