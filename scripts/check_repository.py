@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -75,6 +76,8 @@ REQUIRED_PATHS = [
     "docs/evidence.md",
     "docs/design-system.md",
     "docs/github-governance.md",
+    "docs/documentation-map.md",
+    "docs/repository-file-reference.md",
     "docs/assets/logo.svg",
     "docs/assets/screenshots/README.md",
     "docs/adr/0001-shared-domain-kmp.md",
@@ -128,6 +131,20 @@ def require_fragment(
         failures.append(f"{relative} must contain {description}: {fragment}")
 
 
+def tracked_files() -> list[str]:
+    result = subprocess.run(
+        ["git", "ls-files", "-z"],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+    )
+    return sorted(
+        path.decode("utf-8")
+        for path in result.stdout.split(b"\0")
+        if path
+    )
+
+
 def main() -> int:
     failures: list[str] = []
 
@@ -138,6 +155,17 @@ def main() -> int:
     for relative in FORBIDDEN_PATHS:
         if (ROOT / relative).exists():
             failures.append(f"forbidden temporary path is committed: {relative}")
+
+    try:
+        file_reference = read("docs/repository-file-reference.md")
+        for relative in tracked_files():
+            if f"`{relative}`" not in file_reference:
+                failures.append(
+                    "docs/repository-file-reference.md must document tracked file: "
+                    f"{relative}",
+                )
+    except (OSError, subprocess.CalledProcessError, UnicodeDecodeError) as error:
+        failures.append(f"could not verify tracked-file documentation coverage: {error}")
 
     manifest = read("androidApp/src/main/AndroidManifest.xml")
     if "android.permission.INTERNET" in manifest:
@@ -195,6 +223,7 @@ def main() -> int:
     for fragment in [
         'requireNotNull(root.optJSONArray("history"))',
         "Backup history must be a JSON array.",
+        "Backup history contains no valid records.",
     ]:
         if fragment not in data_store:
             failures.append(f"HealthMetricDataStore.kt is missing backup structure invariant: {fragment}")
