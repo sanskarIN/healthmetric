@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.matchParentSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -156,7 +157,7 @@ private fun MeasurementChart(entries: List<HistoryEntry>, label: String) {
                         )
                     } else {
                         val points = values.mapIndexed { index, value ->
-                            val x = index.toFloat() / (values.lastIndex.toFloat()) * size.width
+                            val x = index.toFloat() / values.lastIndex.toFloat() * size.width
                             val normalized = ((value - minValue) / range).toFloat()
                             val y = size.height - (normalized * size.height)
                             Offset(x, y)
