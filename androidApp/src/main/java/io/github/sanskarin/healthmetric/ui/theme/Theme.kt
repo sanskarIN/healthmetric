@@ -56,7 +56,8 @@ fun HealthMetricTheme(
 
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = MaterialTheme.typography,
+        typography = HealthMetricTypography,
+        shapes = HealthMetricShapes,
         content = content,
     )
 }
