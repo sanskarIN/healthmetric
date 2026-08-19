@@ -327,7 +327,7 @@ fun HealthMetricApp(
             title = { Text(stringResource(R.string.restore_backup_title)) },
             text = { Text(stringResource(R.string.restore_backup_body)) },
             confirmButton = {
-                TextButton(onClick = ::restorePendingBackup) {
+                TextButton(onClick = { restorePendingBackup() }) {
                     Text(stringResource(R.string.restore))
                 }
             },
