@@ -230,6 +230,25 @@ class HealthMetricDataStoreTest {
         assertEquals(AppThemeMode.LIGHT, preferences.themeMode)
     }
 
+    @Test
+    fun resettingAdultChoicePreservesUnrelatedLocalPreferencesAndHistory() = runBlocking {
+        dataStore.setHistoryEnabled(true)
+        dataStore.setHistoryRetentionLimit(250)
+        dataStore.setThemeMode(AppThemeMode.DARK)
+        dataStore.completeOnboarding(adultUseConfirmed = true)
+        dataStore.addHistory(entry(id = "preserved", value = 22.3))
+
+        dataStore.resetAdultUseChoice()
+
+        val preferences = dataStore.preferences.first()
+        assertFalse(preferences.adultUseConfirmed)
+        assertFalse(preferences.onboardingComplete)
+        assertTrue(preferences.historyEnabled)
+        assertEquals(250, preferences.historyRetentionLimit)
+        assertEquals(AppThemeMode.DARK, preferences.themeMode)
+        assertEquals("preserved", dataStore.history.first().single().id)
+    }
+
     @Test(expected = IllegalArgumentException::class)
     fun invalidProgrammaticHistoryEntryIsRejected() = runBlocking {
         dataStore.setHistoryEnabled(true)
