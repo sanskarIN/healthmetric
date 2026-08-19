@@ -62,6 +62,7 @@ The user can restore a HealthMetric JSON backup by selecting a local document. A
 
 - only backup schema version 1 is accepted;
 - backup reads and writes are limited to 1 MiB;
+- selected backup bytes must be well-formed UTF-8; malformed or unmappable byte sequences are rejected before JSON parsing rather than silently replacement-decoded;
 - the top-level `history` field must exist as a JSON array before DataStore mutation;
 - an explicit `history: []` is accepted as an intentional backup with no portable history;
 - a non-empty `history` array is rejected before mutation if no valid history entry survives sanitation;
@@ -73,6 +74,8 @@ The user can restore a HealthMetric JSON backup by selecting a local document. A
 - unsupported retention values fall back to the default of 100;
 - invalid/missing theme values normalize to the supported system default;
 - current history opt-in and adult-use/onboarding state are preserved rather than imported.
+
+The strict UTF-8 boundary prevents a malformed external file from being silently transformed into different text before the JSON/record validation layers see it.
 
 The distinction between `history: []` and a non-empty all-invalid history array is intentional. It prevents a structurally damaged backup from being interpreted as a deliberate empty-history restore and replacing valid portable local data.
 
