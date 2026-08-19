@@ -12,6 +12,7 @@ The Android format is designed to be:
 - bounded in size;
 - explicit about version compatibility;
 - recoverable when individual history records are damaged;
+- fail-closed when the required top-level history collection is missing or has the wrong JSON type;
 - deterministically ordered after restore;
 - unable to transfer device-local privacy consent or adult-use gate decisions.
 
@@ -51,7 +52,9 @@ Example values are fictional. New locally recorded Android entries use UUID iden
 | `schemaVersion` | integer | Must equal `1`; unsupported versions are rejected before mutation. |
 | `historyRetentionLimit` | integer | Supported values: `50`, `100`, `250`, `500`; unsupported/missing values normalize to `100`. |
 | `themeMode` | string | `SYSTEM`, `LIGHT`, or `DARK`; invalid/missing values normalize to `SYSTEM`. |
-| `history` | array | Malformed/missing arrays restore as an empty valid history collection. |
+| `history` | array | Required. A missing field or non-array value rejects the backup before any local DataStore mutation. An empty array is valid. |
+
+The top-level `history` container is intentionally stricter than the records inside it. Treating a missing or wrong-type container as a valid empty history could silently erase the user's existing local history after a restore confirmation. HealthMetric therefore rejects that document instead.
 
 ## History record fields
 
@@ -63,7 +66,7 @@ Example values are fictional. New locally recorded Android entries use UUID iden
 | `value` | number | Must be finite. |
 | `summary` | string | Optional on import; capped to 240 characters. |
 
-Invalid records are skipped independently so one damaged entry does not discard valid neighboring entries. If multiple valid records normalize to the same ID, the first valid record in the input document is retained.
+Invalid records inside a valid `history` array are skipped independently so one damaged entry does not discard valid neighboring entries. If multiple valid records normalize to the same ID, the first valid record in the input document is retained.
 
 After validation/deduplication, accepted records are sorted by `timestampEpochMillis` descending (newest first). The normalized `historyRetentionLimit` is applied after that sort, and restored history can never exceed the application-wide maximum of 500 records. This means arbitrary JSON array order cannot decide which chronologically newest records survive the cap.
 
@@ -83,7 +86,16 @@ Older schema-v1 documents may contain JSON fields named `historyEnabled`, `adult
 
 The Android UI reads the chosen file into a bounded string and asks the user for confirmation. Only after confirmation does the ViewModel call the DataStore restore operation.
 
-The restore operation validates size and top-level schema before opening the DataStore edit transaction. Portable settings and sanitized, deduplicated, newest-first bounded history are then written together in one DataStore edit.
+Before opening the DataStore edit transaction, the restore operation validates:
+
+1. the UTF-8 payload size;
+2. parseable top-level JSON;
+3. supported `schemaVersion`;
+4. presence and array type of the required `history` field;
+5. portable setting normalization;
+6. individual history records, deduplication, chronology, and retention bounds.
+
+Only after those preconditions are resolved are portable settings and sanitized, deduplicated, newest-first bounded history written together in one DataStore edit. A missing/non-array `history` field therefore cannot clear existing local data or change portable preferences.
 
 Current device-local consent/safety values are left untouched.
 
@@ -97,9 +109,10 @@ When adding a new schema version:
 2. define explicit migration behavior;
 3. add deterministic migration tests;
 4. retain bounded payload/history protections or document an ADR for any reviewed replacement;
-5. retain deterministic history ordering or explicitly document a reviewed alternative;
-6. never make consent/adult-gate state portable without a dedicated privacy and safety review;
-7. update `PRIVACY.md`, `CHANGELOG.md`, `docs/release.md`, and `what_changed.md`.
+5. retain required top-level structural validation before mutation;
+6. retain deterministic history ordering or explicitly document a reviewed alternative;
+7. never make consent/adult-gate state portable without a dedicated privacy and safety review;
+8. update `PRIVACY.md`, `CHANGELOG.md`, `docs/release.md`, and `what_changed.md`.
 
 ## Privacy note
 
