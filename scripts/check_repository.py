@@ -37,6 +37,7 @@ REQUIRED_PATHS = [
     "docs/adr/0002-local-privacy-first-persistence.md",
     "docs/adr/0003-versioned-adult-reference-profiles.md",
     "docs/adr/0004-bounded-user-controlled-local-data.md",
+    "docs/adr/0005-ephemeral-desktop-client.md",
     "desktopApp/build.gradle.kts",
     "desktopApp/src/main/kotlin/io/github/sanskarin/healthmetric/desktop/Main.kt",
     "desktopApp/src/main/kotlin/io/github/sanskarin/healthmetric/desktop/DesktopCalculations.kt",
@@ -107,6 +108,7 @@ def main() -> int:
         "sanskarin.business@gmail.com",
         "supportramsandesh@gmail.com",
         "MIT",
+        "docs/desktop.md",
     ]
     for fragment in required_readme_fragments:
         if fragment not in readme:
@@ -117,6 +119,7 @@ def main() -> int:
         "disabled by default",
         "adult-use confirmation",
         "1 MiB",
+        "desktop client",
     ]:
         if phrase not in privacy:
             failures.append(f"PRIVACY.md is missing required privacy invariant text: {phrase}")
