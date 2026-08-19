@@ -2,7 +2,7 @@
 
 ## Objectives
 
-HealthMetric tests focus on deterministic calculations, validation boundaries, privacy-sensitive persistence behavior, bounded backup handling, adult-only safety behavior, locale-aware presentation, desktop transient-state behavior, and primary adult user journeys.
+HealthMetric tests focus on deterministic calculations, validation boundaries, privacy-sensitive Android persistence behavior, bounded backup handling, adult-only safety behavior, locale-aware presentation, desktop transient-state behavior, release artifact reproducibility, and primary adult user journeys.
 
 ## Current automated coverage
 
@@ -84,7 +84,20 @@ Build the current-OS runnable JAR as an additional integration/configuration che
 gradle :desktopApp:packageUberJarForCurrentOS
 ```
 
-The dedicated `.github/workflows/desktop.yml` workflow runs desktop formatting, tests, and current-OS runnable-JAR packaging on Linux, Windows, and macOS.
+Native package tasks are host-specific:
+
+```bash
+# Linux
+gradle :desktopApp:packageDeb
+
+# Windows
+gradle :desktopApp:packageMsi
+
+# macOS
+gradle :desktopApp:packageDmg
+```
+
+The dedicated `.github/workflows/desktop.yml` workflow runs desktop formatting/tests, current-OS runnable-JAR packaging, and the matching native installer build on Linux, Windows, and macOS.
 
 ### Android instrumentation/UI tests
 
@@ -96,7 +109,9 @@ Located in `androidApp/src/androidTest/`:
 - `WaistToHeightUiTest` — ratio success result and missing-waist validation;
 - `SettingsUiTest` — explicit history opt-in, retention selection, save-file, and share-backup actions;
 - `HistoryUiTest` — per-entry deletion and erase-all confirmation;
-- `HealthMetricDataStoreTest` — privacy opt-in, retention trimming, portable export/restore, unsupported schemas, device-local consent/adult-gate preservation, entry delete/restore, chronology after undo, malformed-record recovery, duplicate-ID handling, and invalid entry rejection.
+- `AboutNavigationUiTest` — explicit and system back navigation from About to the originating destination;
+- `HealthMetricDataStoreTest` — privacy opt-in, retention trimming, portable export/restore, unsupported schemas, device-local consent/adult-gate preservation, entry delete/restore, chronology after undo, malformed-record recovery, duplicate-ID handling, and invalid entry rejection;
+- `ReleaseScreenshotCaptureTest` — drives the real app and captures the required eight-file Android release-evidence set with fictional/example values.
 
 Run with a connected device/emulator:
 
@@ -104,7 +119,22 @@ Run with a connected device/emulator:
 gradle :androidApp:connectedDebugAndroidTest
 ```
 
-The dedicated `.github/workflows/android-instrumentation.yml` workflow provisions an Android API 35 emulator and runs this connected test suite for pull requests and `main` pushes.
+The dedicated `.github/workflows/android-instrumentation.yml` workflow provisions an Android API 35 Pixel 7 emulator, runs the connected suite, pulls the app-scoped screenshot directory, and uploads `android-release-screenshots` plus instrumentation reports.
+
+## Android release screenshot evidence
+
+The required automated PNG set is:
+
+1. `01-onboarding.png`
+2. `02-bmi-metric.png`
+3. `03-bmi-result.png`
+4. `04-waist-ratio.png`
+5. `05-history.png`
+6. `06-settings.png`
+7. `07-about.png`
+8. `08-dark-theme.png`
+
+Missing PNGs cause artifact upload failure. Automated capture proves that the real app rendered the expected release journey; it does not replace human visual/privacy review before permanent publication.
 
 ## Stable Android UI automation tags
 
@@ -112,6 +142,8 @@ Critical Android controls use constants in `HealthMetricTestTags` rather than br
 
 Covered tagged journeys include:
 
+- bottom navigation for BMI, waist ratio, history, and settings;
+- About open/back actions;
 - BMI weight, height, calculate, and result;
 - waist/height ratio inputs, calculate, and result;
 - history list;
@@ -133,11 +165,13 @@ Desktop has no persistence layer, so its adult-use choice is process-local and r
 
 Both user-facing clients must keep the under-18 path separate from adult BMI/waist reference results.
 
-## Chronology regression invariant
+## Chronology and identity regression invariants
 
-Android history is displayed newest-first. Adding, importing, deleting, and undoing entries must preserve descending timestamp order before applying the selected retention limit.
+Android history is canonical newest-first. Adding, importing, deleting, and undoing entries must preserve descending timestamp order before applying the selected retention limit.
 
-A confirmed regression where undoing an older deleted entry moved it to the top of the list now has dedicated DataStore instrumentation coverage.
+A confirmed regression where undoing an older deleted entry moved it to the top of the list has dedicated DataStore instrumentation coverage. Import tests also verify that serialized JSON array order does not determine which chronologically newest records survive retention.
+
+New locally recorded Android entries use UUID identifiers. Imported schema-v1 IDs remain backward-compatible but must continue through trim/non-blank/length/deduplication validation.
 
 ## Required regression policy
 
@@ -149,11 +183,14 @@ Examples:
 - malformed backup crash → DataStore instrumentation test;
 - backup size bypass → `BackupIoTest` plus restore test where relevant;
 - consent/adult-gate restore regression → DataStore instrumentation test;
+- chronology/undo defect → DataStore instrumentation test;
+- Android About navigation trap → full-app Compose instrumentation test;
 - Android locale parsing regression → `LocalizedNumbersTest`;
 - desktop text parsing regression → `DesktopNumbersTest`;
 - desktop shared-core integration regression → `DesktopCalculationsTest`;
 - Android screen state regression → Compose UI test;
-- accessibility label regression → Compose semantics test/manual accessibility check.
+- accessibility label regression → Compose semantics test/manual accessibility check;
+- release artifact drift → repository invariant plus workflow/package verification.
 
 ## Validation edge cases
 
@@ -175,6 +212,7 @@ Test at minimum:
 - Android retention-limit trimming;
 - Android delete/restore behavior while history saving is disabled;
 - Android chronological ordering after delete/undo;
+- out-of-order Android backup history;
 - desktop malformed text input;
 - desktop whole-number feet parsing.
 
@@ -194,6 +232,7 @@ Automated tests are only one layer. Release candidates should also be reviewed w
 - large font/display scaling;
 - dark/light/dynamic themes;
 - keyboard/DPAD navigation where relevant;
+- About return navigation;
 - chart content descriptions;
 - deletion button labels and undo action;
 - restore/destructive confirmation dialogs;
@@ -232,7 +271,10 @@ The main CI workflow fails on:
 Additional workflows fail on:
 
 - connected Android emulator test failures;
-- desktop Linux/Windows/macOS formatting, test, or runnable-JAR packaging failures;
+- missing Android release screenshot evidence;
+- desktop Linux/Windows/macOS formatting or test failures;
+- desktop runnable-JAR failures;
+- Linux DEB, Windows MSI, or macOS DMG packaging failures on matching hosts;
 - iOS device/simulator shared-core compilation failures on macOS;
 - CodeQL analysis failures;
 - high-severity pull-request dependency review findings;
@@ -264,6 +306,6 @@ On macOS also run:
 gradle :shared:compileKotlinIosSimulatorArm64 :shared:compileKotlinIosArm64
 ```
 
-For desktop, manually launch the application on every distribution platform that will be published even when cross-platform CI is green.
+For desktop, build and manually launch the runnable JAR and matching native package on every distribution platform that will be published even when cross-platform CI is green.
 
 Finally perform the manual accessibility/device checks documented in [`accessibility.md`](accessibility.md), [`desktop.md`](desktop.md), and the release checklist in [`release.md`](release.md).
