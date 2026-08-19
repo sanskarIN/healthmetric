@@ -18,11 +18,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import io.github.sanskarin.healthmetric.R
+import io.github.sanskarin.healthmetric.ui.testing.HealthMetricTestTags
 import io.github.sanskarin.healthmetric.ui.theme.HealthMetricSpacing
 
 @Composable
@@ -71,14 +73,18 @@ fun OnboardingScreen(
             Spacer(Modifier.height(HealthMetricSpacing.xl))
             Button(
                 onClick = onAdultConfirmed,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag(HealthMetricTestTags.ONBOARDING_ADULT),
             ) {
                 Text(stringResource(R.string.onboarding_adult_confirm))
             }
             Spacer(Modifier.height(HealthMetricSpacing.sm))
             OutlinedButton(
                 onClick = onUnder18,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag(HealthMetricTestTags.ONBOARDING_UNDER_18),
             ) {
                 Text(stringResource(R.string.onboarding_under_18))
             }
@@ -110,7 +116,9 @@ fun AdultOnlyScreen(onReturnToAgeSelection: (() -> Unit)? = null) {
                 Spacer(Modifier.height(HealthMetricSpacing.lg))
                 OutlinedButton(
                     onClick = onReturn,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag(HealthMetricTestTags.ADULT_GATE_RETURN),
                 ) {
                     Text(stringResource(R.string.adult_only_return))
                 }
