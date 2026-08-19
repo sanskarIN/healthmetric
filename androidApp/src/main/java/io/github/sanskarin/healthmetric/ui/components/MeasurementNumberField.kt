@@ -6,6 +6,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.KeyboardType
 
 @Composable
@@ -15,7 +16,16 @@ fun MeasurementNumberField(
     label: String,
     wholeNumbersOnly: Boolean = false,
     maxLength: Int = 12,
+    testTag: String? = null,
 ) {
+    val fieldModifier = if (testTag == null) {
+        Modifier.fillMaxWidth()
+    } else {
+        Modifier
+            .fillMaxWidth()
+            .testTag(testTag)
+    }
+
     OutlinedTextField(
         value = value,
         onValueChange = { candidate ->
@@ -33,6 +43,6 @@ fun MeasurementNumberField(
         keyboardOptions = KeyboardOptions(
             keyboardType = if (wholeNumbersOnly) KeyboardType.Number else KeyboardType.Decimal,
         ),
-        modifier = Modifier.fillMaxWidth(),
+        modifier = fieldModifier,
     )
 }
