@@ -28,6 +28,7 @@ import io.github.sanskarin.healthmetric.R
 import io.github.sanskarin.healthmetric.domain.WaistToHeightCalculator
 import io.github.sanskarin.healthmetric.domain.WaistToHeightResult
 import io.github.sanskarin.healthmetric.ui.components.MeasurementNumberField
+import io.github.sanskarin.healthmetric.ui.format.LocalizedNumbers
 import io.github.sanskarin.healthmetric.ui.testing.HealthMetricTestTags
 import io.github.sanskarin.healthmetric.ui.theme.HealthMetricSpacing
 
@@ -97,8 +98,8 @@ fun WaistToHeightScreen(
         Button(
             onClick = {
                 val calculation = runCatching {
-                    val waistValue = waist.toDoubleOrNull() ?: error(invalidWaist)
-                    val heightValue = height.toDoubleOrNull() ?: error(invalidHeight)
+                    val waistValue = LocalizedNumbers.parseDecimal(waist) ?: error(invalidWaist)
+                    val heightValue = LocalizedNumbers.parseDecimal(height) ?: error(invalidHeight)
                     if (useMetric) {
                         WaistToHeightCalculator.calculateMetric(waistValue, heightValue)
                     } else {
@@ -143,7 +144,10 @@ fun WaistToHeightScreen(
                     verticalArrangement = Arrangement.spacedBy(HealthMetricSpacing.xs),
                 ) {
                     Text(
-                        text = stringResource(R.string.ratio_result, ratioResult.displayRatio.toString()),
+                        text = stringResource(
+                            R.string.ratio_result,
+                            LocalizedNumbers.format(ratioResult.displayRatio, maximumFractionDigits = 2),
+                        ),
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.SemiBold,
                     )
