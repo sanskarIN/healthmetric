@@ -71,17 +71,19 @@ class HealthMetricViewModel(application: Application) : AndroidViewModel(applica
         }
     }
 
-    fun deleteHistoryEntry(entry: HistoryEntry) {
+    fun deleteHistoryEntry(entry: HistoryEntry, onComplete: () -> Unit = {}) {
         viewModelScope.launch {
             dataStore.deleteHistoryEntry(entry.id)
             SafeLogger.info(SafeLogger.Event.HISTORY_ENTRY_DELETED)
+            onComplete()
         }
     }
 
-    fun restoreHistoryEntry(entry: HistoryEntry) {
+    fun restoreHistoryEntry(entry: HistoryEntry, onComplete: () -> Unit = {}) {
         viewModelScope.launch {
             dataStore.restoreHistoryEntry(entry)
             SafeLogger.info(SafeLogger.Event.HISTORY_ENTRY_RESTORED)
+            onComplete()
         }
     }
 
