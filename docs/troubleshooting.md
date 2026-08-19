@@ -114,7 +114,15 @@ Run:
 python3 -m unittest discover -s scripts/tests -p "test_*.py" -v
 ```
 
-The suite covers release version/tag validation, deterministic artifact staging, exact final asset verification and checksums. Treat failures as release-infrastructure defects even when application tests pass.
+The suite covers stable release-tag validation, Android semantic `versionCode` mapping, Android/desktop/native-package version agreement, deterministic artifact staging, exact final asset verification, and checksums. Treat failures as release-infrastructure defects even when application tests pass.
+
+For the prepared `2.0.12` candidate, also run:
+
+```bash
+python3 scripts/check_release_version.py v2.0.12
+```
+
+The expected metadata is Android `versionName = 2.0.12`, Android `versionCode = 20012`, desktop project `version = 2.0.12`, and desktop native `packageVersion = 2.0.12`.
 
 ## Shared tests fail
 
@@ -188,6 +196,8 @@ gradle :desktopApp:packageDmg --stacktrace
 
 The dedicated `Desktop` workflow verifies JAR **and** matching native package creation on Linux, Windows, and macOS. The tagged release workflow also stages those packages.
 
+For the `2.0.12` candidate, all desktop hosts use native `packageVersion = 2.0.12`; there is no separate macOS package-version workaround.
+
 Build success still does not prove production signing/notarization or human host-platform acceptance. Certificates/private keys/notarization credentials stay outside source control.
 
 ## Desktop state resets after restart
@@ -240,6 +250,7 @@ Desktop measurement fields accept ordinary dot/comma decimal text but intentiona
 
 Android currently supports backup schema version `1`. Common causes include:
 
+- malformed UTF-8 bytes in the selected document;
 - unsupported/missing `schemaVersion`;
 - file larger than 1 MiB;
 - invalid top-level JSON;
@@ -247,6 +258,8 @@ Android currently supports backup schema version `1`. Common causes include:
 - `history` is not a JSON array;
 - `history` is non-empty but **no valid history entry survives sanitation**;
 - document is not a HealthMetric backup.
+
+Malformed UTF-8 is rejected at the document-read boundary before JSON restore parsing. HealthMetric does not silently replacement-decode malformed byte sequences.
 
 Important distinction:
 
@@ -262,9 +275,9 @@ Desktop does not currently import HealthMetric backups.
 
 ## Failed restore changed nothing
 
-For unsupported schema, malformed/missing/non-array history structure, oversized data, or a non-empty all-invalid history array, this is intentional: structural validation happens before the DataStore edit transaction.
+For malformed UTF-8, unsupported schema, malformed/missing/non-array history structure, oversized data, or a non-empty all-invalid history array, this is intentional: decoding/structural validation happens before the DataStore edit transaction.
 
-If a failed restore changes theme/history/retention, treat it as a regression and add DataStore instrumentation coverage before fixing it.
+If a failed restore changes theme/history/retention, treat it as a regression and add the lowest practical unit/instrumentation coverage before fixing it.
 
 ## Restore does not change history opt-in or adult-use screen
 
@@ -276,7 +289,7 @@ Expected. **Save JSON backup to a file** uses Android Storage Access Framework; 
 
 ## Restore asks for confirmation after file selection
 
-Expected. HealthMetric reads the bounded selected document first, then requires explicit confirmation before portable history/settings are replaced.
+Expected. HealthMetric reads the bounded, well-formed UTF-8 selected document first, then requires explicit confirmation before portable history/settings are replaced.
 
 ## Android history chart fails with extreme imported values
 
@@ -314,18 +327,27 @@ Check these independently:
 python3 scripts/check_repository.py
 python3 scripts/check_markdown_links.py
 python3 -m unittest discover -s scripts/tests -p "test_*.py"
-python3 scripts/check_release_version.py v0.1.0
+python3 scripts/check_release_version.py v2.0.12
 ```
 
-A valid release tag must use stable `vMAJOR.MINOR.PATCH`, match both configured Android/desktop public versions, and point to the current `main` commit. The release checkout uses complete history for that comparison.
+For the current candidate, a valid release requires:
 
-Do not bypass a preflight failure by weakening the tag/current-main/documentation checks.
+- stable tag `v2.0.12`;
+- Android `versionName = 2.0.12`;
+- Android `versionCode = 20012` according to the repository semantic mapping;
+- desktop project `version = 2.0.12`;
+- desktop native `packageVersion = 2.0.12`;
+- the tag commit to equal current `main`.
+
+A future tag must use stable `vMAJOR.MINOR.PATCH` and satisfy the same cross-platform metadata rules for its own version.
+
+The release checkout uses complete history for the current-main comparison. Do not bypass a preflight failure by weakening version, tag, current-main, or documentation checks.
 
 ## Tagged release says artifact count is wrong
 
 `scripts/stage_release_assets.py` requires exactly one non-empty expected build output for each artifact type. Duplicate old build outputs in a workspace are intentionally treated as ambiguous rather than selecting one arbitrarily.
 
-The final `scripts/verify_release_assets.py` step requires exactly eight versioned binary assets with no missing, unexpected, or empty files and writes `SHA256SUMS.txt` before publication.
+For `v2.0.12`, the final `scripts/verify_release_assets.py` step requires exactly eight versioned binary assets with no missing, unexpected, or empty files and writes `SHA256SUMS.txt` before publication.
 
 ## CI differs from local results
 
