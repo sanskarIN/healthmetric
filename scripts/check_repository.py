@@ -191,6 +191,14 @@ def main() -> int:
         if fragment not in history_screen:
             failures.append(f"HistoryScreen.kt is missing Android history safety invariant: {fragment}")
 
+    data_store = read("androidApp/src/main/java/io/github/sanskarin/healthmetric/data/HealthMetricDataStore.kt")
+    for fragment in [
+        'requireNotNull(root.optJSONArray("history"))',
+        "Backup history must be a JSON array.",
+    ]:
+        if fragment not in data_store:
+            failures.append(f"HealthMetricDataStore.kt is missing backup structure invariant: {fragment}")
+
     readme = read("README.md")
     required_readme_fragments = [
         "Made by the Sanskar",
