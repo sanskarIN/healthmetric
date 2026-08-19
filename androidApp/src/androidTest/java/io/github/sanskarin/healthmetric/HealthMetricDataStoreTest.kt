@@ -100,6 +100,70 @@ class HealthMetricDataStoreTest {
         assertFalse(dataStore.preferences.first().historyEnabled)
     }
 
+    @Test
+    fun restoreSalvagesValidEntriesAndDeduplicatesIds() = runBlocking {
+        val backup = """
+            {
+              "schemaVersion": 1,
+              "historyEnabled": false,
+              "historyRetentionLimit": 100,
+              "themeMode": "SYSTEM",
+              "adultUseConfirmed": true,
+              "onboardingComplete": true,
+              "history": [
+                {
+                  "id": "same-id",
+                  "timestampEpochMillis": 1700000000000,
+                  "calculator": "BMI",
+                  "value": 22.1,
+                  "summary": "First valid entry"
+                },
+                {
+                  "id": "same-id",
+                  "timestampEpochMillis": 1700000001000,
+                  "calculator": "BMI",
+                  "value": 23.1,
+                  "summary": "Duplicate should be ignored"
+                },
+                {
+                  "id": "",
+                  "timestampEpochMillis": 1700000002000,
+                  "calculator": "BMI",
+                  "value": 24.1,
+                  "summary": "Blank id should be ignored"
+                },
+                {
+                  "id": "bad-calculator",
+                  "timestampEpochMillis": 1700000003000,
+                  "calculator": "UNKNOWN",
+                  "value": 25.1,
+                  "summary": "Unknown calculator should be ignored"
+                },
+                {
+                  "id": "second-valid",
+                  "timestampEpochMillis": 1700000004000,
+                  "calculator": "WAIST_TO_HEIGHT",
+                  "value": 0.47,
+                  "summary": "Second valid entry"
+                }
+              ]
+            }
+        """.trimIndent()
+
+        dataStore.restoreFromJson(backup)
+
+        val history = dataStore.history.first()
+        assertEquals(2, history.size)
+        assertEquals(listOf("same-id", "second-valid"), history.map { it.id })
+        assertEquals(22.1, history.first().value, 0.0001)
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun invalidProgrammaticHistoryEntryIsRejected() = runBlocking {
+        dataStore.setHistoryEnabled(true)
+        dataStore.addHistory(entry(id = " ", value = 22.0))
+    }
+
     private fun entry(id: String, value: Double): HistoryEntry = HistoryEntry(
         id = id,
         timestampEpochMillis = 1_700_000_000_000L,
