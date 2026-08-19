@@ -98,6 +98,53 @@ class HealthMetricDataStoreTest {
     }
 
     @Test
+    fun missingHistoryArrayIsRejectedBeforeLocalMutation() = runBlocking {
+        dataStore.setHistoryEnabled(true)
+        dataStore.setThemeMode(AppThemeMode.DARK)
+        dataStore.addHistory(entry(id = "existing", value = 22.4))
+
+        val result = runCatching {
+            dataStore.restoreFromJson(
+                """
+                    {
+                      "schemaVersion": 1,
+                      "historyRetentionLimit": 50,
+                      "themeMode": "LIGHT"
+                    }
+                """.trimIndent(),
+            )
+        }
+
+        assertTrue(result.isFailure)
+        assertEquals(AppThemeMode.DARK, dataStore.preferences.first().themeMode)
+        assertEquals("existing", dataStore.history.first().single().id)
+    }
+
+    @Test
+    fun nonArrayHistoryIsRejectedBeforeLocalMutation() = runBlocking {
+        dataStore.setHistoryEnabled(true)
+        dataStore.setThemeMode(AppThemeMode.DARK)
+        dataStore.addHistory(entry(id = "existing", value = 22.4))
+
+        val result = runCatching {
+            dataStore.restoreFromJson(
+                """
+                    {
+                      "schemaVersion": 1,
+                      "historyRetentionLimit": 50,
+                      "themeMode": "LIGHT",
+                      "history": {}
+                    }
+                """.trimIndent(),
+            )
+        }
+
+        assertTrue(result.isFailure)
+        assertEquals(AppThemeMode.DARK, dataStore.preferences.first().themeMode)
+        assertEquals("existing", dataStore.history.first().single().id)
+    }
+
+    @Test
     fun entryCanBeDeletedAndRestoredWithoutChangingHistoryPreference() = runBlocking {
         dataStore.setHistoryEnabled(true)
         val saved = entry(id = "undo-me", value = 21.8)
