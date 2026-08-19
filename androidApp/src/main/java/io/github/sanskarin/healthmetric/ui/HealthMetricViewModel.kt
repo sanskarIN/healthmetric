@@ -8,6 +8,7 @@ import io.github.sanskarin.healthmetric.data.AppThemeMode
 import io.github.sanskarin.healthmetric.data.CalculatorKind
 import io.github.sanskarin.healthmetric.data.HealthMetricDataStore
 import io.github.sanskarin.healthmetric.data.HistoryEntry
+import io.github.sanskarin.healthmetric.data.SafeLogger
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
@@ -64,18 +65,27 @@ class HealthMetricViewModel(application: Application) : AndroidViewModel(applica
     }
 
     fun deleteHistory() {
-        viewModelScope.launch { dataStore.deleteHistory() }
+        viewModelScope.launch {
+            dataStore.deleteHistory()
+            SafeLogger.info(SafeLogger.Event.HISTORY_CLEARED)
+        }
     }
 
     fun deleteAllLocalData() {
-        viewModelScope.launch { dataStore.deleteAllLocalData() }
+        viewModelScope.launch {
+            dataStore.deleteAllLocalData()
+            SafeLogger.info(SafeLogger.Event.ALL_LOCAL_DATA_CLEARED)
+        }
     }
 
     fun exportData(onReady: (String) -> Unit, onError: (String) -> Unit) {
         viewModelScope.launch {
             runCatching { dataStore.exportJson() }
                 .onSuccess(onReady)
-                .onFailure { onError("Could not export local data.") }
+                .onFailure { error ->
+                    SafeLogger.warn(SafeLogger.Event.EXPORT_FAILED, error)
+                    onError("Could not export local data.")
+                }
         }
     }
 
@@ -83,7 +93,10 @@ class HealthMetricViewModel(application: Application) : AndroidViewModel(applica
         viewModelScope.launch {
             runCatching { dataStore.restoreFromJson(rawJson) }
                 .onSuccess { onComplete(true, "Local backup restored.") }
-                .onFailure { onComplete(false, "The selected backup is invalid or unsupported.") }
+                .onFailure { error ->
+                    SafeLogger.warn(SafeLogger.Event.RESTORE_FAILED, error)
+                    onComplete(false, "The selected backup is invalid or unsupported.")
+                }
         }
     }
 }
