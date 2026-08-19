@@ -54,6 +54,9 @@ jobs:
       - name: Run desktop JVM tests
         run: gradle :desktopApp:test
 
+      - name: Package desktop runnable JAR
+        run: gradle :desktopApp:packageUberJarForCurrentOS
+
       - name: Run Android unit tests
         run: gradle :androidApp:testDebugUnitTest
 
@@ -73,6 +76,15 @@ jobs:
           name: lint-reports
           path: androidApp/build/reports/lint-results-*.html
           if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Upload desktop runnable JAR
+        if: success()
+        uses: actions/upload-artifact@v7
+        with:
+          name: healthmetric-desktop-linux-jar
+          path: desktopApp/build/compose/jars/*.jar
+          if-no-files-found: error
           retention-days: 14
 
       - name: Upload debug APK
