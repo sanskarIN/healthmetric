@@ -14,6 +14,8 @@
 
 **HealthMetric** is an open-source, privacy-first **adult BMI and health measurement calculator** with Android and desktop clients backed by one Kotlin Multiplatform calculation core.
 
+Current prepared release target: **2.0.12** (`v2.0.12`). It remains a release candidate until the exact-head automation and documented manual release gates pass.
+
 > [!IMPORTANT]
 > HealthMetric's BMI and waist-to-height tools are intended for adults age 18 or older. Results are educational screening information only. They are not medical diagnoses, appearance scores, or personal body targets.
 
@@ -49,7 +51,7 @@ The Android client provides optional bounded local history and explicit backup/r
 - Accessible measurement-history chart with text/screen-reader summaries and no color-only health meaning.
 - Confirmation before erase-all, delete-all-data, and restore operations.
 - JSON backup through Android's document picker or explicit share chooser.
-- Defensive JSON restore with a 1 MiB limit, schema/top-level structure validation, malformed-record recovery, duplicate-ID protection, bounded newest-first history, and fail-closed handling for non-empty backups with no valid records.
+- Defensive JSON restore with a 1 MiB limit, strict UTF-8 decoding, schema/top-level structure validation, malformed-record recovery, duplicate-ID protection, bounded newest-first history, and fail-closed handling for non-empty backups with no valid records.
 - Portable backups cannot change current-device history opt-in, adult-use confirmation, or onboarding safety state.
 - Locale-aware decimal input plus locale-aware result/history formatting.
 - Full local-data deletion that restores first-run privacy defaults.
@@ -85,6 +87,8 @@ The Android client provides optional bounded local history and explicit backup/r
 - Apple shared-core compilation on macOS.
 - Desktop verification on Linux, Windows, and macOS, including runnable JAR plus native installer creation.
 - Debug APK, unsigned release APK, unsigned release AAB, desktop JAR, DEB, MSI, and DMG artifact pipelines.
+- Release consistency verification across Android `versionName`, Android `versionCode`, desktop project version, desktop native `packageVersion`, and the stable tag.
+- Deterministic release artifact staging, exact final asset verification, and SHA-256 checksum publication.
 - CodeQL, dependency review, full-history secret scanning, and Dependabot.
 - Repository invariant and internal Markdown-link audits.
 - Exhaustive tracked-file documentation: `scripts/check_repository.py` compares `git ls-files` with [`docs/repository-file-reference.md`](docs/repository-file-reference.md), so newly tracked files cannot remain undocumented.
@@ -210,6 +214,8 @@ Equivalent major tasks:
 ```bash
 python3 scripts/check_repository.py
 python3 scripts/check_markdown_links.py
+python3 -m unittest discover -s scripts/tests -p "test_*.py"
+python3 scripts/check_release_version.py v2.0.12
 gradle :shared:ktlintCheck :androidApp:ktlintCheck :desktopApp:ktlintCheck
 gradle :shared:desktopTest
 gradle :desktopApp:test
@@ -262,7 +268,7 @@ Backup options are explicit user actions:
 - **Share JSON backup** opens Android's chooser.
 - **Restore from JSON backup** reads a selected local document and asks for confirmation before mutation.
 
-Backup reads/writes are capped at 1 MiB. Restore accepts schema version 1, requires the documented top-level `history` JSON array, validates/sanitizes records, rejects a non-empty array when no valid record survives, deduplicates IDs, sorts accepted records by timestamp descending, and then applies retention. An explicitly empty `history: []` remains a valid empty-history restore.
+Backup reads/writes are capped at 1 MiB. Reads require well-formed UTF-8 and reject malformed byte sequences instead of replacement-decoding them. Restore accepts schema version 1, requires the documented top-level `history` JSON array, validates/sanitizes records, rejects a non-empty array when no valid record survives, deduplicates IDs, sorts accepted records by timestamp descending, and then applies retention. An explicitly empty `history: []` remains a valid empty-history restore.
 
 Portable backups intentionally exclude history opt-in, adult-use confirmation, and onboarding completion. See [`docs/backup-format.md`](docs/backup-format.md).
 
@@ -273,6 +279,16 @@ The desktop client has no HealthMetric persistence layer. Calculator inputs/resu
 See [`docs/desktop.md`](docs/desktop.md) and [`docs/adr/0005-ephemeral-desktop-client.md`](docs/adr/0005-ephemeral-desktop-client.md).
 
 ## Build and release
+
+### Version 2.0.12 metadata
+
+The prepared candidate uses:
+
+- Android `versionName = "2.0.12"`;
+- Android `versionCode = 20012`;
+- desktop project `version = "2.0.12"`;
+- desktop native `packageVersion = "2.0.12"`;
+- stable tag `v2.0.12` after all release gates pass.
 
 ### Android
 
@@ -315,7 +331,11 @@ The dedicated Desktop workflow verifies JAR plus native packaging on all three o
 
 ### Tagged releases
 
-Pushing a `v*` tag runs the multiplatform release workflow. It rebuilds/verifies Android artifacts and desktop artifacts on matching hosts, then requires the complete automated asset set before creating one GitHub Release:
+Pushing a `v*` tag runs the multiplatform release workflow. Before publication, the preflight validates stable tag form, Android `versionName`, Android `versionCode`, desktop project version, desktop native `packageVersion`, and that the tag points to current `main`.
+
+For the current candidate, the eventual tag is `v2.0.12` only after all exact-head and manual release gates pass.
+
+The workflow rebuilds/verifies Android artifacts and desktop artifacts on matching hosts, then requires the complete automated asset set before creating one GitHub Release:
 
 - Android unsigned APK;
 - Android unsigned AAB;
@@ -358,7 +378,7 @@ Key references:
 - Android application backup is disabled.
 - Android history is opt-in and bounded.
 - Android import/export is explicit and user-initiated.
-- Android backup IO is capped at 1 MiB.
+- Android backup IO is capped at 1 MiB and rejects malformed UTF-8.
 - Android portable backups cannot modify device-local consent/adult-gate state.
 - Android manifest requests no Internet permission and disallows cleartext traffic.
 - Desktop measurement/session state is not persisted.
@@ -384,7 +404,7 @@ Use fictional/example measurement values in bug reports, tests, and screenshots.
 
 ## Roadmap
 
-See [`ROADMAP.md`](ROADMAP.md) for exact remaining release verification and manual gates.
+See [`ROADMAP.md`](ROADMAP.md) for exact remaining `2.0.12` release verification and manual gates.
 
 ## License
 
