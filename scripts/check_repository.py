@@ -43,9 +43,12 @@ REQUIRED_PATHS = [
     "androidApp/src/main/java/io/github/sanskarin/healthmetric/ui/HealthMetricApp.kt",
     "androidApp/src/main/java/io/github/sanskarin/healthmetric/ui/HealthMetricViewModel.kt",
     "androidApp/src/main/java/io/github/sanskarin/healthmetric/ui/format/ChartScale.kt",
+    "androidApp/src/main/java/io/github/sanskarin/healthmetric/ui/state/SavedEnum.kt",
     "androidApp/src/main/java/io/github/sanskarin/healthmetric/ui/testing/HealthMetricTestTags.kt",
     "androidApp/src/test/java/io/github/sanskarin/healthmetric/ui/format/ChartScaleTest.kt",
+    "androidApp/src/test/java/io/github/sanskarin/healthmetric/ui/state/SavedEnumTest.kt",
     "androidApp/src/androidTest/java/io/github/sanskarin/healthmetric/AboutNavigationUiTest.kt",
+    "androidApp/src/androidTest/java/io/github/sanskarin/healthmetric/AdultGateUiTest.kt",
     "androidApp/src/androidTest/java/io/github/sanskarin/healthmetric/HealthMetricDataStoreTest.kt",
     "androidApp/src/androidTest/java/io/github/sanskarin/healthmetric/ReleaseScreenshotCaptureTest.kt",
     "shared/build.gradle.kts",
@@ -173,12 +176,20 @@ def main() -> int:
             failures.append(f"desktop Main.kt is missing required safety/product text: {fragment}")
 
     android_app = read("androidApp/src/main/java/io/github/sanskarin/healthmetric/ui/HealthMetricApp.kt")
-    if "resetAdultUseChoice" not in android_app:
-        failures.append("HealthMetricApp.kt must preserve a safe way to correct the adult-use choice")
+    for fragment in [
+        "resetAdultUseChoice",
+        "savedEnumValueOrDefault",
+    ]:
+        if fragment not in android_app:
+            failures.append(f"HealthMetricApp.kt is missing Android state-safety invariant: {fragment}")
 
     history_screen = read("androidApp/src/main/java/io/github/sanskarin/healthmetric/ui/screens/HistoryScreen.kt")
-    if "ChartScale.normalize" not in history_screen:
-        failures.append("HistoryScreen.kt must use finite-safe chart normalization")
+    for fragment in [
+        "ChartScale.normalize",
+        "savedEnumValueOrDefault",
+    ]:
+        if fragment not in history_screen:
+            failures.append(f"HistoryScreen.kt is missing Android history safety invariant: {fragment}")
 
     readme = read("README.md")
     required_readme_fragments = [
@@ -261,6 +272,17 @@ def main() -> int:
         ":androidApp:lintRelease",
     ]:
         require_fragment(failures, ci_workflow, fragment, "continuous verification coverage")
+
+    for verification_script in ["scripts/verify.sh", "scripts/verify.ps1"]:
+        for fragment in [
+            "unittest",
+            "scripts/tests",
+            ":shared:desktopTest",
+            ":desktopApp:test",
+            ":androidApp:testDebugUnitTest",
+            ":androidApp:lintRelease",
+        ]:
+            require_fragment(failures, verification_script, fragment, "local verification coverage")
 
     release_workflow = ".github/workflows/release.yml"
     for fragment in [
