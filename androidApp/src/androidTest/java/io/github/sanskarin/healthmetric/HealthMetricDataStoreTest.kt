@@ -57,7 +57,7 @@ class HealthMetricDataStoreTest {
     }
 
     @Test
-    fun exportRestoreRoundTripPreservesPortablePreferencesAndHistory() = runBlocking {
+    fun exportRestoreRoundTripPreservesPortablePreferencesAndHistoryOnly() = runBlocking {
         dataStore.setHistoryEnabled(true)
         dataStore.setHistoryRetentionLimit(250)
         dataStore.setThemeMode(AppThemeMode.DARK)
@@ -66,6 +66,7 @@ class HealthMetricDataStoreTest {
 
         val backup = dataStore.exportJson()
         val root = JSONObject(backup)
+        assertFalse(root.has("historyEnabled"))
         assertFalse(root.has("adultUseConfirmed"))
         assertFalse(root.has("onboardingComplete"))
 
@@ -75,7 +76,7 @@ class HealthMetricDataStoreTest {
         val preferences = dataStore.preferences.first()
         val history = dataStore.history.first()
 
-        assertTrue(preferences.historyEnabled)
+        assertFalse(preferences.historyEnabled)
         assertEquals(250, preferences.historyRetentionLimit)
         assertEquals(AppThemeMode.DARK, preferences.themeMode)
         assertFalse(preferences.adultUseConfirmed)
@@ -110,7 +111,7 @@ class HealthMetricDataStoreTest {
         val backup = """
             {
               "schemaVersion": 1,
-              "historyEnabled": false,
+              "historyEnabled": true,
               "historyRetentionLimit": 100,
               "themeMode": "SYSTEM",
               "adultUseConfirmed": true,
@@ -162,12 +163,14 @@ class HealthMetricDataStoreTest {
         assertEquals(2, history.size)
         assertEquals(listOf("same-id", "second-valid"), history.map { it.id })
         assertEquals(22.1, history.first().value, 0.0001)
+        assertFalse(preferences.historyEnabled)
         assertFalse(preferences.adultUseConfirmed)
         assertFalse(preferences.onboardingComplete)
     }
 
     @Test
-    fun restorePreservesCurrentAdultGateStateEvenIfBackupContainsLegacyGateFields() = runBlocking {
+    fun restorePreservesCurrentConsentAndAdultGateStateAgainstLegacyFields() = runBlocking {
+        dataStore.setHistoryEnabled(true)
         dataStore.completeOnboarding(adultUseConfirmed = false)
         val legacyBackup = """
             {
@@ -176,7 +179,7 @@ class HealthMetricDataStoreTest {
               "historyRetentionLimit": 100,
               "themeMode": "LIGHT",
               "adultUseConfirmed": true,
-              "onboardingComplete": true,
+              "onboardingComplete": false,
               "history": []
             }
         """.trimIndent()
@@ -184,6 +187,7 @@ class HealthMetricDataStoreTest {
         dataStore.restoreFromJson(legacyBackup)
 
         val preferences = dataStore.preferences.first()
+        assertTrue(preferences.historyEnabled)
         assertFalse(preferences.adultUseConfirmed)
         assertTrue(preferences.onboardingComplete)
         assertEquals(AppThemeMode.LIGHT, preferences.themeMode)
