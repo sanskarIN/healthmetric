@@ -16,7 +16,7 @@ The desktop client provides:
 - explicit external-link actions;
 - no persistent measurement history.
 
-The desktop client does not currently implement Android's optional local-history, retention, backup, or restore features. This is intentional: desktop measurements, results, theme selection, and the adult-use choice are held only in memory and are discarded when the application closes.
+The desktop client does not currently implement Android's optional local-history, retention, backup, or restore features. This is intentional: desktop measurements, results, theme selection, navigation state, and the adult-use choice are held only in memory and are discarded when the application closes.
 
 ## Safety boundary
 
@@ -89,19 +89,40 @@ desktopApp/build/compose/jars/
 
 ## Native distributions
 
-The desktop module declares native distribution formats for:
+The desktop module declares and CI-verifies host-specific native distribution formats:
 
+- Debian-compatible Linux DEB;
 - Windows MSI;
-- macOS DMG;
-- Debian-compatible Linux DEB.
+- macOS DMG.
 
-Build the native package supported by the current operating system with the Compose Desktop packaging tasks exposed by Gradle. Native packages are OS-specific and should be produced on the matching operating system.
+Build them only on their matching host operating systems:
 
-The cross-platform `.github/workflows/desktop.yml` workflow validates the desktop code and packages the current-OS runnable JAR on Linux, Windows, and macOS.
+```bash
+# Linux
+gradle :desktopApp:packageDeb
+
+# Windows
+gradle :desktopApp:packageMsi
+
+# macOS
+gradle :desktopApp:packageDmg
+```
+
+Expected output directories:
+
+```text
+desktopApp/build/compose/binaries/main/deb/
+desktopApp/build/compose/binaries/main/msi/
+desktopApp/build/compose/binaries/main/dmg/
+```
+
+The cross-platform `.github/workflows/desktop.yml` workflow runs formatting/tests, builds a current-OS runnable JAR, builds the matching native installer, and uploads both as verification artifacts on Linux, Windows, and macOS.
+
+The tagged release workflow independently rebuilds and stages versioned JAR plus DEB/MSI/DMG assets. Native build success is not equivalent to production code signing/notarization or human platform acceptance testing.
 
 ## Privacy
 
-The desktop client intentionally has no persistence layer.
+The desktop client intentionally has no HealthMetric persistence layer.
 
 It does not write:
 
@@ -150,8 +171,19 @@ Before a tagged desktop distribution is published, manually verify:
 - external-link behavior;
 - that the under-18 path cannot access adult calculators.
 
+## Platform release checks
+
+Before promoting native installers:
+
+- install the DEB on a supported Debian-compatible Linux environment and verify launch/uninstall;
+- install the MSI on Windows and verify launch/uninstall plus expected Windows reputation/signing warnings;
+- mount/install the DMG on macOS and verify launch plus expected Gatekeeper/notarization behavior;
+- compare each native build's calculator results with the corresponding runnable JAR/shared tests;
+- confirm closing/reopening each installed application resets all ephemeral session state;
+- keep signing/notarization certificates, private keys, passwords, and credentials outside the repository.
+
 ## Release policy
 
-Desktop artifacts are development/release-candidate outputs until manual platform accessibility checks and final release verification are complete.
+Desktop artifacts are development/release-candidate outputs until manual host-platform accessibility, install/uninstall, and final release verification are complete.
 
 Do not claim a desktop distribution as a medical device, diagnosis tool, or individualized health recommendation service.
