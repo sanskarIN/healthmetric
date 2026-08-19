@@ -33,6 +33,8 @@ Raw weight, height, and waist inputs are not stored in Android history by the cu
 
 Users can choose a maximum retention of 50, 100, 250, or 500 saved results. The default retention limit is 100. Lowering the limit immediately removes older entries beyond the selected maximum. Individual history entries can be deleted, with an immediate in-app undo action, or all history can be erased after confirmation.
 
+History is normalized newest-first by timestamp before the retention limit is applied, including after restore and delete/undo.
+
 ## Android device-local consent and safety state
 
 Three settings are intentionally **not portable** through HealthMetric Android backups:
@@ -42,6 +44,8 @@ Three settings are intentionally **not portable** through HealthMetric Android b
 - whether onboarding was completed.
 
 A backup therefore cannot silently enable future history collection on another installation and cannot enable adult reference calculators by importing another person's confirmation state. Restore preserves the current Android installation's consent and adult-use gate state.
+
+If the user accidentally selects the under-18 path, Android can return to age selection without clearing unrelated history consent, retention, theme, or saved history. Adult calculators remain unavailable until the adult option is explicitly selected again.
 
 ## Android data export and restore
 
@@ -58,12 +62,21 @@ The user can restore a HealthMetric JSON backup by selecting a local document. A
 
 - only backup schema version 1 is accepted;
 - backup reads and writes are limited to 1 MiB;
+- the top-level `history` field must exist as a JSON array before DataStore mutation;
+- an explicit `history: []` is accepted as an intentional backup with no portable history;
+- a non-empty `history` array is rejected before mutation if no valid history entry survives sanitation;
+- when at least one record is valid, malformed neighboring history records can be ignored rather than crashing or discarding the valid records;
 - restored history is capped by the selected supported retention limit and never exceeds 500 entries;
-- malformed individual history records are ignored rather than crashing the app;
+- accepted history is normalized newest-first before retention;
 - blank/invalid identifiers, negative timestamps, non-finite values, and unknown calculator types are rejected at record level;
 - duplicate history identifiers are deduplicated;
 - unsupported retention values fall back to the default of 100;
+- invalid/missing theme values normalize to the supported system default;
 - current history opt-in and adult-use/onboarding state are preserved rather than imported.
+
+The distinction between `history: []` and a non-empty all-invalid history array is intentional. It prevents a structurally damaged backup from being interpreted as a deliberate empty-history restore and replacing valid portable local data.
+
+The authoritative field-level contract is [`docs/backup-format.md`](docs/backup-format.md).
 
 ## Android deletion controls
 
@@ -99,7 +112,7 @@ Core calculation functionality does not require network access.
 
 The current Android manifest does not request the Internet permission and disallows cleartext traffic. Android external links in About and Settings are opened only when the user explicitly selects them.
 
-The desktop calculation core likewise does not need network access. The desktop About & evidence view can open evidence, repository, and funding URLs only after the user explicitly presses the corresponding button. Those destinations are outside HealthMetric and are governed by their own privacy/security practices.
+The desktop calculation core likewise does not need network access. The desktop About/evidence view can open evidence, repository, and funding URLs only after the user explicitly presses the corresponding button. Those destinations are outside HealthMetric and are governed by their own privacy/security practices.
 
 ## Android application backups
 
@@ -126,9 +139,11 @@ Both clients provide an under-18 path that does not expose adult reference calcu
 
 The repository and clients may link to GitHub, project contact channels, evidence sources, and Buy Me a Coffee. These services are not required for calculator operation and are opened only after explicit user action.
 
-## Changes
+## Documentation and privacy review
 
 Privacy-impacting behavior changes must update this document, relevant tests, architecture/ADR documentation where appropriate, `CHANGELOG.md`, and `what_changed.md` before release.
+
+The repository's documentation ownership rules are in [`docs/documentation-map.md`](docs/documentation-map.md), and [`docs/repository-file-reference.md`](docs/repository-file-reference.md) documents every tracked file's responsibility. Repository verification checks the exhaustive file reference against `git ls-files` so a new persistence/configuration file cannot remain undocumented while the invariant is green.
 
 ## Contact
 
