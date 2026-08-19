@@ -18,7 +18,7 @@
 
 ## Why HealthMetric?
 
-Health calculators are often tiny demos. HealthMetric is designed as a portfolio-quality product with a shared domain layer, input validation, offline local history, accessible neutral charts, export/restore/delete controls, automated tests, CI, security analysis, and complete project documentation.
+Health calculators are often tiny demos. HealthMetric is designed as a portfolio-quality product with a shared domain layer, input validation, offline opt-in history, accessible neutral charts, export/restore/delete controls, automated tests, CI, security analysis, localization-ready Android resources, and complete project documentation.
 
 ## Features
 
@@ -29,12 +29,17 @@ Health calculators are often tiny demos. HealthMetric is designed as a portfolio
 - Accurate metric/imperial conversion helpers in the shared Kotlin Multiplatform module.
 - Adult-only onboarding gate before reference calculators become available.
 - Privacy-first offline operation; no advertising SDKs or ad trackers.
-- Optional local calculation history that can be disabled at any time.
+- Optional local calculation history that is **disabled by default** and requires explicit opt-in.
 - Accessible measurement history chart with a screen-reader summary and no color-based health meaning.
+- Confirmation before destructive history deletion.
 - JSON data export, restore, history deletion, and full local-data deletion.
 - Light, dark, and system theme modes with Android dynamic color where supported.
+- Branded Android launch splash treatment and editable logo artwork.
+- Shared typography, shape, spacing, elevation, and motion design tokens.
+- Android UI copy externalized to resources for localization readiness.
 - About screen with license, version, GitHub, support contacts, funding link, and project credit.
-- Kotlin formatting checks, Android lint, tests, CodeQL, dependency review, and Dependabot automation.
+- Settings update section linking to public GitHub releases.
+- Kotlin formatting checks, Android lint, tests, CodeQL, dependency review, secret scanning, and Dependabot automation.
 
 ## Supported platforms
 
@@ -52,6 +57,7 @@ Health calculators are often tiny demos. HealthMetric is designed as a portfolio
 - Gradle 8.13 in CI
 - Jetpack Compose UI 1.9.2
 - Material 3 1.4.0
+- AndroidX Core SplashScreen 1.2.0
 - AndroidX DataStore Preferences 1.2.1
 - AndroidX Lifecycle 2.9.4
 - kotlinx.coroutines 1.10.2
@@ -62,7 +68,7 @@ Versions are centrally pinned in [`gradle/libs.versions.toml`](gradle/libs.versi
 
 ## Screenshots / demo
 
-Real device screenshots are a release-candidate task because this repository is generated in an environment without an Android emulator. Capture guidance and the required screenshot set are tracked in [`docs/assets/screenshots/README.md`](docs/assets/screenshots/README.md).
+Real device screenshots are a release-candidate task because the initial coding environment does not provide an Android emulator. Capture guidance and the required screenshot set are tracked in [`docs/assets/screenshots/README.md`](docs/assets/screenshots/README.md).
 
 Planned captures:
 
@@ -72,6 +78,7 @@ Planned captures:
 4. Local history with accessible chart.
 5. Privacy/data settings.
 6. About and support screen.
+7. Representative dark-theme screen.
 
 ## Quick start
 
@@ -157,28 +164,36 @@ See [`docs/release.md`](docs/release.md).
 ```text
 HealthMetric/
 ├── androidApp/                 # Android UI, DataStore persistence, platform integrations
-│   └── src/main/java/...       # Compose app, screens, ViewModel, local data layer
+│   └── src/main/java/...       # Compose app, screens, components, ViewModel, local data layer
 ├── shared/                     # Kotlin Multiplatform domain module
 │   ├── src/commonMain/...      # Calculators, reference model, validation, conversions
 │   └── src/commonTest/...      # Cross-platform domain tests
-├── docs/                       # Architecture, setup, testing, release, ADRs
+├── docs/                       # Architecture, setup, evidence, design, testing, release, ADRs
 ├── gradle/libs.versions.toml   # Central dependency/version catalog
 └── .github/                    # CI, security, release automation, templates
 ```
 
-The shared module owns deterministic calculation rules and input validation. The Android app owns presentation, local persistence, platform intents, and UI state. See [`docs/architecture.md`](docs/architecture.md) and [`docs/adr/`](docs/adr/) for architectural decisions.
+The shared module owns deterministic calculation rules and input validation. The Android app owns presentation, local persistence, platform intents, and UI state.
+
+Key architecture/design references:
+
+- [`docs/architecture.md`](docs/architecture.md)
+- [`docs/design-system.md`](docs/design-system.md)
+- [`docs/evidence.md`](docs/evidence.md)
+- [`docs/adr/`](docs/adr/)
 
 ## Privacy and security
 
 HealthMetric is designed to work without an account and without network access for its core functionality.
 
 - No advertising trackers are included.
-- Android application backup is disabled by default.
-- Local history can be disabled or erased.
+- Android application backup is disabled.
+- Local history starts disabled and must be explicitly enabled.
+- History can be disabled or erased at any time.
 - Export is explicit and user-initiated.
 - Import validates the supported backup schema and caps restored history.
 - Cleartext network traffic is disabled in the Android manifest.
-- CI includes CodeQL and dependency review.
+- CI includes CodeQL, dependency review, and secret scanning.
 - Secrets and signing material are ignored by repository rules and must never be committed.
 
 Read [`PRIVACY.md`](PRIVACY.md) and [`SECURITY.md`](SECURITY.md).
@@ -193,7 +208,8 @@ HealthMetric targets WCAG-oriented mobile accessibility practices:
 - light/dark/system themes;
 - status information not conveyed by color alone;
 - chart content descriptions that summarize values;
-- neutral wording without appearance ranking.
+- neutral wording without appearance ranking;
+- centered bounded content width for wider Android windows.
 
 See [`docs/accessibility.md`](docs/accessibility.md).
 
@@ -205,7 +221,7 @@ Use fictional/example measurement values in bug reports and screenshots. Do not 
 
 ## Roadmap
 
-See [`ROADMAP.md`](ROADMAP.md) for the phased plan, including richer evidence metadata, export files through the Storage Access Framework, expanded accessibility testing, desktop UI, and an iOS-ready shared target.
+See [`ROADMAP.md`](ROADMAP.md) for the phased plan, including Storage Access Framework file export, expanded accessibility testing, desktop UI, and an iOS-ready shared target.
 
 ## License
 
