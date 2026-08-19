@@ -26,19 +26,37 @@ Local history is optional and **disabled by default**. A user must explicitly en
 
 Raw weight, height, and waist inputs are not stored in history by the current implementation.
 
+Users can choose a maximum retention of 50, 100, 250, or 500 saved results. The default retention limit is 100. Lowering the limit immediately removes older entries beyond the selected maximum. Individual history entries can be deleted, with an immediate in-app undo action, or all history can be erased after confirmation.
+
 ## Data export and restore
 
-The user can explicitly export local HealthMetric data as JSON through Android's share flow. Once exported to another app or location, that copy is governed by the destination's privacy/security behavior.
+The user can explicitly export local HealthMetric data as JSON in either of two ways:
 
-The user can restore a HealthMetric JSON backup. Restore accepts only the supported schema and caps imported history size. A backup that omits the history preference restores with history disabled.
+- save a backup file through Android's Storage Access Framework document picker; or
+- share the JSON through Android's explicit share chooser.
+
+HealthMetric does not silently upload exported data. Once an exported copy is handed to another app, cloud provider, removable drive, or other location, that copy is governed by the destination's privacy and security behavior.
+
+The user can restore a HealthMetric JSON backup by selecting a local document. Restore behavior is defensive:
+
+- only backup schema version 1 is accepted;
+- backup reads and writes are limited to 1 MiB;
+- restored history is capped by the selected supported retention limit and never exceeds 500 entries;
+- malformed individual history records are ignored rather than crashing the app;
+- blank/invalid identifiers, negative timestamps, non-finite values, and unknown calculator types are rejected at record level;
+- duplicate history identifiers are deduplicated;
+- a backup that omits the history preference restores with history disabled;
+- unsupported retention values fall back to the privacy-conscious default of 100.
 
 ## Deletion controls
 
 Users can:
 
 - disable future local history;
-- erase saved history;
-- delete all HealthMetric local data and settings.
+- delete individual history entries;
+- undo an individual deletion immediately from the in-app snackbar;
+- erase all saved history after confirmation;
+- delete all HealthMetric local data and settings after confirmation.
 
 Deleting all local data returns the app to first-run onboarding and restores privacy-first defaults.
 
@@ -46,13 +64,13 @@ Deleting all local data returns the app to first-run onboarding and restores pri
 
 Core functionality does not require network access. The current Android manifest does not request the Internet permission and disallows cleartext traffic. External links in the About and Settings screens are opened only when the user explicitly selects them.
 
-## Backups
+## Android backups
 
-Android application backup is disabled (`android:allowBackup="false"`) to reduce unintended replication of locally stored measurements.
+Android application backup is disabled (`android:allowBackup="false"`) to reduce unintended replication of locally stored measurements. The only supported HealthMetric backup/export paths are explicit user actions in Settings.
 
 ## Logging
 
-HealthMetric uses a small structured logger for operational events such as deletion or export/restore/link failures. It accepts fixed event names and a sanitized exception type only. It does not accept raw measurements, backup contents, email addresses, tokens, credentials, or arbitrary user-provided text.
+HealthMetric uses a small structured logger for operational events such as deletion, retention changes, and export/restore/link failures. It accepts fixed event names and a sanitized exception type only. It does not accept raw measurements, backup contents, email addresses, tokens, credentials, or arbitrary user-provided text.
 
 ## Children and teens
 
