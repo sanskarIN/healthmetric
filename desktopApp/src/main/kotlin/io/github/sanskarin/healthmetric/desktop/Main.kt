@@ -3,6 +3,7 @@ package io.github.sanskarin.healthmetric.desktop
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -24,6 +25,7 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -33,7 +35,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
@@ -155,7 +156,9 @@ private fun AdultGate(
         )
         Spacer(Modifier.height(16.dp))
         Text(
-            text = "HealthMetric's BMI and waist-to-height reference tools are intended for adults age 18 or older. Results are educational screening information only and are not medical diagnoses or appearance goals.",
+            text = "HealthMetric's BMI and waist-to-height reference tools are intended for adults " +
+                "age 18 or older. Results are educational screening information only and are not " +
+                "medical diagnoses or appearance goals.",
             style = MaterialTheme.typography.bodyLarge,
         )
         Spacer(Modifier.height(24.dp))
@@ -169,7 +172,8 @@ private fun AdultGate(
         }
         Spacer(Modifier.height(20.dp))
         Text(
-            text = "No measurement history is stored by the desktop client. Closing the app clears entered measurements and results.",
+            text = "No measurement history is stored by the desktop client. Closing the app clears " +
+                "entered measurements and results.",
             style = MaterialTheme.typography.bodyMedium,
         )
     }
@@ -185,7 +189,8 @@ private fun AdultReferenceUnavailable(onReturn: () -> Unit) {
         )
         Spacer(Modifier.height(16.dp))
         Text(
-            text = "HealthMetric does not apply its adult BMI or waist-to-height reference tools to people under 18.",
+            text = "HealthMetric does not apply its adult BMI or waist-to-height reference tools " +
+                "to people under 18.",
             style = MaterialTheme.typography.bodyLarge,
         )
         Spacer(Modifier.height(12.dp))
@@ -236,7 +241,7 @@ private fun AdultWorkspace(onResetAdultGate: () -> Unit) {
             }
         }
 
-        HorizontalDivider(modifier = Modifier.width(1.dp).fillMaxHeight())
+        VerticalDivider(modifier = Modifier.fillMaxHeight())
 
         Box(
             modifier = Modifier
@@ -293,7 +298,8 @@ private fun BmiDesktopScreen() {
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            text = "BMI is a population screening measure. HealthMetric does not use it as a diagnosis, appearance score, or personal body target.",
+            text = "BMI is a population screening measure. HealthMetric does not use it as a " +
+                "diagnosis, appearance score, or personal body target.",
             style = MaterialTheme.typography.bodyLarge,
         )
         Spacer(Modifier.height(20.dp))
@@ -402,7 +408,8 @@ private fun WaistToHeightDesktopScreen() {
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            text = "This tool reports the mathematical waist-to-height ratio for adult educational screening. It does not rank appearance or set a body target.",
+            text = "This tool reports the mathematical waist-to-height ratio for adult educational " +
+                "screening. It does not rank appearance or set a body target.",
             style = MaterialTheme.typography.bodyLarge,
         )
         Spacer(Modifier.height(20.dp))
@@ -575,7 +582,9 @@ private fun AboutDesktopScreen() {
         )
         Spacer(Modifier.height(12.dp))
         Text(
-            text = "HealthMetric is an open-source, privacy-first adult health measurement calculator. The desktop client uses the same tested Kotlin Multiplatform calculation core as the Android application.",
+            text = "HealthMetric is an open-source, privacy-first adult health measurement calculator. " +
+                "The desktop client uses the same tested Kotlin Multiplatform calculation core as " +
+                "the Android application.",
             style = MaterialTheme.typography.bodyLarge,
         )
         Spacer(Modifier.height(22.dp))
@@ -587,7 +596,9 @@ private fun AboutDesktopScreen() {
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            text = "The desktop client does not persist measurement inputs, results, or the adult-use selection. Closing the app clears the in-memory screen state. External links open only after an explicit button press.",
+            text = "The desktop client does not persist measurement inputs, results, or the adult-use " +
+                "selection. Closing the app clears the in-memory screen state. External links open " +
+                "only after an explicit button press.",
         )
         Spacer(Modifier.height(22.dp))
 
@@ -618,10 +629,14 @@ private fun AboutDesktopScreen() {
         Text("Support: supportramsandesh@gmail.com")
         Spacer(Modifier.height(14.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            OutlinedButton(onClick = { openExternal("https://github.com/sanskarIN/healthmetric") }) {
+            OutlinedButton(
+                onClick = { openExternal("https://github.com/sanskarIN/healthmetric") },
+            ) {
                 Text("GitHub repository")
             }
-            OutlinedButton(onClick = { openExternal("https://buymeacoffee.com/sanskarIN") }) {
+            OutlinedButton(
+                onClick = { openExternal("https://buymeacoffee.com/sanskarIN") },
+            ) {
                 Text("Buy Me a Coffee")
             }
         }
