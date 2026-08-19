@@ -21,7 +21,7 @@ Keep `androidApp` `versionCode` monotonic and update `versionName` to the releas
 1. Update `CHANGELOG.md`.
 2. Update `ROADMAP.md` and `what_changed.md`.
 3. Verify reference source metadata, `reviewedOnIsoDate`, and adult-only copy.
-4. Run formatting, shared tests, Android unit tests, release lint, debug assembly, and release assembly.
+4. Run formatting, shared tests, Android unit tests, release lint, debug assembly, release APK assembly, and release App Bundle assembly.
 5. Run the connected Android instrumentation suite.
 6. Compile the iOS shared-core targets on macOS.
 7. Confirm GitHub CI, Android instrumentation, Apple shared core, CodeQL, dependency review, and secret scanning are green for the release commit/PR.
@@ -57,6 +57,7 @@ gradle :androidApp:testDebugUnitTest
 gradle :androidApp:lintRelease
 gradle :androidApp:assembleDebug
 gradle :androidApp:assembleRelease
+gradle :androidApp:bundleRelease
 ```
 
 With a connected emulator/device:
@@ -72,6 +73,17 @@ gradle :shared:compileKotlinIosSimulatorArm64 :shared:compileKotlinIosArm64
 ```
 
 The repository's `android-instrumentation.yml` workflow performs connected Android tests on an API 35 emulator. `apple-shared.yml` runs shared JVM tests and compiles both configured iOS targets on macOS.
+
+## Android release artifacts
+
+The repository builds both Android release package formats without embedding distribution signing secrets:
+
+- unsigned release APK: `androidApp/build/outputs/apk/release/`;
+- unsigned release App Bundle: `androidApp/build/outputs/bundle/release/`.
+
+The App Bundle is the preferred artifact for a future Google Play protected signing/distribution pipeline. The APK remains useful for release-candidate inspection and controlled testing.
+
+Neither repository artifact should be represented as a production-store-signed binary. Production signing must be performed through a protected process outside Git source.
 
 ## Release data/privacy checks
 
@@ -124,17 +136,17 @@ The workflow:
 1. sets up JDK 17 and Gradle 8.13;
 2. installs Android SDK packages;
 3. runs shared tests, Android unit tests, ktlint, and release lint;
-4. assembles the unsigned release build;
-5. uploads the unsigned APK as a workflow artifact;
-6. creates a GitHub Release with generated notes and the unsigned APK.
+4. assembles the unsigned release APK and App Bundle;
+5. uploads the unsigned APK and App Bundle as workflow artifacts;
+6. creates a GitHub Release with generated notes and both unsigned artifacts.
 
 The tagged release workflow intentionally does not replace pull-request emulator, Apple-target, and security gates. A tag should be created only after the release commit has already passed those checks.
 
 ## Signing
 
-The generated repository release APK is intentionally unsigned. Production distribution signing must happen through a protected environment using secrets that are never committed.
+The generated repository release APK and App Bundle are intentionally unsigned. Production distribution signing must happen through a protected environment using secrets that are never committed.
 
-For Google Play, use a secure Play App Signing/release pipeline and prefer Android App Bundles when that distribution pipeline is introduced.
+For Google Play, use Play App Signing or another protected release pipeline for the App Bundle. Do not add keystores, passwords, signing certificates, or service-account credentials to the repository.
 
 ## Rollback
 
@@ -159,6 +171,7 @@ Include:
 - reference/evidence changes and source review date where applicable;
 - accessibility improvements;
 - platform/shared-core target changes;
+- Android APK/App Bundle packaging changes;
 - fixed defects;
 - known limitations;
 - verification status.
