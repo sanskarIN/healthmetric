@@ -93,6 +93,7 @@ fun HealthMetricApp(
 
     val restoreSuccess = stringResource(R.string.restore_success)
     val restoreInvalid = stringResource(R.string.restore_invalid)
+    val exportFailed = stringResource(R.string.export_failed)
     val readBackupFailed = stringResource(R.string.read_backup_failed)
     val openLinkFailed = stringResource(R.string.open_link_failed)
     val exportChooserFailed = stringResource(R.string.export_chooser_failed)
@@ -106,7 +107,7 @@ fun HealthMetricApp(
             context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
                 ?: error(readBackupFailed)
         }.onSuccess { json ->
-            viewModel.restoreData(json) { success, _ ->
+            viewModel.restoreData(json) { success ->
                 scope.launch {
                     snackbarHostState.showSnackbar(if (success) restoreSuccess else restoreInvalid)
                 }
@@ -141,7 +142,7 @@ fun HealthMetricApp(
                     scope.launch { snackbarHostState.showSnackbar(exportChooserFailed) }
                 }
             },
-            onError = { message -> scope.launch { snackbarHostState.showSnackbar(message) } },
+            onError = { scope.launch { snackbarHostState.showSnackbar(exportFailed) } },
         )
     }
 
