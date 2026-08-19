@@ -87,7 +87,7 @@ fun OnboardingScreen(
 }
 
 @Composable
-fun AdultOnlyScreen() {
+fun AdultOnlyScreen(onReturnToAgeSelection: (() -> Unit)? = null) {
     Surface(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
@@ -106,6 +106,15 @@ fun AdultOnlyScreen() {
                 text = stringResource(R.string.adult_only_body),
                 style = MaterialTheme.typography.bodyLarge,
             )
+            onReturnToAgeSelection?.let { onReturn ->
+                Spacer(Modifier.height(HealthMetricSpacing.lg))
+                OutlinedButton(
+                    onClick = onReturn,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(stringResource(R.string.adult_only_return))
+                }
+            }
         }
     }
 }
