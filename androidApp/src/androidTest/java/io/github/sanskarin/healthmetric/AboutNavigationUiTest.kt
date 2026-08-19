@@ -38,8 +38,7 @@ class AboutNavigationUiTest {
 
     @Test
     fun aboutBackButtonReturnsToOriginScreen() {
-        composeRule.onNodeWithText("I am 18 or older").performClick()
-        composeRule.onNodeWithText("Adult BMI calculator").assertIsDisplayed()
+        completeAdultOnboarding()
 
         composeRule.onNodeWithTag(HealthMetricTestTags.ABOUT_OPEN).performClick()
         composeRule.onNodeWithText("About HealthMetric").assertIsDisplayed()
@@ -51,6 +50,27 @@ class AboutNavigationUiTest {
         composeRule.onNodeWithTag(HealthMetricTestTags.ABOUT_OPEN).performClick()
         composeRule.onNodeWithTag(HealthMetricTestTags.ABOUT_BACK).performClick()
         composeRule.onNodeWithText("Privacy & data").assertIsDisplayed()
+    }
+
+    @Test
+    fun systemBackFromAboutReturnsToOriginScreen() {
+        completeAdultOnboarding()
+        composeRule.onNodeWithTag(HealthMetricTestTags.NAV_SETTINGS).performClick()
+        composeRule.onNodeWithText("Privacy & data").assertIsDisplayed()
+        composeRule.onNodeWithTag(HealthMetricTestTags.ABOUT_OPEN).performClick()
+        composeRule.onNodeWithText("About HealthMetric").assertIsDisplayed()
+
+        composeRule.runOnUiThread {
+            composeRule.activity.onBackPressedDispatcher.onBackPressed()
+        }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("Privacy & data").assertIsDisplayed()
+    }
+
+    private fun completeAdultOnboarding() {
+        composeRule.onNodeWithText("I am 18 or older").performClick()
+        composeRule.onNodeWithText("Adult BMI calculator").assertIsDisplayed()
     }
 
     companion object {
