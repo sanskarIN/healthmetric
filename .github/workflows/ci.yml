@@ -16,7 +16,7 @@ concurrency:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 45
 
     steps:
       - name: Checkout
@@ -66,8 +66,11 @@ jobs:
       - name: Assemble debug application
         run: gradle :androidApp:assembleDebug
 
-      - name: Assemble unsigned release candidate
+      - name: Assemble unsigned release APK
         run: gradle :androidApp:assembleRelease
+
+      - name: Assemble unsigned release App Bundle
+        run: gradle :androidApp:bundleRelease
 
       - name: Upload lint reports
         if: always()
@@ -102,5 +105,14 @@ jobs:
         with:
           name: healthmetric-unsigned-release-apk
           path: androidApp/build/outputs/apk/release/*.apk
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload unsigned release App Bundle
+        if: success()
+        uses: actions/upload-artifact@v7
+        with:
+          name: healthmetric-unsigned-release-aab
+          path: androidApp/build/outputs/bundle/release/*.aab
           if-no-files-found: error
           retention-days: 14
