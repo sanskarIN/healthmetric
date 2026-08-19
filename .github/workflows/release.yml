@@ -59,11 +59,14 @@ jobs:
       - name: Stage Android release assets
         shell: bash
         run: |
+          set -euo pipefail
           mkdir -p release-assets
-          cp androidApp/build/outputs/apk/release/*-unsigned.apk \
-            "release-assets/healthmetric-${GITHUB_REF_NAME}-android-unsigned.apk"
-          cp androidApp/build/outputs/bundle/release/*.aab \
-            "release-assets/healthmetric-${GITHUB_REF_NAME}-android-unsigned.aab"
+          apk_file="$(find androidApp/build/outputs/apk/release -type f -name '*-unsigned.apk' -print -quit)"
+          aab_file="$(find androidApp/build/outputs/bundle/release -type f -name '*.aab' -print -quit)"
+          test -n "${apk_file}"
+          test -n "${aab_file}"
+          cp "${apk_file}" "release-assets/healthmetric-${GITHUB_REF_NAME}-android-unsigned.apk"
+          cp "${aab_file}" "release-assets/healthmetric-${GITHUB_REF_NAME}-android-unsigned.aab"
 
       - name: Upload Android release assets
         uses: actions/upload-artifact@v7
@@ -80,13 +83,22 @@ jobs:
         include:
           - os: ubuntu-latest
             artifact_os: linux
+            native_task: packageDeb
+            native_dir: deb
+            native_ext: deb
           - os: windows-latest
             artifact_os: windows
+            native_task: packageMsi
+            native_dir: msi
+            native_ext: msi
           - os: macos-latest
             artifact_os: macos
+            native_task: packageDmg
+            native_dir: dmg
+            native_ext: dmg
 
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 40
+    timeout-minutes: 50
 
     steps:
       - name: Checkout
@@ -106,33 +118,39 @@ jobs:
       - name: Verify desktop release inputs
         run: gradle :desktopApp:ktlintCheck :desktopApp:test
 
-      - name: Package current-OS runnable JAR
-        run: gradle :desktopApp:packageUberJarForCurrentOS
+      - name: Package current-OS desktop artifacts
+        run: gradle :desktopApp:packageUberJarForCurrentOS :desktopApp:${{ matrix.native_task }}
 
-      - name: Stage Unix desktop release asset
+      - name: Stage Unix desktop release assets
         if: runner.os != 'Windows'
         shell: bash
         run: |
+          set -euo pipefail
           mkdir -p release-assets
           jar_file="$(find desktopApp/build/compose/jars -type f -name '*.jar' -print -quit)"
+          native_file="$(find desktopApp/build/compose/binaries/main/${{ matrix.native_dir }} -type f -name '*.${{ matrix.native_ext }}' -print -quit)"
           test -n "${jar_file}"
-          cp "${jar_file}" \
-            "release-assets/healthmetric-${GITHUB_REF_NAME}-desktop-${{ matrix.artifact_os }}.jar"
+          test -n "${native_file}"
+          cp "${jar_file}" "release-assets/healthmetric-${GITHUB_REF_NAME}-desktop-${{ matrix.artifact_os }}.jar"
+          cp "${native_file}" "release-assets/healthmetric-${GITHUB_REF_NAME}-desktop-${{ matrix.artifact_os }}.${{ matrix.native_ext }}"
 
-      - name: Stage Windows desktop release asset
+      - name: Stage Windows desktop release assets
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Path release-assets -Force | Out-Null
           $jar = Get-ChildItem "desktopApp/build/compose/jars/*.jar" | Select-Object -First 1
+          $native = Get-ChildItem "desktopApp/build/compose/binaries/main/${{ matrix.native_dir }}/*.${{ matrix.native_ext }}" | Select-Object -First 1
           if (-not $jar) { throw "No desktop runnable JAR was produced." }
+          if (-not $native) { throw "No desktop native installer was produced." }
           Copy-Item $jar.FullName "release-assets/healthmetric-${env:GITHUB_REF_NAME}-desktop-windows.jar"
+          Copy-Item $native.FullName "release-assets/healthmetric-${env:GITHUB_REF_NAME}-desktop-windows.${{ matrix.native_ext }}"
 
-      - name: Upload desktop release asset
+      - name: Upload desktop release assets
         uses: actions/upload-artifact@v7
         with:
           name: healthmetric-${{ github.ref_name }}-release-desktop-${{ matrix.artifact_os }}
-          path: release-assets/*.jar
+          path: release-assets/*
           if-no-files-found: error
           retention-days: 30
 
@@ -159,8 +177,11 @@ jobs:
             "healthmetric-${GITHUB_REF_NAME}-android-unsigned.apk"
             "healthmetric-${GITHUB_REF_NAME}-android-unsigned.aab"
             "healthmetric-${GITHUB_REF_NAME}-desktop-linux.jar"
+            "healthmetric-${GITHUB_REF_NAME}-desktop-linux.deb"
             "healthmetric-${GITHUB_REF_NAME}-desktop-windows.jar"
+            "healthmetric-${GITHUB_REF_NAME}-desktop-windows.msi"
             "healthmetric-${GITHUB_REF_NAME}-desktop-macos.jar"
+            "healthmetric-${GITHUB_REF_NAME}-desktop-macos.dmg"
           )
           for asset in "${expected[@]}"; do
             test -s "release-assets/${asset}"
