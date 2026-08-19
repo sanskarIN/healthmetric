@@ -110,8 +110,6 @@ class HealthMetricDataStore(private val context: Context) {
                 ),
             )
             put("themeMode", preferences[Keys.themeMode] ?: AppThemeMode.SYSTEM.name)
-            put("adultUseConfirmed", preferences[Keys.adultUseConfirmed] ?: false)
-            put("onboardingComplete", preferences[Keys.onboardingComplete] ?: false)
             put("history", JSONArray(encodeHistory(decodeHistory(preferences[Keys.historyJson]))))
         }.toString(2)
     }
@@ -139,9 +137,9 @@ class HealthMetricDataStore(private val context: Context) {
             preferences[Keys.historyEnabled] = root.optBoolean("historyEnabled", false)
             preferences[Keys.historyRetentionLimit] = restoredRetentionLimit
             preferences[Keys.themeMode] = restoredTheme.name
-            preferences[Keys.adultUseConfirmed] = root.optBoolean("adultUseConfirmed", false)
-            preferences[Keys.onboardingComplete] = root.optBoolean("onboardingComplete", false)
             preferences[Keys.historyJson] = encodeHistory(restoredHistory)
+            // Adult-use confirmation and onboarding state are intentionally device-local safety state.
+            // Portable backups must never enable or overwrite them.
         }
     }
 
