@@ -12,6 +12,8 @@ HealthMetric currently has:
 - a Compose Multiplatform desktop client for JVM environments;
 - a Kotlin Multiplatform shared calculation core with Android, JVM/Desktop, iOS device, and iOS simulator targets.
 
+A green build is necessary but not sufficient. Physical-device testing, assistive-technology review, screenshot approval, target-host smoke testing, and protected signing/notarization remain human/external gates where documented.
+
 ## Versioning
 
 Use Semantic Versioning:
@@ -35,27 +37,29 @@ For a release:
 
 1. Update `CHANGELOG.md`.
 2. Update `ROADMAP.md` and `what_changed.md`.
-3. Verify reference source metadata, `reviewedOnIsoDate`, and adult-only copy.
-4. Run repository invariants, repository-tooling regression tests, and internal Markdown-link checks.
-5. Run shared, Android, and desktop formatting/tests.
-6. Run Android release lint, debug assembly, unsigned release APK assembly, and unsigned release App Bundle assembly.
-7. Package the desktop runnable JAR and native installer on every desktop operating-system family being published: DEB on Linux, MSI on Windows, DMG on macOS.
-8. Run connected Android instrumentation on an emulator/device and inspect the generated screenshot evidence set.
-9. Compile the iOS shared-core targets on macOS.
-10. Confirm GitHub CI, Desktop, Android instrumentation, Apple shared core, CodeQL, dependency review, and secret scanning are green for the exact release PR/commit.
-11. Manually test Android onboarding, under-18 gate, return-to-age-selection correction path, BMI, ratio, history disabled/enabled, retention changes, entry deletion/undo, erase-all confirmation, file backup, share backup, restore confirmation, restore, delete-all-data, themes, release link, About links/back navigation, and large text.
-12. Test one valid Android backup round trip and confirm malformed/unsupported/oversized files produce safe errors rather than uncontrolled writes.
-13. Confirm imported legacy Android fields cannot alter history opt-in, adult-use confirmation, or onboarding state.
-14. Check Android numeric input/display in at least one dot-decimal and one comma-decimal locale.
-15. Manually test desktop adult gate, under-18 path, metric/imperial BMI, metric/imperial waist-to-height, theme toggle, About/evidence links, and process restart.
-16. Confirm desktop measurements/results/adult choice/theme state are not retained after closing/reopening the application.
-17. Manually launch the JAR and native desktop installer on every platform being published and verify startup, keyboard focus, display scaling, screen-reader naming where available, external-link behavior, install/uninstall behavior, and platform warning/signing expectations.
-18. Capture/review Android release screenshots using fictional/example data only.
-19. Complete the Android TalkBack/accessibility checklist and desktop accessibility checklist and record evidence.
-20. Confirm no secrets/signing material are in Git history.
-21. Configure production Android signing only in a protected distribution environment.
-22. Configure desktop code signing/notarization outside source control if signed installers are being promoted as production assets.
-23. Create the release tag only after all blockers above are closed.
+3. Confirm [`documentation-map.md`](documentation-map.md) still identifies the canonical current contracts.
+4. Confirm [`repository-file-reference.md`](repository-file-reference.md) contains every exact `git ls-files` path and no tracked file was added without responsibility documentation.
+5. Verify reference source metadata, `reviewedOnIsoDate`, and adult-only copy.
+6. Run repository invariants, repository-tooling regression tests, and internal Markdown-link checks.
+7. Run shared, Android, and desktop formatting/tests.
+8. Run Android release lint, debug assembly, unsigned release APK assembly, and unsigned release App Bundle assembly.
+9. Package the desktop runnable JAR and native installer on every desktop operating-system family being published: DEB on Linux, MSI on Windows, DMG on macOS.
+10. Run connected Android instrumentation on an emulator/device and inspect the generated screenshot evidence set.
+11. Compile the iOS shared-core targets on macOS.
+12. Confirm GitHub CI, Desktop, Android instrumentation, Apple shared core, CodeQL, dependency review, and secret scanning are green for the **exact release PR/commit**.
+13. Manually test Android onboarding, under-18 gate, return-to-age-selection correction path, BMI, ratio, history disabled/enabled, retention changes, entry deletion/undo, erase-all confirmation, file backup, share backup, restore confirmation, restore, delete-all-data, themes, release link, About links/back navigation, and large text.
+14. Test Android backup round trips plus malformed/unsupported/oversized/missing-history/non-array-history/all-invalid-history documents and confirm failure occurs without unintended local mutation.
+15. Confirm imported legacy Android fields cannot alter history opt-in, adult-use confirmation, or onboarding state.
+16. Check Android numeric input/display in at least one dot-decimal and one comma-decimal locale.
+17. Manually test desktop adult gate, under-18 path, metric/imperial BMI, metric/imperial waist-to-height, split imperial remaining-inch rejection, theme toggle, About/evidence links, and process restart.
+18. Confirm desktop measurements/results/adult choice/theme/navigation state are not retained after closing/reopening the application.
+19. Manually launch the JAR and native desktop installer on every platform being published and verify startup, keyboard focus, display scaling, screen-reader naming where available, external-link behavior, install/uninstall behavior, and platform warning/signing expectations.
+20. Capture/review Android release screenshots using fictional/example data only.
+21. Complete the Android TalkBack/accessibility checklist and desktop accessibility checklist and record evidence.
+22. Confirm no secrets/signing material are in Git history.
+23. Configure production Android signing only in a protected distribution environment.
+24. Configure desktop code signing/notarization outside source control if signed installers are being promoted as production assets.
+25. Create the release tag only after all blockers above are closed.
 
 ## Verification commands
 
@@ -87,6 +91,8 @@ gradle :androidApp:assembleDebug
 gradle :androidApp:assembleRelease
 gradle :androidApp:bundleRelease
 ```
+
+The repository audit includes an exhaustive documentation-integrity check against `git ls-files`; a tracked file that is missing from `docs/repository-file-reference.md` fails preflight.
 
 To validate a proposed stable tag against project versions before pushing it:
 
@@ -123,7 +129,7 @@ gradle :shared:compileKotlinIosSimulatorArm64 :shared:compileKotlinIosArm64
 
 Before tagging, the exact release commit should already have passed:
 
-- `CI` — repository/docs audits, Python repository-tooling regression tests, shared/Android/desktop formatting, shared tests, desktop tests/JAR packaging, Android JVM tests/lint/build/APK/AAB;
+- `CI` — repository/docs audits including exhaustive tracked-file documentation, Python repository-tooling regression tests, shared/Android/desktop formatting, shared tests, desktop tests/JAR packaging, Android JVM tests/lint/build/APK/AAB;
 - `Desktop` — desktop formatting/tests, runnable-JAR packaging, and native installer packaging on Linux, Windows, and macOS;
 - `Android instrumentation` — connected tests on the configured API 35 emulator plus the eight-file `android-release-screenshots` evidence artifact;
 - `Apple shared core` — shared JVM tests plus iOS device/simulator compilation on macOS;
@@ -131,7 +137,7 @@ Before tagging, the exact release commit should already have passed:
 - `Dependency Review` where applicable;
 - `Secret Scan`.
 
-The tagged release workflow does not replace these pull-request/main gates.
+The tagged release workflow does not replace these pull-request/main gates. Results from an older branch head are not release evidence for a newer commit.
 
 ## Android release artifacts
 
@@ -180,7 +186,10 @@ Before tagging, verify:
 - share backup uses an explicit chooser;
 - restore asks for confirmation before mutation;
 - restore rejects unsupported schema versions and oversized payloads;
-- malformed history records are skipped independently;
+- restore rejects missing or non-array top-level `history` before local mutation;
+- explicit `history: []` remains a valid intentional empty-history backup;
+- a non-empty `history` array is rejected if no valid record survives sanitation;
+- a structurally valid non-empty array with valid neighbors can salvage them while skipping malformed records;
 - duplicate IDs cannot become duplicate Compose list keys;
 - imported history never exceeds the selected supported retention limit;
 - extreme finite imported history values cannot overflow chart normalization;
@@ -207,7 +216,7 @@ The required set is:
 
 A successful artifact upload is automated evidence that the files were generated. A human must still inspect them for visual defects, clipping, accidental private data, inappropriate sample values, and suitability for permanent README/store publication.
 
-## Desktop release privacy checks
+## Desktop release privacy/input checks
 
 Before publishing a desktop artifact, verify:
 
@@ -218,7 +227,8 @@ Before publishing a desktop artifact, verify:
 - theme/navigation selection resets after application restart;
 - no desktop measurement/history file or preferences store is introduced unintentionally;
 - external evidence/repository/funding URLs open only after a button press;
-- shared calculation/reference rules remain sourced from `shared` rather than copied into desktop UI code.
+- shared calculation/reference rules remain sourced from `shared` rather than copied into desktop UI code;
+- split imperial height treats the second component as **remaining inches**, requiring `[0, 12)` rather than silently normalizing values such as 12 or 20 inches into extra feet.
 
 See [`desktop.md`](desktop.md) and ADR 0005.
 
@@ -226,7 +236,20 @@ See [`desktop.md`](desktop.md) and ADR 0005.
 
 Android release checks should include at least one dot-decimal and one comma-decimal locale and confirm displayed precision/history/chart summaries remain consistent.
 
-Desktop input accepts dot or comma decimals through its presentation parser. Verify both forms on at least one release platform. Shared arithmetic remains locale-independent. Scientific notation, signed values, non-finite literals, and malformed mixed-separator values are intentionally rejected by the desktop measurement parser.
+Desktop input accepts ordinary dot or comma decimals through its presentation parser. Verify both forms on at least one release platform. Shared arithmetic remains locale-independent. Scientific notation, signed values, non-finite literals, malformed mixed-separator values, and invalid split remaining-inch components are intentionally rejected by the desktop presentation boundary.
+
+## Documentation release checks
+
+Documentation is part of release integrity.
+
+Before tagging:
+
+- `docs/repository-file-reference.md` must cover every exact tracked file;
+- `docs/documentation-map.md` must still identify the canonical owner for each detailed contract;
+- local Markdown links must pass;
+- README/platform/privacy/backup/testing/release documents must agree about persistence, adult-use, supported targets, and artifact status;
+- `CHANGELOG.md`, `ROADMAP.md`, and `what_changed.md` must describe the exact candidate rather than an earlier head;
+- manual gates must remain unchecked/unclaimed until actually completed.
 
 ## Tagging
 
@@ -248,7 +271,8 @@ The tagged workflow separates preflight, build verification, deterministic stagi
 Before any release artifact is built, preflight:
 
 - checks out complete history so the tag can be compared with `main`;
-- runs repository invariants and Markdown-link checks;
+- runs repository invariants, including exhaustive tracked-file documentation coverage;
+- runs Markdown-link checks;
 - runs the Python repository-tooling regression suite;
 - validates that the tag matches Android and desktop project versions;
 - requires the tag commit to equal the current `main` commit.
@@ -315,6 +339,8 @@ If evidence/reference interpretation changes, ship it as an explicit versioned p
 
 If desktop persistence is introduced, update ADR 0005 or supersede it with a reviewed persistence decision before release.
 
+If tracked-file/documentation ownership changes, reconcile the exhaustive file reference/documentation map in the patch rather than disabling the invariant.
+
 ## Release notes content
 
 Include:
@@ -328,6 +354,7 @@ Include:
 - Android APK/App Bundle packaging changes;
 - desktop JAR/native-installer artifact changes;
 - release-integrity/checksum changes;
+- documentation/governance changes that materially affect contributors/release process;
 - fixed defects and regression coverage;
 - known limitations;
 - exact verification status.
