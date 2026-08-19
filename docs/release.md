@@ -25,6 +25,8 @@ For a release:
 - keep Android `versionCode` monotonic;
 - update Android `versionName` to the public release version;
 - update the desktop project version to the public release version;
+- require the release tag to use stable `vMAJOR.MINOR.PATCH` form and match both Android `versionName` and the desktop project version;
+- create the release tag only on the current `main` commit; the tagged workflow fails closed when the tag targets any other commit;
 - keep host-native package metadata valid for the target packaging tool while documenting any required platform-specific mapping;
 - for the planned public desktop `0.1.0` release, the macOS DMG uses native package metadata `1.0.0` because the DMG packaging tool requires a positive major component; this does not change the public HealthMetric version/tag;
 - update release notes and changelog consistently.
@@ -34,14 +36,14 @@ For a release:
 1. Update `CHANGELOG.md`.
 2. Update `ROADMAP.md` and `what_changed.md`.
 3. Verify reference source metadata, `reviewedOnIsoDate`, and adult-only copy.
-4. Run repository invariants and internal Markdown-link checks.
+4. Run repository invariants, repository-tooling regression tests, and internal Markdown-link checks.
 5. Run shared, Android, and desktop formatting/tests.
 6. Run Android release lint, debug assembly, unsigned release APK assembly, and unsigned release App Bundle assembly.
 7. Package the desktop runnable JAR and native installer on every desktop operating-system family being published: DEB on Linux, MSI on Windows, DMG on macOS.
 8. Run connected Android instrumentation on an emulator/device and inspect the generated screenshot evidence set.
 9. Compile the iOS shared-core targets on macOS.
 10. Confirm GitHub CI, Desktop, Android instrumentation, Apple shared core, CodeQL, dependency review, and secret scanning are green for the exact release PR/commit.
-11. Manually test Android onboarding, under-18 gate, BMI, ratio, history disabled/enabled, retention changes, entry deletion/undo, erase-all confirmation, file backup, share backup, restore confirmation, restore, delete-all-data, themes, release link, About links/back navigation, and large text.
+11. Manually test Android onboarding, under-18 gate, return-to-age-selection correction path, BMI, ratio, history disabled/enabled, retention changes, entry deletion/undo, erase-all confirmation, file backup, share backup, restore confirmation, restore, delete-all-data, themes, release link, About links/back navigation, and large text.
 12. Test one valid Android backup round trip and confirm malformed/unsupported/oversized files produce safe errors rather than uncontrolled writes.
 13. Confirm imported legacy Android fields cannot alter history opt-in, adult-use confirmation, or onboarding state.
 14. Check Android numeric input/display in at least one dot-decimal and one comma-decimal locale.
@@ -74,6 +76,7 @@ Equivalent major commands:
 ```bash
 python3 scripts/check_repository.py
 python3 scripts/check_markdown_links.py
+python3 -m unittest discover -s scripts/tests -p "test_*.py"
 gradle :shared:ktlintCheck :androidApp:ktlintCheck :desktopApp:ktlintCheck
 gradle :shared:desktopTest
 gradle :desktopApp:test
@@ -83,6 +86,12 @@ gradle :androidApp:lintRelease
 gradle :androidApp:assembleDebug
 gradle :androidApp:assembleRelease
 gradle :androidApp:bundleRelease
+```
+
+To validate a proposed stable tag against project versions before pushing it:
+
+```bash
+python3 scripts/check_release_version.py v0.1.0
 ```
 
 Native desktop packages are host-specific:
@@ -114,7 +123,7 @@ gradle :shared:compileKotlinIosSimulatorArm64 :shared:compileKotlinIosArm64
 
 Before tagging, the exact release commit should already have passed:
 
-- `CI` — repository/docs audits, shared/Android/desktop formatting, shared tests, desktop tests/JAR packaging, Android JVM tests/lint/build/APK/AAB;
+- `CI` — repository/docs audits, Python repository-tooling regression tests, shared/Android/desktop formatting, shared tests, desktop tests/JAR packaging, Android JVM tests/lint/build/APK/AAB;
 - `Desktop` — desktop formatting/tests, runnable-JAR packaging, and native installer packaging on Linux, Windows, and macOS;
 - `Android instrumentation` — connected tests on the configured API 35 emulator plus the eight-file `android-release-screenshots` evidence artifact;
 - `Apple shared core` — shared JVM tests plus iOS device/simulator compilation on macOS;
@@ -166,6 +175,7 @@ Before tagging, verify:
 - restored/undone entries maintain newest-first chronology;
 - erase-all requires confirmation;
 - delete-all returns to onboarding/privacy defaults;
+- an accidental under-18 selection can return to age selection without clearing unrelated local history/preferences;
 - file backup uses Android's document picker;
 - share backup uses an explicit chooser;
 - restore asks for confirmation before mutation;
@@ -173,6 +183,7 @@ Before tagging, verify:
 - malformed history records are skipped independently;
 - duplicate IDs cannot become duplicate Compose list keys;
 - imported history never exceeds the selected supported retention limit;
+- extreme finite imported history values cannot overflow chart normalization;
 - portable backup JSON omits `historyEnabled`, `adultUseConfirmed`, and `onboardingComplete`;
 - legacy backups containing those fields cannot change current device-local consent/safety state;
 - app manifest still has no Internet permission and keeps Android backup disabled.
@@ -215,7 +226,7 @@ See [`desktop.md`](desktop.md) and ADR 0005.
 
 Android release checks should include at least one dot-decimal and one comma-decimal locale and confirm displayed precision/history/chart summaries remain consistent.
 
-Desktop input accepts dot or comma decimals through its presentation parser. Verify both forms on at least one release platform. Shared arithmetic remains locale-independent.
+Desktop input accepts dot or comma decimals through its presentation parser. Verify both forms on at least one release platform. Shared arithmetic remains locale-independent. Scientific notation, signed values, non-finite literals, and malformed mixed-separator values are intentionally rejected by the desktop measurement parser.
 
 ## Tagging
 
@@ -226,20 +237,33 @@ git tag -a v0.1.0 -m "HealthMetric v0.1.0"
 git push origin v0.1.0
 ```
 
-Tags matching `v*` trigger `.github/workflows/release.yml`.
+Tags matching `v*` trigger `.github/workflows/release.yml`. The workflow then independently rejects tags that are not stable `vMAJOR.MINOR.PATCH`, do not match both configured app versions, or do not point to the current `main` commit.
 
 ## Automated tagged release workflow
 
-The tagged workflow separates build verification from publication.
+The tagged workflow separates preflight, build verification, deterministic staging, and publication.
+
+### Preflight job
+
+Before any release artifact is built, preflight:
+
+- checks out complete history so the tag can be compared with `main`;
+- runs repository invariants and Markdown-link checks;
+- runs the Python repository-tooling regression suite;
+- validates that the tag matches Android and desktop project versions;
+- requires the tag commit to equal the current `main` commit.
+
+The workflow defaults to `contents: read`. Only the final publish job receives `contents: write`.
 
 ### Android release job
 
-- checks repository invariants and Markdown links;
-- sets up JDK/Gradle/Android SDK;
+After preflight succeeds, the Android job:
+
+- sets up Python, JDK, Gradle, and Android SDK;
 - runs shared tests/formatting plus Android formatting, unit tests, and release lint;
 - creates unsigned APK and AAB;
-- stages versioned Android assets;
-- uploads them as a workflow artifact.
+- calls `scripts/stage_release_assets.py`, which requires exactly one non-empty expected APK and AAB and gives them deterministic versioned names;
+- uploads the staged Android assets as a workflow artifact.
 
 ### Desktop release matrix
 
@@ -248,12 +272,12 @@ On Linux, Windows, and macOS it:
 - runs desktop formatting and tests;
 - packages the current-OS runnable JAR;
 - packages DEB/MSI/DMG respectively;
-- stages versioned JAR and native installer assets;
+- calls the same cross-platform staging script, which requires exactly one non-empty JAR and native installer per host;
 - uploads each platform asset set as a workflow artifact.
 
 ### Publish job
 
-The publish job starts only after Android and all desktop matrix jobs succeed. It downloads the verified artifacts and requires this complete non-empty set before creating the GitHub Release:
+The publish job starts only after Android and all desktop matrix jobs succeed. It downloads the verified artifacts and `scripts/verify_release_assets.py` requires exactly this complete non-empty set before publication:
 
 - Android unsigned APK;
 - Android unsigned AAB;
@@ -264,7 +288,7 @@ The publish job starts only after Android and all desktop matrix jobs succeed. I
 - macOS runnable JAR;
 - macOS DMG.
 
-It then creates one GitHub Release with generated notes and all verified assets.
+Missing, extra, or empty files fail closed. The verifier writes `SHA256SUMS.txt` covering the eight binary artifacts. The release command uses `--verify-tag`, then creates one GitHub Release with generated notes, all verified binaries, and the checksum manifest.
 
 ## Signing and platform trust
 
@@ -303,6 +327,7 @@ Include:
 - platform/shared-core target changes;
 - Android APK/App Bundle packaging changes;
 - desktop JAR/native-installer artifact changes;
+- release-integrity/checksum changes;
 - fixed defects and regression coverage;
 - known limitations;
 - exact verification status.
