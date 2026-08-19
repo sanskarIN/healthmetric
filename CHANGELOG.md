@@ -89,6 +89,7 @@ All notable HealthMetric changes are documented here. The project follows Semant
 - Fixed extreme finite imported Android history values being able to overflow chart range arithmetic.
 - Fixed malformed Android backups with a missing or non-array top-level `history` value being accepted as empty history and potentially replacing valid local history/preferences after confirmation.
 - Fixed non-empty Android backups containing zero valid history entries being accepted as intentional empty history and potentially replacing valid portable local data.
+- Fixed malformed UTF-8 Android backup bytes being silently replacement-decoded instead of rejected at the document boundary.
 - Fixed imperial weight validation reporting kilogram bounds instead of pound bounds.
 - Fixed imperial waist validation reporting metric bounds instead of inch bounds.
 - Fixed imperial BMI revalidating converted values against metric boundaries after valid imperial validation, which could reject documented pound-boundary inputs.
@@ -107,7 +108,7 @@ All notable HealthMetric changes are documented here. The project follows Semant
 - Android manifest requests no Internet permission; core calculation behavior remains offline-capable.
 - No advertising or analytics trackers are included.
 - Android restore validates supported schema, requires a structurally valid top-level history array before mutation, distinguishes explicit empty history from corrupted all-invalid history, and caps final history size.
-- Android backup file reads and writes are capped at 1 MiB.
+- Android backup file reads and writes are capped at 1 MiB, and malformed UTF-8 input is rejected instead of replacement-decoded.
 - Malformed Android history records inside a valid history array are ignored individually when valid neighboring entries survive.
 - Duplicate/blank Android history identifiers, negative timestamps, non-finite values, and unknown calculator types are rejected during restore.
 - Android local history requires explicit opt-in on fresh/default state.
