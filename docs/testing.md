@@ -2,7 +2,7 @@
 
 ## Objectives
 
-HealthMetric tests focus on deterministic calculations, validation boundaries, privacy-sensitive Android persistence behavior, bounded backup handling, adult-only safety behavior, locale-aware presentation, desktop transient-state behavior, release artifact reproducibility, and primary adult user journeys.
+HealthMetric tests focus on deterministic calculations, validation boundaries, privacy-sensitive Android persistence behavior, bounded backup handling, adult-only safety behavior, locale-aware presentation, desktop transient-state behavior, release artifact reproducibility, documentation integrity, and primary adult user journeys.
 
 ## Current automated coverage
 
@@ -78,7 +78,8 @@ Located in `desktopApp/src/test/`:
 - neutral waist-to-height presentation;
 - imperial waist errors reported in inches;
 - field-specific invalid-text feedback;
-- preservation of shared validation limits.
+- preservation of shared validation limits;
+- rejection of split imperial-height remaining-inch components outside `[0, 12)` for both BMI and waist-to-height journeys.
 
 Run:
 
@@ -123,6 +124,28 @@ python3 -m unittest discover -s scripts/tests -p "test_*.py"
 
 These tests run in main CI, the tagged release preflight, and both local verification scripts.
 
+### Repository and documentation integrity checks
+
+`scripts/check_repository.py` enforces structural/product invariants that are intentionally broader than unit tests. In addition to required project files and privacy/release configuration, it now checks exhaustive documentation coverage.
+
+The documentation-coverage rule is deterministic:
+
+1. read Git's tracked set with `git ls-files`;
+2. read `docs/repository-file-reference.md`;
+3. require every tracked path to appear exactly in backticks in that reference;
+4. fail verification if any tracked file is undocumented.
+
+This means Kotlin, XML, YAML, Markdown, Python, shell, PowerShell, Gradle and asset files all participate in the same documentation contract. See [`documentation-map.md`](documentation-map.md) and [`repository-file-reference.md`](repository-file-reference.md).
+
+`scripts/check_markdown_links.py` separately verifies local relative Markdown targets without requiring network access.
+
+Run both with:
+
+```bash
+python3 scripts/check_repository.py
+python3 scripts/check_markdown_links.py
+```
+
 ### Android instrumentation/UI tests
 
 Located in `androidApp/src/androidTest/`:
@@ -134,7 +157,7 @@ Located in `androidApp/src/androidTest/`:
 - `SettingsUiTest` — explicit history opt-in, retention selection, save-file, and share-backup actions;
 - `HistoryUiTest` — per-entry deletion and erase-all confirmation;
 - `AboutNavigationUiTest` — explicit and system back navigation from About to the originating destination;
-- `HealthMetricDataStoreTest` — privacy opt-in, retention trimming, portable export/restore, unsupported schemas, required top-level history-array validation before mutation, device-local consent/adult-gate preservation, adult-choice reset preservation, entry delete/restore, chronology after undo, malformed-record recovery, duplicate-ID handling, and invalid entry rejection;
+- `HealthMetricDataStoreTest` — privacy opt-in, retention trimming, portable export/restore, unsupported schemas, required top-level history-array validation before mutation, rejection of non-empty all-invalid histories without local mutation, device-local consent/adult-gate preservation, adult-choice reset preservation, entry delete/restore, chronology after undo, malformed-valid-neighbor recovery, duplicate-ID handling, and invalid entry rejection;
 - `ReleaseScreenshotCaptureTest` — drives the real app and captures the required eight-file Android release-evidence set with fictional/example values.
 
 Run with a connected device/emulator:
@@ -194,11 +217,14 @@ Both user-facing clients must keep the under-18 path separate from adult BMI/wai
 
 ## Backup structural regression invariants
 
-Schema-v1 restore requires a top-level `history` JSON array. An empty array is valid; a missing field or non-array value must fail before the DataStore edit transaction begins.
+Schema-v1 restore requires a top-level `history` JSON array.
 
-Instrumentation coverage seeds existing history and theme state, attempts both malformed top-level forms, and verifies the restore fails without changing the existing local data. This protects against interpreting a damaged backup container as an intentional empty-history restore.
+- An explicit empty array is valid and means the backup intentionally contains no portable history.
+- A missing field or non-array value must fail before the DataStore edit transaction begins.
+- A non-empty array from which **zero valid entries** survive sanitation must also fail before DataStore mutation.
+- A non-empty array with at least one valid entry may salvage that entry while independently skipping malformed neighbors.
 
-Once the top-level array is valid, malformed individual records remain independently recoverable so one bad record does not discard valid neighboring records.
+Instrumentation coverage seeds existing history and theme state, attempts malformed structural/all-invalid forms, and verifies the restore fails without changing the existing local data. This prevents a damaged backup from being interpreted as an intentional empty-history restore.
 
 ## Chronology and identity regression invariants
 
@@ -207,6 +233,14 @@ Android history is canonical newest-first. Adding, importing, deleting, and undo
 A confirmed regression where undoing an older deleted entry moved it to the top of the list has dedicated DataStore instrumentation coverage. Import tests also verify that serialized JSON array order does not determine which chronologically newest records survive retention.
 
 New locally recorded Android entries use UUID identifiers. Imported schema-v1 IDs remain backward-compatible but must continue through trim/non-blank/length/deduplication validation.
+
+## Desktop split-height regression invariant
+
+Desktop imperial forms model height as whole feet plus **remaining inches**, not as two freely normalizable quantities.
+
+The remaining-inch component must be in `[0, 12)`. Presentation tests must reject inputs such as `12`, `12.0`, or `20` remaining inches before combining the components. This applies to both desktop BMI and desktop waist-to-height journeys.
+
+The combined adult height range remains owned by shared validation after the component shape is valid.
 
 ## Release-integrity regression invariants
 
@@ -230,7 +264,7 @@ Examples:
 - calculation boundary defect → shared unit test;
 - imperial unit/error regression → shared test plus presentation-layer test when user-visible;
 - malformed backup record crash → DataStore instrumentation test;
-- malformed top-level backup structure that could mutate local state → DataStore instrumentation test plus repository invariant;
+- malformed/all-invalid top-level backup content that could mutate local state → DataStore instrumentation test plus repository invariant when the guard is durable;
 - backup size bypass → `BackupIoTest` plus restore test where relevant;
 - consent/adult-gate restore regression → DataStore instrumentation test;
 - adult-choice correction regression → DataStore plus Compose instrumentation test;
@@ -240,10 +274,12 @@ Examples:
 - Android history chart arithmetic regression → `ChartScaleTest`;
 - stale saved Android enum value → `SavedEnumTest`;
 - desktop text parsing regression → `DesktopNumbersTest`;
+- desktop split-height component regression → `DesktopCalculationsTest`;
 - desktop shared-core integration regression → `DesktopCalculationsTest`;
 - Android screen state regression → Compose UI test;
 - accessibility label regression → Compose semantics test/manual accessibility check;
-- release artifact drift → repository invariant plus release-tooling unit test/workflow verification.
+- release artifact drift → repository invariant plus release-tooling unit test/workflow verification;
+- undocumented tracked file → repository invariant plus file-reference update.
 
 ## Validation edge cases
 
@@ -253,18 +289,22 @@ Test at minimum:
 - values immediately outside boundaries;
 - zero/negative values;
 - NaN and infinities at domain/persistence boundaries;
-- imperial feet/inches normalization boundaries;
+- imperial feet/inches normalization/component boundaries;
+- desktop remaining inches at 0, just below 12, exactly 12, and above 12;
 - imperial pound/inch error messages and documented boundary acceptance;
 - reference band thresholds;
 - comma and dot decimal presentation input;
 - desktop scientific/signed/mixed-separator input rejection;
 - corrupted/unsupported Android backup schema;
 - missing/non-array top-level Android backup `history`;
+- explicitly empty backup `history`;
+- non-empty Android backup history containing zero valid records;
+- mixed valid/invalid Android history records inside a structurally valid array;
 - oversized Android backup payloads;
 - malformed and duplicate Android history records inside a valid history array;
 - legacy Android backups containing non-portable consent/safety fields;
 - extreme finite imported history values through chart normalization;
-- empty Android history;
+- empty Android local history;
 - disabled Android history;
 - Android retention-limit trimming;
 - Android delete/restore behavior while history saving is disabled;
@@ -272,7 +312,8 @@ Test at minimum:
 - out-of-order Android backup history;
 - desktop malformed text input;
 - desktop whole-number feet parsing;
-- missing/duplicate/empty/unexpected release artifacts.
+- missing/duplicate/empty/unexpected release artifacts;
+- a newly tracked repository file missing from the exhaustive documentation reference.
 
 ## Property/fuzz testing
 
@@ -307,7 +348,8 @@ Automated tests are only one layer. Release candidates should also be reviewed w
 - light/dark contrast;
 - external-link actions;
 - under-18 path isolation from adult calculators;
-- non-color-only error/result meaning.
+- non-color-only error/result meaning;
+- imperial split-height error discoverability.
 
 See [`accessibility.md`](accessibility.md) and [`desktop.md`](desktop.md).
 
@@ -315,7 +357,7 @@ See [`accessibility.md`](accessibility.md) and [`desktop.md`](desktop.md).
 
 The main CI workflow fails on:
 
-- repository invariant failures;
+- repository invariant failures, including undocumented tracked files;
 - internal Markdown-link failures;
 - repository/release tooling unit-test failures;
 - shared/Android/desktop ktlint failures;
@@ -372,5 +414,12 @@ gradle :shared:compileKotlinIosSimulatorArm64 :shared:compileKotlinIosArm64
 ```
 
 For desktop, build and manually launch the runnable JAR and matching native package on every distribution platform that will be published even when cross-platform CI is green.
+
+Before treating documentation as complete, confirm:
+
+- every tracked path passes the file-reference invariant;
+- local Markdown links pass;
+- the documentation ownership map still points to the current canonical contracts;
+- `CHANGELOG.md`, `ROADMAP.md`, and `what_changed.md` reflect the exact release-candidate behavior.
 
 Finally perform the manual accessibility/device checks documented in [`accessibility.md`](accessibility.md), [`desktop.md`](desktop.md), and the release checklist in [`release.md`](release.md).
