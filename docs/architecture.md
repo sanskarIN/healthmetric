@@ -11,6 +11,7 @@ Primary goals:
 - no raw measurement persistence unless a future feature explicitly requires it;
 - bounded and user-controlled local data retention;
 - portable backups separated from device-local consent/safety state;
+- deterministic newest-first history ordering;
 - predictable state flow and clear ownership boundaries;
 - simple architecture that can be understood from a clean checkout.
 
@@ -52,7 +53,8 @@ Responsibilities:
 - Android Storage Access Framework document export/import;
 - explicit Android share/open-link integrations;
 - application ViewModel and lifecycle state;
-- accessibility semantics and Android UI tests.
+- accessibility semantics and Android UI tests;
+- deterministic emulator release-screenshot evidence.
 
 ## Data flow
 
@@ -78,7 +80,11 @@ Raw weight/height/waist inputs are currently used transiently in UI state and ar
 
 Form text and transient calculation results remain screen-local because they do not need application-wide ownership.
 
-History entry deletion is persisted before the UI presents its undo snackbar. The undo action restores the sanitized entry through the ViewModel/DataStore boundary; it does not silently re-enable history saving.
+New history entries receive UUID identifiers before entering the persistence layer. DataStore still validates imported/programmatic identifiers and removes duplicate IDs.
+
+History entry deletion is persisted before the UI presents its undo snackbar. The undo action restores the sanitized entry through the ViewModel/DataStore boundary; it does not silently re-enable history saving. Restored items are normalized into timestamp-descending order rather than being forced to the top.
+
+The app-level screen state also records the screen that opened About. Both the visible back button and Android system back return from About to that originating screen while bottom navigation remains hidden on About.
 
 ## Numeric localization boundary
 
@@ -114,7 +120,7 @@ Backup schema version `1` currently exports:
 - `themeMode`;
 - bounded `history`.
 
-Restore rejects unsupported schema versions and validates history records individually so one malformed record does not discard valid neighbors. Duplicate identifiers are removed, invalid identifiers/timestamps/non-finite values are rejected, and the final restored collection is always capped.
+Restore rejects unsupported schema versions and validates history records individually so one malformed record does not discard valid neighbors. Duplicate identifiers are removed, invalid identifiers/timestamps/non-finite values are rejected, accepted entries are sorted newest-first by timestamp, and only then is the retention cap applied.
 
 See [`backup-format.md`](backup-format.md) for the field-level contract.
 
@@ -153,9 +159,17 @@ Adult BMI thresholds are grouped inside a versioned `BmiReferenceProfile`. A pro
 
 This keeps future evidence updates explicit and testable rather than scattering thresholds through UI code.
 
+## UI automation and screenshot evidence
+
+`HealthMetricTestTags` provides stable semantics hooks for navigation and critical calculator/settings controls while preserving user-facing accessibility semantics.
+
+`ReleaseScreenshotCaptureTest` drives the real app through a deterministic release-evidence journey. It resets local state, uses fictional/example values, captures the required PNG set through Android `UiAutomation`, and writes it to app-scoped external storage. The emulator workflow pulls those files and uploads the `android-release-screenshots` artifact. This is regression/release evidence, not a substitute for human visual/accessibility review.
+
 ## Build/verification boundaries
 
-Linux CI verifies Android/JVM formatting, tests, lint, and APK assembly. A dedicated Linux emulator job executes connected Android tests. macOS CI compiles the iOS device and simulator targets and reruns shared JVM tests.
+Linux CI verifies repository/document invariants, Markdown links, Android/JVM formatting, shared tests, Android unit tests, release lint, debug APK assembly, unsigned release APK assembly, and unsigned release App Bundle assembly. Expected lint/APK/AAB artifacts are uploaded by the workflow.
+
+A dedicated Linux API 35 emulator job executes connected Android tests and publishes the required screenshot-evidence artifact. macOS CI compiles the iOS device and simulator targets and reruns shared JVM tests.
 
 Security workflows remain separate so a normal build success cannot hide dependency, CodeQL, or repository-history secret-scan failures.
 
@@ -169,16 +183,19 @@ Controls include:
 - locale parsing separated from domain arithmetic;
 - explicit opt-in before history persistence;
 - user-selected bounded history retention;
+- deterministic newest-first history normalization;
 - bounded backup reads/writes;
 - fixed backup schema;
 - explicit restore confirmation;
 - non-portable consent/adult-gate state;
 - per-record validation and duplicate-ID protection;
+- collision-resistant new local history IDs;
 - no cleartext traffic;
 - no Android Internet permission;
 - no Android application backup;
 - no committed signing keys/secrets;
 - automated dependency/security checks;
+- repository invariant checks for required release packaging/evidence files;
 - emulator instrumentation for persistence and primary user flows;
 - Apple-target compilation on macOS.
 

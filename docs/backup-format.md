@@ -10,6 +10,7 @@ The format is designed to be:
 - bounded in size;
 - explicit about version compatibility;
 - recoverable when individual history records are damaged;
+- deterministically ordered after restore;
 - unable to transfer device-local privacy consent or adult-use gate decisions.
 
 ## Size limit
@@ -29,17 +30,17 @@ A current backup has this shape:
   "themeMode": "SYSTEM",
   "history": [
     {
-      "id": "1700000000000-123456",
+      "id": "9c2058d8-0bda-4703-8e84-e9c4b8971228",
       "timestampEpochMillis": 1700000000000,
       "calculator": "BMI",
       "value": 22.9,
-      "summary": "Within adult reference range"
+      "summary": "Example adult reference summary"
     }
   ]
 }
 ```
 
-Example values are fictional.
+Example values are fictional. New locally recorded entries use UUID identifiers; imported schema-v1 IDs are not required to be UUIDs as long as they satisfy the validation rules below.
 
 ## Top-level fields
 
@@ -60,9 +61,11 @@ Example values are fictional.
 | `value` | number | Must be finite. |
 | `summary` | string | Optional on import; capped to 240 characters. |
 
-Invalid records are skipped independently so one damaged entry does not discard valid neighboring entries. If multiple valid records normalize to the same ID, the first valid record is retained.
+Invalid records are skipped independently so one damaged entry does not discard valid neighboring entries. If multiple valid records normalize to the same ID, the first valid record in the input document is retained.
 
-Restored history is capped to the normalized `historyRetentionLimit` and can never exceed the application-wide maximum of 500 records.
+After validation/deduplication, accepted records are sorted by `timestampEpochMillis` descending (newest first). The normalized `historyRetentionLimit` is applied after that sort, and restored history can never exceed the application-wide maximum of 500 records. This means arbitrary JSON array order cannot decide which chronologically newest records survive the cap.
+
+The same newest-first invariant is applied when HealthMetric records a result or restores a deleted entry through Undo.
 
 ## Deliberately non-portable state
 
@@ -78,7 +81,7 @@ Older schema-v1 documents may contain JSON fields named `historyEnabled`, `adult
 
 The UI reads the chosen file into a bounded string and asks the user for confirmation. Only after confirmation does the ViewModel call the DataStore restore operation.
 
-The restore operation validates size and top-level schema before opening the DataStore edit transaction. Portable settings and sanitized history are then written together in one DataStore edit.
+The restore operation validates size and top-level schema before opening the DataStore edit transaction. Portable settings and sanitized, deduplicated, newest-first bounded history are then written together in one DataStore edit.
 
 Current device-local consent/safety values are left untouched.
 
@@ -92,8 +95,9 @@ When adding a new schema version:
 2. define explicit migration behavior;
 3. add deterministic migration tests;
 4. retain bounded payload/history protections or document an ADR for any reviewed replacement;
-5. never make consent/adult-gate state portable without a dedicated privacy and safety review;
-6. update `PRIVACY.md`, `CHANGELOG.md`, `docs/release.md`, and `what_changed.md`.
+5. retain deterministic history ordering or explicitly document a reviewed alternative;
+6. never make consent/adult-gate state portable without a dedicated privacy and safety review;
+7. update `PRIVACY.md`, `CHANGELOG.md`, `docs/release.md`, and `what_changed.md`.
 
 ## Privacy note
 
