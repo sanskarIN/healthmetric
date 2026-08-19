@@ -2,6 +2,8 @@
 
 The roadmap prioritizes correctness, privacy, accessibility, documentation integrity, and maintainability over feature count.
 
+Current release target: **2.0.12** (`v2.0.12`).
+
 ## Phase 0 — Repository foundation
 
 - [x] Public MIT-licensed repository baseline.
@@ -41,7 +43,7 @@ The roadmap prioritizes correctness, privacy, accessibility, documentation integ
 - [x] Restore confirmation before replacing portable local data.
 - [x] Per-history-entry deletion with immediate undo.
 - [x] User-selectable bounded history retention (50/100/250/500 entries).
-- [x] Defensive backup limits, required top-level history-array validation, record validation, malformed-record recovery, duplicate-ID handling, and canonical timestamp ordering.
+- [x] Defensive backup limits, strict UTF-8 decoding, required top-level history-array validation, record validation, malformed-record recovery, duplicate-ID handling, and canonical timestamp ordering.
 - [x] Distinguish intentional empty backup history from non-empty all-invalid history and reject the latter before DataStore mutation.
 - [x] Device-local privacy/adult-gate state excluded from portable backup restore.
 - [x] Recoverable adult-use choice so an accidental under-18 selection can return to age selection without clearing unrelated local data.
@@ -77,7 +79,7 @@ The roadmap prioritizes correctness, privacy, accessibility, documentation integ
 - [x] Domain unit and boundary tests.
 - [x] Deterministic property-style tests.
 - [x] Privacy-default and retention-policy unit tests.
-- [x] Backup IO size/UTF-8 unit tests.
+- [x] Backup IO size/UTF-8 unit tests, including malformed UTF-8 rejection.
 - [x] Locale-aware numeric parsing/formatting unit tests.
 - [x] Desktop parsing/calculation tests.
 - [x] Imperial BMI and waist-to-height boundary/error regression tests.
@@ -92,7 +94,7 @@ The roadmap prioritizes correctness, privacy, accessibility, documentation integ
 - [x] Instrumentation coverage for About origin/back navigation.
 - [x] DataStore opt-in, retention, export/restore, malformed-record, malformed top-level structure, all-invalid-history, consent-boundary, chronology, deletion, undo-persistence, and adult-choice-reset tests.
 - [x] Unit coverage for finite-safe Android chart normalization and stale saved-enum fallback.
-- [x] Python regression coverage for release tag/version validation, deterministic asset staging, exact asset verification, and checksums.
+- [x] Python regression coverage for release tag/version validation, Android semantic version-code mapping, desktop native package-version alignment, deterministic asset staging, exact asset verification, and checksums.
 - [x] Dedicated GitHub Actions Android emulator workflow for connected tests.
 - [x] Android instrumentation workflow configured to publish eight real-app release screenshots.
 - [x] Repository invariant audit covers Android release evidence, desktop module expectations, release-integrity tooling, chart safety, adult-gate correction, backup structure, and tracked-file documentation completeness.
@@ -109,7 +111,8 @@ The roadmap prioritizes correctness, privacy, accessibility, documentation integ
 - [x] Desktop runnable JAR/native-distribution build configuration.
 - [x] Dedicated desktop workflow across Linux, Windows, and macOS.
 - [x] Local Unix/Windows verification scripts include Python repository/release checks, Android AAB, and desktop verification.
-- [x] Stable release tags are machine-checked against Android and desktop public versions.
+- [x] Stable release tags are machine-checked against Android `versionName`, Android `versionCode`, desktop project version, and desktop native `packageVersion`.
+- [x] HealthMetric release target aligned to `2.0.12` across Android and desktop metadata; Android `versionCode` is `20012`.
 - [x] Tagged release preflight requires the tag to target the current `main` commit.
 - [x] Release workflow defaults to read-only repository permissions and grants write only to final publication.
 - [x] Cross-platform release staging fails closed on zero, duplicate, or empty expected build outputs.
@@ -125,7 +128,7 @@ The roadmap prioritizes correctness, privacy, accessibility, documentation integ
 - [ ] Complete desktop keyboard/focus/display-scaling/screen-reader review on published hosts.
 - [ ] Configure protected Android signing outside source control.
 - [ ] Decide/configure desktop signing/notarization outside source control if production-trusted installers are published.
-- [ ] Publish `v0.1.0` only after all blocker checks pass.
+- [ ] Publish `v2.0.12` only after all blocker checks pass.
 
 ## Phase 6 — Final audit
 
@@ -138,6 +141,8 @@ The roadmap prioritizes correctness, privacy, accessibility, documentation integ
 - [x] Reconcile release documentation/template with the hardened tag/version/main/checksum workflow.
 - [x] Deeply reconcile README, setup, development, architecture, desktop, testing, release, troubleshooting, privacy, security, governance, contribution, changelog, roadmap, and file-level documentation with current code behavior.
 - [x] Document Python 3 as a verification prerequisite and document the exact repository/release tooling commands.
+- [x] Reject malformed UTF-8 Android backup documents before restore parsing.
+- [x] Align Android and desktop release metadata to version `2.0.12` and add machine-checked version-code/native-package consistency.
 - [ ] Confirm every final README/setup/release command against the exact release candidate through exact-head CI/host workflows.
 - [ ] Confirm all configured workflows are green on the exact release commit.
 - [ ] Review dependency advisories and repository security settings immediately before release.
