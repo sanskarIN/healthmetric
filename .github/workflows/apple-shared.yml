@@ -1,4 +1,4 @@
-name: Apple shared core
+name: Apple shared core and UI
 
 on:
   push:
@@ -17,7 +17,7 @@ concurrency:
 jobs:
   compile-ios:
     runs-on: macos-latest
-    timeout-minutes: 30
+    timeout-minutes: 35
 
     steps:
       - name: Checkout
@@ -48,3 +48,9 @@ jobs:
 
       - name: Compile shared core for iOS device
         run: gradle :shared:compileKotlinIosArm64
+
+      - name: Link shared UI framework for iOS simulator
+        run: gradle :sharedUI:linkDebugFrameworkIosSimulatorArm64
+
+      - name: Link shared UI framework for iOS device
+        run: gradle :sharedUI:linkDebugFrameworkIosArm64
