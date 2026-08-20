@@ -21,6 +21,11 @@ REQUIRED_PATHS = [
     ".editorconfig",
     ".gitattributes",
     ".env.example",
+    "shared/build.gradle.kts",
+    "sharedUI/build.gradle.kts",
+    "androidApp/build.gradle.kts",
+    "desktopApp/build.gradle.kts",
+    "webApp/build.gradle.kts",
     "docs/architecture.md",
     "docs/backup-format.md",
     "docs/setup.md",
@@ -39,10 +44,15 @@ REQUIRED_PATHS = [
     ".github/workflows/ci.yml",
     ".github/workflows/android-instrumentation.yml",
     ".github/workflows/apple-shared.yml",
+    ".github/workflows/cross-platform.yml",
     ".github/workflows/codeql.yml",
     ".github/workflows/dependency-review.yml",
     ".github/workflows/secret-scan.yml",
     ".github/workflows/release.yml",
+]
+
+FORBIDDEN_PATHS = [
+    "docs/.noop-probe",
 ]
 
 
@@ -56,6 +66,10 @@ def main() -> int:
     for relative in REQUIRED_PATHS:
         if not (ROOT / relative).exists():
             failures.append(f"missing required path: {relative}")
+
+    for relative in FORBIDDEN_PATHS:
+        if (ROOT / relative).exists():
+            failures.append(f"temporary/probe path must not be committed: {relative}")
 
     manifest = read("androidApp/src/main/AndroidManifest.xml")
     if "android.permission.INTERNET" in manifest:
