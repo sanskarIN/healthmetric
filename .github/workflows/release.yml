@@ -9,9 +9,10 @@ permissions:
   contents: write
 
 jobs:
-  release:
+  android:
+    name: Android release artifacts
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 45
 
     steps:
       - name: Checkout
@@ -34,27 +35,221 @@ jobs:
           yes | sdkmanager --licenses >/dev/null || true
           sdkmanager "platforms;android-36" "build-tools;35.0.0"
 
-      - name: Verify release inputs
-        run: gradle :shared:desktopTest :shared:ktlintCheck :androidApp:ktlintCheck :androidApp:testDebugUnitTest :androidApp:lintRelease
+      - name: Verify Android release inputs
+        run: >-
+          gradle
+          :shared:desktopTest
+          :shared:ktlintCheck
+          :composeApp:ktlintCheck
+          :androidApp:ktlintCheck
+          :androidApp:testDebugUnitTest
+          :androidApp:lintRelease
 
-      - name: Assemble unsigned release APK
-        run: gradle :androidApp:assembleRelease
+      - name: Assemble unsigned Android release packages
+        run: gradle :androidApp:assembleRelease :androidApp:bundleRelease
 
-      - name: Upload release artifact
+      - name: Collect Android assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release-artifacts
+          APK="$(find androidApp/build/outputs/apk/release -type f -name '*.apk' -print -quit)"
+          AAB="$(find androidApp/build/outputs/bundle/release -type f -name '*.aab' -print -quit)"
+          test -n "${APK}" && test -f "${APK}"
+          test -n "${AAB}" && test -f "${AAB}"
+          cp "${APK}" "release-artifacts/HealthMetric-${GITHUB_REF_NAME}-android-unsigned.apk"
+          cp "${AAB}" "release-artifacts/HealthMetric-${GITHUB_REF_NAME}-android-unsigned.aab"
+
+      - name: Upload Android release assets
         uses: actions/upload-artifact@v7
         with:
-          name: healthmetric-${{ github.ref_name }}-unsigned-apk
-          path: androidApp/build/outputs/apk/release/*-unsigned.apk
+          name: release-android
+          path: release-artifacts/*
           if-no-files-found: error
           retention-days: 30
 
-      - name: Create GitHub release
+  web:
+    name: Web release artifact
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: "8.13"
+
+      - name: Build browser compatibility distribution
+        run: gradle :composeApp:composeCompatibilityBrowserDistribution
+
+      - name: Package browser distribution
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -d composeApp/build/dist
+          mkdir -p release-artifacts
+          cd composeApp/build/dist
+          zip -qr "../../../release-artifacts/HealthMetric-${GITHUB_REF_NAME}-web.zip" .
+
+      - name: Upload browser release asset
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-web
+          path: release-artifacts/*
+          if-no-files-found: error
+          retention-days: 30
+
+  desktop:
+    name: Desktop release (${{ matrix.id }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            id: windows
+            extension: msi
+          - os: macos-latest
+            id: macos
+            extension: dmg
+          - os: ubuntu-latest
+            id: linux
+            extension: deb
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 55
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: "8.13"
+
+      - name: Compile desktop application
+        run: gradle :composeApp:compileKotlinDesktop
+
+      - name: Build native desktop package
+        run: gradle :composeApp:packageDistributionForCurrentOS
+
+      - name: Collect desktop package
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release-artifacts
+          PACKAGE="$(find composeApp/build/compose/binaries -type f -name '*.${{ matrix.extension }}' -print -quit)"
+          test -n "${PACKAGE}" && test -f "${PACKAGE}"
+          cp "${PACKAGE}" "release-artifacts/HealthMetric-${GITHUB_REF_NAME}-${{ matrix.id }}.${{ matrix.extension }}"
+
+      - name: Upload native desktop release asset
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-desktop-${{ matrix.id }}
+          path: release-artifacts/*
+          if-no-files-found: error
+          retention-days: 30
+
+  ios:
+    name: iOS developer artifact
+    runs-on: macos-latest
+    timeout-minutes: 55
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: "8.13"
+
+      - name: Build release iOS device framework
+        run: gradle :composeApp:linkReleaseFrameworkIosArm64
+
+      - name: Verify native iOS simulator application
+        run: >-
+          xcodebuild
+          -project iosApp/HealthMetric.xcodeproj
+          -scheme HealthMetric
+          -sdk iphonesimulator
+          -configuration Debug
+          CODE_SIGNING_ALLOWED=NO
+          build
+
+      - name: Package iOS developer framework
+        shell: bash
+        run: |
+          set -euo pipefail
+          FRAMEWORK="$(find composeApp/build/bin/iosArm64/releaseFramework -maxdepth 1 -type d -name '*.framework' -print -quit)"
+          test -n "${FRAMEWORK}" && test -d "${FRAMEWORK}"
+          mkdir -p release-artifacts
+          ditto -c -k --sequesterRsrc --keepParent "${FRAMEWORK}" "release-artifacts/HealthMetric-${GITHUB_REF_NAME}-ios-framework.zip"
+
+      - name: Upload iOS developer release asset
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-ios
+          path: release-artifacts/*
+          if-no-files-found: error
+          retention-days: 30
+
+  publish:
+    name: Publish GitHub release
+    needs: [android, web, desktop, ios]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Download release assets
+        uses: actions/download-artifact@v8
+        with:
+          pattern: release-*
+          path: release-assets
+          merge-multiple: true
+
+      - name: List release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          find release-assets -maxdepth 1 -type f -print
+          test "$(find release-assets -maxdepth 1 -type f | wc -l)" -ge 7
+
+      - name: Create or update GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          gh release create "${GITHUB_REF_NAME}" \
-            androidApp/build/outputs/apk/release/*-unsigned.apk \
-            --repo "${GITHUB_REPOSITORY}" \
-            --generate-notes \
-            --title "HealthMetric ${GITHUB_REF_NAME}"
+          set -euo pipefail
+          if gh release view "${GITHUB_REF_NAME}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            gh release upload "${GITHUB_REF_NAME}" release-assets/* --clobber --repo "${GITHUB_REPOSITORY}"
+          else
+            gh release create "${GITHUB_REF_NAME}" \
+              release-assets/* \
+              --repo "${GITHUB_REPOSITORY}" \
+              --generate-notes \
+              --title "HealthMetric ${GITHUB_REF_NAME}"
+          fi
