@@ -17,3 +17,5 @@ dependencyResolutionManagement {
 rootProject.name = "HealthMetric"
 include(":shared")
 include(":androidApp")
+include(":desktopApp")
+include(":webApp")
