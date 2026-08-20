@@ -21,8 +21,19 @@ REQUIRED_PATHS = [
     ".editorconfig",
     ".gitattributes",
     ".env.example",
+    "composeApp/build.gradle.kts",
+    "composeApp/src/commonMain/kotlin/io/github/sanskarin/healthmetric/App.kt",
+    "composeApp/src/desktopMain/kotlin/io/github/sanskarin/healthmetric/Main.kt",
+    "composeApp/src/iosMain/kotlin/io/github/sanskarin/healthmetric/HealthMetricViewControllerFactory.kt",
+    "composeApp/src/webMain/kotlin/io/github/sanskarin/healthmetric/Main.kt",
+    "iosApp/HealthMetric.xcodeproj/project.pbxproj",
+    "iosApp/HealthMetric.xcodeproj/xcshareddata/xcschemes/HealthMetric.xcscheme",
+    "iosApp/HealthMetricApp/HealthMetricApp.swift",
+    "iosApp/HealthMetricApp/ContentView.swift",
+    "iosApp/HealthMetricApp/Info.plist",
     "docs/architecture.md",
     "docs/backup-format.md",
+    "docs/cross-platform.md",
     "docs/setup.md",
     "docs/development.md",
     "docs/testing.md",
@@ -37,6 +48,7 @@ REQUIRED_PATHS = [
     "docs/adr/0003-versioned-adult-reference-profiles.md",
     "docs/adr/0004-bounded-user-controlled-local-data.md",
     ".github/workflows/ci.yml",
+    ".github/workflows/cross-platform.yml",
     ".github/workflows/android-instrumentation.yml",
     ".github/workflows/apple-shared.yml",
     ".github/workflows/codeql.yml",
@@ -73,10 +85,16 @@ def main() -> int:
         "sanskarin.business@gmail.com",
         "supportramsandesh@gmail.com",
         "MIT",
+        "Windows",
+        "macOS",
+        "Linux",
+        "iPhone / iPad",
+        "WebAssembly",
+        "docs/cross-platform.md",
     ]
     for fragment in required_readme_fragments:
         if fragment not in readme:
-            failures.append(f"README.md is missing required metadata: {fragment}")
+            failures.append(f"README.md is missing required metadata/support claim: {fragment}")
 
     privacy = read("PRIVACY.md")
     for phrase in [
@@ -86,6 +104,37 @@ def main() -> int:
     ]:
         if phrase not in privacy:
             failures.append(f"PRIVACY.md is missing required privacy invariant text: {phrase}")
+
+    settings = read("settings.gradle.kts")
+    if 'include(":composeApp")' not in settings:
+        failures.append("settings.gradle.kts must include the cross-platform composeApp module")
+
+    shared_build = read("shared/build.gradle.kts")
+    for target in ["iosArm64()", "iosSimulatorArm64()", "js", "wasmJs"]:
+        if target not in shared_build:
+            failures.append(f"shared/build.gradle.kts is missing target declaration: {target}")
+
+    compose_build = read("composeApp/build.gradle.kts")
+    for target in ["jvm(\"desktop\")", "iosArm64()", "iosSimulatorArm64()", "js", "wasmJs"]:
+        if target not in compose_build:
+            failures.append(f"composeApp/build.gradle.kts is missing target declaration: {target}")
+    for package_format in ["TargetFormat.Dmg", "TargetFormat.Msi", "TargetFormat.Deb"]:
+        if package_format not in compose_build:
+            failures.append(f"composeApp desktop packaging is missing: {package_format}")
+
+    cross_platform_ci = read(".github/workflows/cross-platform.yml")
+    for runner in ["ubuntu-latest", "windows-latest", "macos-latest"]:
+        if runner not in cross_platform_ci:
+            failures.append(f"cross-platform CI is missing runner: {runner}")
+    for task in [
+        "jsBrowserProductionWebpack",
+        "wasmJsBrowserProductionWebpack",
+        "packageDistributionForCurrentOS",
+        "linkDebugFrameworkIosSimulatorArm64",
+        "xcodebuild",
+    ]:
+        if task not in cross_platform_ci:
+            failures.append(f"cross-platform CI is missing verification task: {task}")
 
     if failures:
         print("Repository invariant audit failed:")
