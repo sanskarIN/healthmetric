@@ -1,515 +1,511 @@
 # HealthMetric — Work Handoff
 
-Last updated: 2026-08-19
+Last updated: 2026-08-20
 
 ## Current milestone
 
-Active development branch:
+HealthMetric **2.0.12 cross-platform application support**.
 
-`phase2/data-controls-and-regression-tests`
+Active branch:
+
+```text
+feature/full-cross-platform
+```
 
 Open pull request:
 
-- PR #12 — `feat: complete privacy data controls and release verification`
-- https://github.com/sanskarIN/healthmetric/pull/12
+```text
+PR #15 — feat: make HealthMetric cross-platform
+```
 
-Base branch: `main`
+Base branch:
 
-Base commit for this continuation: `8c8d2cda0093acbbadfc55d3e03e14dbe4f406ea`
+```text
+main
+```
 
-Branch head immediately before this handoff update: `75f076431f5cbb50d040a0727685823b0075ca91` (`docs: align contribution checks with full quality gates`).
+This continuation changes HealthMetric from an Android application with a reusable shared calculation core into a repository that contains buildable application clients for Android, iPhone/iPad, Windows, macOS, Linux, JavaScript browsers, and WebAssembly browsers.
 
-PR #12 contained 125 commits at that head. This handoff update adds another meaningful documentation commit.
+## Platform matrix after this continuation
 
-Current project stage:
+| Platform | Application client | Packaging / output | CI verification |
+|---|---|---|---|
+| Android | Jetpack Compose Android app | APK + AAB | Main CI + Android emulator instrumentation |
+| iPhone / iPad | SwiftUI host + Compose Multiplatform calculator UI | Xcode app; protected Apple signing for production | Kotlin framework + Xcode simulator build on macOS |
+| Windows | Compose Desktop | MSI | Windows runner |
+| macOS | Compose Desktop | DMG | macOS runner |
+| Linux | Compose Desktop | DEB | Ubuntu runner |
+| WebAssembly web | Compose Multiplatform Wasm | Browser distribution | Ubuntu web job |
+| JavaScript web | Compose Multiplatform JS | Browser distribution / fallback | Ubuntu web job |
+| ChromeOS | Android client where Android applications are supported | APK/store install | Covered by Android build path |
 
-- Phase 0 repository foundation: implemented.
-- Phase 1 clean Android end-to-end MVP: implemented.
-- Phase 2 product completeness: implemented except real device/emulator screenshot capture.
-- Phase 3 advanced shared-core quality: iOS targets, Apple CI, evidence review metadata, and locale-aware Android numeric presentation implemented; optional future desktop UI remains deliberately uncommitted because it is not required for the Android-first product.
-- Phase 4 verification depth: automated coverage substantially expanded, including Android emulator instrumentation and backup/persistence regression coverage; manual TalkBack/accessibility evidence remains a release-candidate task.
-- Phase 5 release readiness: automated debug/release assembly workflows exist; protected production signing, physical-device review, screenshots, and final successful release-candidate checks remain external/release tasks.
-- Phase 6 final audit: repository/document integrity checks are automated; final release audit cannot be marked complete until the release-candidate checks finish successfully.
+## Feature-parity boundary
 
-## Continuation objective completed in this branch
+Cross-platform support does **not** falsely claim that every platform currently exposes every Android-only integration.
 
-The continuation focused on completing the remaining privacy/data-control work, eliminating restore/consent safety gaps, strengthening automated regression coverage, improving platform readiness, and turning repository requirements into executable CI invariants.
+All first-class calculator clients provide:
 
-## Product/data changes
+- adult-use confirmation before adult BMI/waist reference calculators;
+- metric BMI calculation;
+- imperial BMI calculation;
+- metric waist-to-height calculation;
+- imperial waist-to-height calculation;
+- the same Kotlin Multiplatform domain validation;
+- the same deterministic calculation rules;
+- neutral educational/non-diagnostic result presentation;
+- local calculator execution without requiring a remote health API.
 
-### Privacy-first history retention
+The Android client remains the most feature-complete platform-specific client and additionally provides:
 
-Added `HistoryRetentionPolicy`:
+- opt-in persistent calculation history;
+- configurable retention of 50, 100, 250, or 500 records;
+- Android DataStore persistence;
+- per-entry deletion/undo;
+- accessible history chart;
+- JSON file/share backup and defensive restore;
+- Android document-picker/share integrations;
+- Android dynamic color and Android-specific theme behavior;
+- Android settings/About/update integrations.
 
-- default retention: 100 results;
-- supported user-selectable limits: 50, 100, 250, 500;
-- hard maximum: 500;
-- unsupported values normalize to 100.
+Those Android integrations were not duplicated unsafely into unrelated platforms merely to claim identical parity. Future shared persistence work should be implemented behind explicit cross-platform abstractions and tests.
 
-`AppPreferences` now stores the selected retention limit.
+## Toolchain changes
 
-`HealthMetricDataStore` now:
+The current cross-platform toolchain is:
 
-- persists the retention setting;
-- trims existing history immediately when the user lowers the limit;
-- bounds new history to the selected limit;
-- caps imported history;
-- sanitizes records before storage;
-- prevents duplicate history IDs from reaching the UI.
+```text
+Kotlin:                 2.4.10
+Compose Multiplatform:  1.11.1
+Android Gradle Plugin:  8.13.2
+Gradle in CI:           8.13
+JDK:                    17
+Android compile SDK:    36
+Android target SDK:     36
+Android min SDK:        26
+Android Build Tools:    35.0.0
+```
 
-### Individual history deletion and undo
+Kotlin was upgraded from 2.2.20 to 2.4.10 during this continuation to keep the Compose Multiplatform 1.11.1 native/web configuration on a current compatible Kotlin toolchain.
+
+Versions remain centralized in:
+
+```text
+gradle/libs.versions.toml
+```
+
+## Version alignment
+
+Application package metadata is aligned to **2.0.12**:
+
+- Android `versionName = "2.0.12"`;
+- Android `versionCode = 2012`;
+- Compose Desktop `packageVersion = "2.0.12"`;
+- iOS `CFBundleShortVersionString = 2.0.12`;
+- Xcode marketing version = 2.0.12.
+
+## New `composeApp` module
 
 Added:
 
-- per-entry history delete action;
-- accessible delete icon description;
-- persisted deletion before feedback is presented;
-- snackbar `Undo` action;
-- restore of the deleted sanitized record;
-- restore behavior that does not enable future history saving.
+```text
+composeApp/
+```
 
-Erase-all history continues to require explicit confirmation.
+The module owns the shared application presentation for iOS/iPadOS, Windows, macOS, Linux, JavaScript web, and WebAssembly web.
 
-### Explicit file backup
+Configured targets:
 
-Settings now separates:
+- `jvm("desktop")`;
+- `iosArm64()`;
+- `iosSimulatorArm64()`;
+- JavaScript browser executable;
+- WebAssembly JavaScript browser executable.
 
-- `Save JSON backup to a file`;
-- `Share JSON backup`;
-- `Restore from JSON backup`.
+The module consumes:
 
-File backup uses Android's Storage Access Framework `CreateDocument` contract. JSON is generated after the user has selected a destination URI rather than being retained in transient state while the picker is open.
+```text
+project(":shared")
+```
 
-Share backup continues to use an explicit Android chooser.
+so it does not reimplement BMI, waist-to-height, unit conversion, or validation logic.
 
-### Defensive backup IO
+### Shared Compose application
 
-Added `BackupIo` with a 1 MiB UTF-8 payload limit.
+Added:
 
-Protections:
+```text
+composeApp/src/commonMain/kotlin/io/github/sanskarin/healthmetric/App.kt
+```
 
-- input is counted while streaming before JSON parsing;
-- output size is checked before writing;
-- `HealthMetricDataStore.restoreFromJson()` independently repeats the UTF-8 byte-size check so non-UI callers cannot bypass it;
-- unsupported schema versions fail before the DataStore mutation;
-- malformed individual history records are skipped rather than invalidating valid neighboring records;
-- blank IDs are rejected;
-- IDs are bounded to 96 characters;
-- summaries are bounded to 240 characters;
-- negative timestamps are rejected;
-- non-finite values are rejected;
-- unknown calculator types are rejected;
-- duplicate IDs are deduplicated;
-- restored history is always bounded.
+The shared UI contains:
 
-### Restore confirmation
+- adult-use gate;
+- BMI / waist-to-height navigation;
+- metric / imperial selection;
+- validated measurement fields;
+- domain-backed calculation actions;
+- error presentation;
+- neutral result cards;
+- explicit educational/non-diagnostic wording;
+- no appearance score or pressure-oriented body target.
 
-Selecting a backup file no longer immediately replaces portable local data.
+The adult reference tools are explicitly intended for adults age 18 or older.
 
-Flow:
+### Desktop entry point
 
-1. user explicitly selects a local document;
-2. HealthMetric reads it through bounded `BackupIo`;
-3. the app shows a restore confirmation dialog;
-4. only the explicit `Restore` action invokes the DataStore restore transaction;
-5. cancel leaves data unchanged.
+Added:
 
-### Device-local consent and adult safety state
+```text
+composeApp/src/desktopMain/kotlin/io/github/sanskarin/healthmetric/Main.kt
+```
 
-A critical privacy/safety boundary was tightened.
+It creates the HealthMetric Compose Desktop application window and uses the common `App()` composable.
 
-Portable backups no longer export and restore cannot change:
+Desktop package formats configured in `composeApp/build.gradle.kts`:
 
-- `history_enabled` / prior JSON `historyEnabled`;
-- `adult_use_confirmed` / prior JSON `adultUseConfirmed`;
-- `onboarding_complete` / prior JSON `onboardingComplete`.
+- `TargetFormat.Msi`;
+- `TargetFormat.Dmg`;
+- `TargetFormat.Deb`.
 
-This means importing another person's backup cannot:
+### Browser entry point
 
-- silently enable future local history collection;
-- enable adult-only BMI/waist reference screens;
-- bypass the current installation's onboarding/adult-use state.
+Added:
 
-Legacy schema-v1 documents containing those fields remain readable, but those fields are deliberately ignored.
+```text
+composeApp/src/webMain/kotlin/io/github/sanskarin/healthmetric/Main.kt
+```
 
-Portable schema-v1 fields are now:
+It uses `ComposeViewport { App() }` for the browser application.
 
-- `schemaVersion`;
-- `historyRetentionLimit`;
-- `themeMode`;
-- bounded `history`.
+Added browser resources:
 
-The exact contract is documented in `docs/backup-format.md` and ADR 0004.
+```text
+composeApp/src/webMain/resources/index.html
+composeApp/src/webMain/resources/styles.css
+```
 
-## Numeric localization changes
+The HTML includes viewport metadata and the CSS sizes the page/canvas for a full browser viewport rather than relying on an accidental default size.
 
-Added `LocalizedNumbers` in the Android presentation layer.
+### Apple bridge
 
-It provides:
+Added:
 
-- decimal input validation;
-- one decimal separator maximum;
-- active locale decimal separator support;
-- practical dot/comma fallback;
-- finite numeric parsing;
-- locale-aware number display without grouping.
+```text
+composeApp/src/iosMain/kotlin/io/github/sanskarin/healthmetric/HealthMetricViewControllerFactory.kt
+```
 
-BMI Android UI now:
+The Apple target exports a static framework named:
 
-- parses metric/imperial decimal fields through `LocalizedNumbers`;
-- displays BMI using locale-aware one-decimal formatting.
+```text
+HealthMetricUI
+```
 
-Waist-to-height UI now:
+The bridge returns a `ComposeUIViewController` containing the common HealthMetric application.
 
-- parses decimal fields through `LocalizedNumbers`;
-- displays ratios using locale-aware two-decimal formatting.
+## Native iOS/iPadOS host
 
-History cards and chart accessibility summaries use the same locale-aware formatting rules.
+Added:
 
-Shared domain arithmetic remains locale-independent.
+```text
+iosApp/
+```
 
-## Shared-platform changes
+Key files:
 
-The Kotlin Multiplatform `shared` module now explicitly configures:
+```text
+iosApp/HealthMetricApp/HealthMetricApp.swift
+iosApp/HealthMetricApp/ContentView.swift
+iosApp/HealthMetricApp/Info.plist
+iosApp/HealthMetric.xcodeproj/project.pbxproj
+iosApp/HealthMetric.xcodeproj/xcshareddata/xcschemes/HealthMetric.xcscheme
+```
 
-- Android target;
-- JVM/Desktop target;
-- `iosArm64`;
-- `iosSimulatorArm64`.
+The SwiftUI lifecycle remains native. `ContentView` embeds the Kotlin Compose controller through `UIViewControllerRepresentable`.
 
-Added `.github/workflows/apple-shared.yml` on `macos-latest` to:
+The Xcode project includes a build phase for:
 
-- run shared JVM tests;
-- compile the iOS simulator target;
-- compile the iOS device target.
+```bash
+gradle :composeApp:embedAndSignAppleFrameworkForXcode
+```
 
-No iOS UI is claimed or included; the change validates the shared health calculation core for future Apple clients.
+The repository contains no Apple private signing material. Production device/App Store archives must use a protected Apple/Xcode signing workflow.
 
-## Evidence/reference changes
+## Shared domain target expansion
 
-`EvidenceSource` now contains an explicit `reviewedOnIsoDate` field.
+`shared/build.gradle.kts` now exposes:
 
-The existing WHO adult BMI source was reviewed on 2026-08-19 and the embedded source metadata now records that date.
+- Android;
+- JVM desktop;
+- iOS ARM64 device;
+- iOS ARM64 simulator;
+- JavaScript browser;
+- WebAssembly browser.
 
-`docs/evidence.md` now documents:
+The domain remains presentation-independent and continues to own:
 
-- source title/publisher/URL;
-- adult-only scope;
-- current reference boundaries;
-- review date;
-- required update workflow for future evidence changes.
+- BMI arithmetic;
+- adult reference profile/bands;
+- waist-to-height arithmetic;
+- metric/imperial conversions;
+- finite/range validation;
+- evidence/reference metadata;
+- cross-platform tests.
 
-Shared tests verify the source metadata and review date.
+## Cross-platform CI
 
-## Android branding changes
+Added:
 
-Added modern launcher resources:
+```text
+.github/workflows/cross-platform.yml
+```
 
-- adaptive launcher icon;
-- round adaptive icon;
-- Android 13+ monochrome/themed adaptive icon variants;
-- shared launcher background resource;
-- dedicated adaptive icon foreground vector.
+### Web job
 
-`AndroidManifest.xml` now uses the adaptive/round launcher resources.
+Runs on Ubuntu and verifies:
 
-Existing branded startup splash treatment remains in place.
-
-Security manifest invariants remain:
-
-- no `INTERNET` permission;
-- `android:allowBackup="false"`;
-- `android:usesCleartextTraffic="false"`.
-
-## UI automation support
-
-Added stable `HealthMetricTestTags` for critical Compose controls.
-
-Tagged UI includes:
-
-- BMI weight field;
-- BMI metric height field;
-- BMI imperial feet/inches fields;
-- BMI calculate action/result;
-- waist measurement field;
-- waist height field;
-- waist calculate action/result;
-- history list;
-- settings history opt-in switch.
-
-Tags supplement accessible semantics; they do not replace user-facing labels.
-
-## Tests added/expanded
-
-### Android JVM tests
-
-`AppPreferencesTest` now verifies:
-
-- history disabled by default;
-- default retention value;
-- supported retention values normalize to themselves;
-- unsupported retention values fall back to default.
-
-`BackupIoTest` verifies:
-
-- UTF-8 round trip;
-- oversized input rejection;
-- oversized output rejection.
-
-`LocalizedNumbersTest` verifies:
-
-- dot decimal input;
-- comma decimal input;
-- multiple-separator rejection;
-- invalid unit/text rejection;
-- US and German representative locale parsing;
-- fallback separator parsing;
-- non-finite/invalid parsing rejection;
-- locale-aware display formatting.
-
-### Android instrumentation tests
-
-Added/expanded:
-
-`CalculatorUiTest`
-
-- metric BMI success journey;
-- result rendering;
-- missing-weight validation.
-
-`WaistToHeightUiTest`
-
-- metric ratio success journey;
-- result precision;
-- missing-waist validation.
-
-`AdultGateUiTest`
-
-- under-18 onboarding choice dispatch;
-- adult-reference-unavailable screen explanation.
-
-`SettingsUiTest`
-
-- explicit history opt-in callback;
-- retention selection callback;
-- file-backup action callback;
-- share-backup action callback.
-
-`HistoryUiTest`
-
-- per-entry delete callback;
-- erase-all confirmation dialog;
-- destructive confirmation callback.
-
-`HealthMetricDataStoreTest`
-
-- history is not stored without opt-in;
-- selected retention trims older entries;
-- portable export/restore round trip;
-- unsupported schema rejection;
-- entry delete/restore behavior;
-- undo restore does not change disabled history preference;
-- malformed-record recovery;
-- duplicate-ID handling;
-- invalid programmatic history rejection;
-- portable backup omission of history/adult/onboarding state;
-- legacy backup fields cannot overwrite current device consent/adult gate.
-
-Existing shared calculation, validation, conversion, boundary, and deterministic property tests remain.
-
-## GitHub Actions/automation changes
-
-### Main CI
-
-`.github/workflows/ci.yml` now runs:
-
-1. repository invariant audit;
-2. internal Markdown link audit;
-3. JDK 17 setup;
-4. Gradle 8.13 setup;
-5. Android SDK 36 / Build Tools 35.0.0 setup;
-6. shared + Android ktlint checks;
-7. shared JVM tests;
-8. Android JVM tests;
-9. Android release lint;
-10. debug APK assembly;
-11. unsigned release APK assembly;
-12. lint/APK artifact upload.
-
-### Android instrumentation
-
-New `.github/workflows/android-instrumentation.yml`:
-
-- API 35 Google APIs x86_64 emulator;
-- KVM enablement;
-- animation disablement;
-- `gradle :androidApp:connectedDebugAndroidTest`;
-- instrumentation report artifact upload.
-
-### Apple shared core
-
-New `.github/workflows/apple-shared.yml`:
-
-- `macos-latest`;
+- shared/Compose formatting;
 - shared JVM tests;
-- iOS simulator compilation;
-- iOS device compilation.
+- JavaScript production webpack;
+- WebAssembly production webpack;
+- compatibility browser distribution;
+- browser artifact upload.
 
-### Security/release workflow maintenance
+Important tasks:
 
-Workflow dependencies were modernized to their current configured major versions where applicable:
+```text
+:composeApp:jsBrowserProductionWebpack
+:composeApp:wasmJsBrowserProductionWebpack
+:composeApp:composeCompatibilityBrowserDistribution
+```
 
-- `actions/checkout@v7`;
-- `actions/setup-java@v5`;
-- `gradle/actions/setup-gradle@v6`;
-- `actions/upload-artifact@v7`;
-- `github/codeql-action@v4`;
-- `actions/dependency-review-action@v5`.
+### Desktop matrix
 
-Secret scan continues to use `gitleaks/gitleaks-action@v2` with full Git history checkout.
+Runs independently on:
 
-Release workflow now also executes Android unit tests and release lint before creating the unsigned release artifact.
+```text
+ubuntu-latest
+windows-latest
+macos-latest
+```
 
-## Repository integrity automation
+Each runner executes:
 
-Added `scripts/check_repository.py`.
+```text
+:composeApp:compileKotlinDesktop
+:composeApp:packageDistributionForCurrentOS
+```
 
-It verifies:
+and uploads the native package directory.
 
-- required repository/documentation/workflow paths exist;
-- Android manifest does not request Internet permission;
-- Android app backup stays disabled;
-- cleartext traffic stays disabled;
-- README retains required credit, funding, contacts, and MIT metadata;
-- privacy documentation retains key default/adult/backup invariants.
+This prevents a false assumption that one operating system can authoritatively build all native installer formats.
 
-Added `scripts/check_markdown_links.py`.
+### iOS job
 
-It verifies internal relative Markdown targets without making network requests.
+Runs on macOS and verifies:
 
-Both scripts run before Gradle work in CI.
+```text
+:composeApp:linkDebugFrameworkIosSimulatorArm64
+```
 
-## Reproducible developer verification
+plus a signing-disabled Xcode simulator application build:
 
-Added:
+```text
+xcodebuild -project iosApp/HealthMetric.xcodeproj -scheme HealthMetric -sdk iphonesimulator -configuration Debug CODE_SIGNING_ALLOWED=NO build
+```
 
-- `scripts/verify.sh`;
-- `scripts/verify.ps1`.
+The pre-existing Apple shared-core workflow remains as an independent lower-level domain target gate.
 
-They run the complete non-device verification sequence:
+## Multi-platform tagged release automation
 
-- shared and Android ktlint;
-- shared JVM tests;
-- Android JVM tests;
-- Android release lint;
-- Android debug assembly;
-- Android unsigned release assembly.
+`.github/workflows/release.yml` was expanded from an Android-only release job into a multi-platform release workflow.
 
-`GRADLE_BIN` can override the executable name/path.
+A successful `v*` tag build prepares seven GitHub Release assets:
 
-## Documentation added/updated
+1. `HealthMetric-<tag>-android-unsigned.apk`;
+2. `HealthMetric-<tag>-android-unsigned.aab`;
+3. `HealthMetric-<tag>-windows.msi`;
+4. `HealthMetric-<tag>-macos.dmg`;
+5. `HealthMetric-<tag>-linux.deb`;
+6. `HealthMetric-<tag>-web.zip`;
+7. `HealthMetric-<tag>-ios-framework.zip`.
 
-Added:
+The iOS framework ZIP is intentionally a developer artifact, not a signed App Store IPA.
 
-- `docs/backup-format.md`;
-- ADR 0004: bounded, user-controlled local data.
+The final release job uses:
+
+```text
+actions/download-artifact@v8
+```
+
+to collect the per-platform artifacts and refuses publication if fewer than seven files are present.
+
+## Local verification scripts
 
 Updated:
 
+```text
+scripts/verify.sh
+scripts/verify.ps1
+```
+
+They now cover:
+
+- shared ktlint;
+- Compose app ktlint;
+- Android ktlint;
+- shared JVM tests;
+- desktop compilation;
+- JavaScript production build;
+- WebAssembly production build;
+- browser compatibility distribution;
+- Android JVM tests;
+- Android release lint;
+- Android debug APK;
+- Android release APK;
+- Android release AAB.
+
+`verify.sh` additionally compiles the iOS simulator framework when it runs on macOS.
+
+`GRADLE_BIN` can still override the Gradle executable.
+
+## Repository integrity checks
+
+`scripts/check_repository.py` now prevents cross-platform support from silently disappearing while documentation continues to claim it.
+
+It checks:
+
+- required cross-platform files;
+- web resource files;
+- Xcode host/project/scheme;
+- `composeApp` inclusion;
+- current Kotlin 2.4.10 / Compose Multiplatform 1.11.1 toolchain metadata;
+- shared JS/Wasm/iOS targets;
+- compose desktop/iOS/JS/Wasm targets;
+- MSI/DMG/DEB packaging declarations;
+- Android/iOS/desktop 2.0.12 version alignment;
+- Windows/macOS/Linux CI runners;
+- JS/Wasm/desktop/iOS CI tasks;
+- all seven multi-platform release asset names;
+- browser compatibility release build;
+- iOS release framework build;
+- `actions/download-artifact@v8` release aggregation;
+- existing Android privacy/security invariants;
+- required project/funding/contact/license metadata.
+
+## Documentation work
+
+Added:
+
+```text
+docs/cross-platform.md
+```
+
+It documents:
+
+- platform matrix;
+- feature-parity boundary;
+- prerequisites;
+- Android build commands;
+- Windows run/MSI commands;
+- macOS run/DMG commands;
+- Linux run/DEB commands;
+- Wasm development/production commands;
+- JavaScript development/production commands;
+- compatibility browser distribution;
+- SwiftUI/Xcode architecture;
+- iOS framework/Xcode build commands;
+- shared target compilation;
+- cross-platform CI;
+- complete local verification recipes;
+- troubleshooting;
+- release checklist.
+
+Updated to match the new platform architecture:
+
 - `README.md`;
-- `PRIVACY.md`;
-- `SECURITY.md`;
-- `CONTRIBUTING.md`;
 - `CHANGELOG.md`;
-- `ROADMAP.md`;
-- `docs/architecture.md`;
 - `docs/setup.md`;
-- `docs/development.md`;
+- `docs/architecture.md`;
 - `docs/testing.md`;
 - `docs/release.md`;
-- `docs/troubleshooting.md`;
-- `docs/accessibility.md`;
-- `docs/performance.md`;
-- `docs/evidence.md`;
-- `.github/PULL_REQUEST_TEMPLATE.md`;
+- `scripts/check_repository.py`;
+- `scripts/verify.sh`;
+- `scripts/verify.ps1`;
 - this `what_changed.md`.
 
-Documentation now matches:
+## Changelog
 
+`CHANGELOG.md` now contains:
+
+```text
+## [2.0.12] - 2026-08-20
+```
+
+covering the shared Compose application, new native/web targets, platform CI, packaging, toolchain, documentation, and feature-parity note.
+
+## Android behavior preserved
+
+The cross-platform work intentionally preserves the mature Android privacy/data architecture.
+
+Existing Android security/privacy invariants remain important:
+
+- no required Internet permission for the offline calculator core;
+- Android backup disabled;
+- cleartext traffic disabled;
 - opt-in history default;
-- retention behavior;
-- file/share backup separation;
-- 1 MiB backup boundary;
-- restore confirmation;
-- non-portable consent/adult-gate state;
-- locale-aware numeric behavior;
-- iOS shared targets and macOS CI;
-- current automated verification gates;
-- adaptive launcher branding.
+- bounded retention;
+- bounded backup payloads;
+- explicit backup/restore actions;
+- adult-use/onboarding/history-consent state excluded from portable restore authority;
+- no production signing keys committed.
 
-## Commands/tool checks performed during this continuation
+## Safety/product-language boundary
 
-Repository state was inspected through the authenticated GitHub connector before editing.
+The new shared calculator UI preserves the adult-only product boundary and deliberately avoids body-image pressure.
 
-GitHub workflow/action configuration was checked against the current upstream action repositories before the workflow major-version changes.
+Results are presented as educational screening information. They are not diagnoses, appearance ratings, personal body targets, or instructions to pursue a particular physique.
 
-The WHO adult BMI evidence source was re-reviewed before adding `reviewedOnIsoDate` to source metadata.
+This is a required product invariant for future platform work.
 
-A direct public `git clone` was attempted inside the execution container to run the new Python repository checks locally, but the container cannot resolve external network hosts. This is an execution-environment network limitation, not a repository failure.
+## Verification status at this handoff commit
 
-The original execution environment still does not provide an Android SDK/Gradle installation suitable for authoritative local Android build verification. Therefore Android/JVM/Apple build results must come from the configured GitHub Actions runners.
+PR #15 is the cross-platform integration pull request.
 
-## Pull-request verification state at this handoff update
+This handoff update intentionally becomes a final documentation/invariant commit before the branch is frozen for CI inspection. GitHub may cancel older in-progress workflow runs when a newer branch commit supersedes them because the workflows use concurrency cancellation. Superseded/cancelled runs should not be interpreted as application test failures.
 
-PR #12 is open and GitHub reports it as mergeable with a clean merge state.
+The authoritative verification status is the workflow group attached to the final `feature/full-cross-platform` head after this file is committed.
 
-The final check group before this handoff update was queued for branch head `75f076431f5cbb50d040a0727685823b0075ca91`:
+Required final checks include:
 
-- CI run `32214845875`;
-- Android instrumentation run `32214845908`;
-- Apple shared core run `32214845780`;
-- Dependency Review run `32214846130`;
-- CodeQL run `32214845896`;
-- Secret Scan run `32214845883`.
+- CI;
+- Cross-platform;
+- Android instrumentation;
+- Apple shared core;
+- CodeQL;
+- Dependency Review;
+- Secret Scan.
 
-Earlier runs were repeatedly cancelled/superseded by the intentionally granular sequence of branch commits. Do not interpret those superseded runs as product test failures.
+Any actual failed final-head job must be inspected and fixed before merging. A queued or superseded job is not equivalent to a passing build.
 
-Because this `what_changed.md` update changes the branch head, GitHub will schedule one final check group for this new documentation commit. Inspect that final group before merging.
+## External distribution tasks intentionally not stored in source
 
-## Commit identity
+The following remain protected/manual distribution concerns rather than missing source-code features:
 
-Requested commit email:
+1. Android production signing credentials.
+2. Apple production certificates/provisioning/App Store signing.
+3. macOS publisher signing/notarization where required for distribution.
+4. Windows publisher signing where desired for distribution trust.
+5. Web-host/CDN deployment credentials.
+6. Physical-device and manual accessibility evidence.
+7. Release screenshots captured from real clients/devices.
 
-`sanskarin@outlook.in`
+Private signing credentials must not be committed merely to make repository CI emit store-signed binaries.
 
-GitHub Actions run metadata for this branch shows the generated commits with:
+## Exact continuation point
 
-- author name: `Sanskar`;
-- author email: `sanskarin@outlook.in`;
-- committer email: `sanskarin@outlook.in`.
-
-## Known limitations / external release blockers
-
-These are intentionally not claimed complete:
-
-1. Real screenshots cannot be captured in the current coding environment because it does not expose an interactive Android device/emulator display.
-2. Manual TalkBack, physical-device, keyboard/DPAD, and large-font accessibility evidence still requires a device/emulator interaction session.
-3. Production Android signing keys/passwords are intentionally not stored in GitHub source. A protected signing/distribution environment must be configured before a store release.
-4. The repository's automated checks must complete successfully on the final branch/release commit before `v0.1.0` is tagged.
-5. No desktop or iOS UI client is currently shipped; only the tested/configured shared core is cross-platform. Android remains the primary product as specified.
-
-These limitations are release/environment tasks rather than TODO placeholders in core product code.
-
-## Next exact tasks
-
-1. Allow the GitHub Actions group for the final `what_changed.md` branch head to run.
-2. Inspect every workflow/job result and logs.
-3. If any build/test/lint/security/documentation check fails, fix the root cause with a regression/verification change and rerun the failed checks.
-4. When PR #12 is fully green, merge it into `main` using a merge commit so the granular development history is preserved.
-5. Confirm `main` receives the merged implementation.
-6. Before `v0.1.0`, perform the remaining physical/manual release checks: screenshots, TalkBack/large-font/device review, protected production signing, and final release-candidate verification.
-7. Do not tag `v0.1.0` until all release blockers are resolved.
-
-## Release notes draft
-
-HealthMetric's next development release adds bounded opt-in local history, configurable retention, individual delete/undo, explicit file/share backup flows, defensive bounded restore parsing, non-portable privacy/adult-gate state, restore confirmation, locale-aware numeric presentation, iOS shared-core targets, expanded Android instrumentation, Apple compilation CI, adaptive launcher branding, evidence review metadata, repository integrity checks, and significantly expanded privacy/security/testing documentation.
+1. Treat this commit as the cross-platform branch freeze unless final-head CI finds a real defect.
+2. Inspect the workflow group for the final PR #15 head.
+3. If a job fails, inspect its job steps/logs and fix the root cause; then let the new final-head checks run.
+4. When all required checks pass, merge PR #15 into `main`.
+5. Confirm the merge is present on `main`.
+6. Do **not** create or move a production `v2.0.12` tag until the exact intended release commit has passed the required release-candidate checks and the release action is explicitly desired.

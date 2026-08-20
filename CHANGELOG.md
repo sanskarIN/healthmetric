@@ -2,6 +2,40 @@
 
 All notable HealthMetric changes are documented here. The project follows Semantic Versioning once tagged releases begin.
 
+## [2.0.12] - 2026-08-20
+
+### Added
+
+- First-class Compose Multiplatform application module for desktop, iOS/iPadOS, JavaScript web, and WebAssembly web.
+- Shared adult-use confirmation UI for all newly added calculator clients.
+- Shared metric/imperial BMI and waist-to-height calculator presentation backed by the existing Kotlin Multiplatform domain.
+- Windows desktop MSI packaging.
+- macOS desktop DMG packaging.
+- Linux desktop DEB packaging.
+- JavaScript browser application target and production webpack build.
+- WebAssembly browser application target and production webpack build.
+- Combined browser compatibility distribution for Wasm with JavaScript fallback deployment.
+- Native SwiftUI iPhone/iPad host around the shared Compose application.
+- Buildable Xcode project and shared `HealthMetric` scheme.
+- Static `HealthMetricUI` Kotlin framework integration for Apple clients.
+- Cross-platform GitHub Actions workflow covering Windows, macOS, Linux, browser, and iOS simulator builds.
+- Native desktop package artifacts and browser distribution artifacts in CI.
+- `docs/cross-platform.md` with complete run/build/package/Xcode/browser/CI instructions.
+- Repository invariants that ensure the cross-platform module, target entry points, iOS host, CI workflow, and native desktop package formats remain present.
+
+### Changed
+
+- `shared` now also exposes JavaScript browser and WebAssembly browser targets in addition to Android, JVM desktop, and Apple targets.
+- Root Gradle configuration now includes Compose Multiplatform and the `composeApp` module.
+- Project documentation now identifies Android, iPhone/iPad, Windows, macOS, Linux, WebAssembly web, JavaScript web, and ChromeOS-via-Android support explicitly.
+- Android application version aligned to `2.0.12` (`versionCode` 2012) to match the iOS and desktop package version.
+- Cross-platform client language preserves the adult-only, educational, non-diagnostic, non-appearance-target safety framing used by the Android product.
+
+### Platform parity note
+
+- Android remains the most feature-complete client and retains opt-in persistent history, Android DataStore, JSON backup/restore, Android dynamic color, and Android-specific document/share integrations.
+- iOS, desktop, and web now ship the shared adult calculator application and health-domain validation but do not falsely claim Android-specific persistence/integration parity.
+
 ## [Unreleased]
 
 ### Added

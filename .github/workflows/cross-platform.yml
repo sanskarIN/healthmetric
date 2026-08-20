@@ -1,0 +1,129 @@
+name: Cross-platform
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cross-platform-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web:
+    name: Web (JS + Wasm)
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: "8.13"
+
+      - name: Verify shared and Compose formatting
+        run: gradle :shared:ktlintCheck :composeApp:ktlintCheck
+
+      - name: Run shared JVM tests
+        run: gradle :shared:desktopTest
+
+      - name: Build JavaScript browser distribution
+        run: gradle :composeApp:jsBrowserProductionWebpack
+
+      - name: Build Wasm browser distribution
+        run: gradle :composeApp:wasmJsBrowserProductionWebpack
+
+      - name: Build compatibility browser distribution
+        run: gradle :composeApp:composeCompatibilityBrowserDistribution
+
+      - name: Upload browser distributions
+        uses: actions/upload-artifact@v7
+        with:
+          name: healthmetric-web
+          path: composeApp/build/dist/**
+          if-no-files-found: error
+          retention-days: 14
+
+  desktop:
+    name: Desktop (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: "8.13"
+
+      - name: Compile desktop application
+        run: gradle :composeApp:compileKotlinDesktop
+
+      - name: Package native desktop distribution
+        run: gradle :composeApp:packageDistributionForCurrentOS
+
+      - name: Upload native desktop package
+        uses: actions/upload-artifact@v7
+        with:
+          name: healthmetric-desktop-${{ runner.os }}
+          path: composeApp/build/compose/binaries/**
+          if-no-files-found: error
+          retention-days: 14
+
+  ios:
+    name: iOS simulator
+    runs-on: macos-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: "8.13"
+
+      - name: Compile Kotlin iOS simulator framework
+        run: gradle :composeApp:linkDebugFrameworkIosSimulatorArm64
+
+      - name: Build iOS application with Xcode
+        run: >-
+          xcodebuild
+          -project iosApp/HealthMetric.xcodeproj
+          -scheme HealthMetric
+          -sdk iphonesimulator
+          -configuration Debug
+          CODE_SIGNING_ALLOWED=NO
+          build
