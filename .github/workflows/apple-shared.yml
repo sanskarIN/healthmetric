@@ -17,7 +17,7 @@ concurrency:
 jobs:
   compile-ios:
     runs-on: macos-latest
-    timeout-minutes: 35
+    timeout-minutes: 40
 
     steps:
       - name: Checkout
@@ -40,6 +40,9 @@ jobs:
           yes | sdkmanager --licenses >/dev/null || true
           sdkmanager "platforms;android-36" "build-tools;35.0.0"
 
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
       - name: Verify shared JVM tests on macOS
         run: gradle :shared:desktopTest
 
@@ -54,3 +57,18 @@ jobs:
 
       - name: Link shared UI framework for iOS device
         run: gradle :sharedUI:linkDebugFrameworkIosArm64
+
+      - name: Generate iOS Xcode project
+        working-directory: iosApp
+        run: xcodegen generate
+
+      - name: Build iOS simulator host
+        run: >-
+          xcodebuild
+          -project iosApp/HealthMetricIOS.xcodeproj
+          -scheme HealthMetric
+          -configuration Debug
+          -sdk iphonesimulator
+          -destination 'generic/platform=iOS Simulator'
+          CODE_SIGNING_ALLOWED=NO
+          build
