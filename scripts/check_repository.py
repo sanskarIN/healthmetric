@@ -26,6 +26,8 @@ REQUIRED_PATHS = [
     "composeApp/src/desktopMain/kotlin/io/github/sanskarin/healthmetric/Main.kt",
     "composeApp/src/iosMain/kotlin/io/github/sanskarin/healthmetric/HealthMetricViewControllerFactory.kt",
     "composeApp/src/webMain/kotlin/io/github/sanskarin/healthmetric/Main.kt",
+    "composeApp/src/webMain/resources/index.html",
+    "composeApp/src/webMain/resources/styles.css",
     "iosApp/HealthMetric.xcodeproj/project.pbxproj",
     "iosApp/HealthMetric.xcodeproj/xcshareddata/xcschemes/HealthMetric.xcscheme",
     "iosApp/HealthMetricApp/HealthMetricApp.swift",
@@ -85,6 +87,8 @@ def main() -> int:
         "sanskarin.business@gmail.com",
         "supportramsandesh@gmail.com",
         "MIT",
+        "Kotlin **2.4.10**",
+        "Compose Multiplatform **1.11.1**",
         "Windows",
         "macOS",
         "Linux",
@@ -109,6 +113,12 @@ def main() -> int:
     if 'include(":composeApp")' not in settings:
         failures.append("settings.gradle.kts must include the cross-platform composeApp module")
 
+    versions = read("gradle/libs.versions.toml")
+    if 'kotlin = "2.4.10"' not in versions:
+        failures.append("version catalog must keep Kotlin 2.4.10 for the current cross-platform toolchain")
+    if 'composeMultiplatform = "1.11.1"' not in versions:
+        failures.append("version catalog must keep Compose Multiplatform 1.11.1 for release 2.0.12")
+
     shared_build = read("shared/build.gradle.kts")
     for target in ["iosArm64()", "iosSimulatorArm64()", "js", "wasmJs"]:
         if target not in shared_build:
@@ -121,6 +131,17 @@ def main() -> int:
     for package_format in ["TargetFormat.Dmg", "TargetFormat.Msi", "TargetFormat.Deb"]:
         if package_format not in compose_build:
             failures.append(f"composeApp desktop packaging is missing: {package_format}")
+    if 'packageVersion = "2.0.12"' not in compose_build:
+        failures.append("desktop package version must remain aligned to 2.0.12 for this release branch")
+
+    android_build = read("androidApp/build.gradle.kts")
+    for version_fragment in ['versionCode = 2012', 'versionName = "2.0.12"']:
+        if version_fragment not in android_build:
+            failures.append(f"Android release metadata is missing: {version_fragment}")
+
+    ios_info = read("iosApp/HealthMetricApp/Info.plist")
+    if "<string>2.0.12</string>" not in ios_info:
+        failures.append("iOS Info.plist must identify release 2.0.12")
 
     cross_platform_ci = read(".github/workflows/cross-platform.yml")
     for runner in ["ubuntu-latest", "windows-latest", "macos-latest"]:
@@ -129,12 +150,30 @@ def main() -> int:
     for task in [
         "jsBrowserProductionWebpack",
         "wasmJsBrowserProductionWebpack",
+        "composeCompatibilityBrowserDistribution",
         "packageDistributionForCurrentOS",
         "linkDebugFrameworkIosSimulatorArm64",
         "xcodebuild",
     ]:
         if task not in cross_platform_ci:
             failures.append(f"cross-platform CI is missing verification task: {task}")
+
+    release_ci = read(".github/workflows/release.yml")
+    required_release_fragments = [
+        "android-unsigned.apk",
+        "android-unsigned.aab",
+        "windows.msi",
+        "macos.dmg",
+        "linux.deb",
+        "web.zip",
+        "ios-framework.zip",
+        "actions/download-artifact@v8",
+        "composeCompatibilityBrowserDistribution",
+        "linkReleaseFrameworkIosArm64",
+    ]
+    for fragment in required_release_fragments:
+        if fragment not in release_ci:
+            failures.append(f"release workflow is missing cross-platform release invariant: {fragment}")
 
     if failures:
         print("Repository invariant audit failed:")
