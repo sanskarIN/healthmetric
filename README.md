@@ -11,7 +11,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-sanskarIN-FFDD00?logo=buy-me-a-coffee&logoColor=000000)](https://buymeacoffee.com/sanskarIN)
 
-**HealthMetric** is an open-source, privacy-first adult BMI and health measurement calculator built with Kotlin, Jetpack Compose, Compose Multiplatform, SwiftUI, and a shared Kotlin Multiplatform calculation core.
+**HealthMetric** is an open-source, privacy-first adult BMI and health measurement calculator built with Kotlin Multiplatform, Jetpack Compose, Compose Multiplatform, and a SwiftUI iOS/iPadOS host.
 
 > [!IMPORTANT]
 > HealthMetric's BMI and waist-to-height tools are intended for adults age 18 or older. Results are educational screening information only. They are not medical diagnoses, appearance scores, or personal body targets.
@@ -20,26 +20,22 @@
 
 ## Cross-platform support
 
-HealthMetric now has first-class application targets for the major mobile, desktop, and browser platforms while keeping one validated health calculation domain.
+HealthMetric has first-class application targets for the major mobile, desktop, and browser platforms while keeping one validated health-calculation domain.
 
-| Platform | Support | Application technology | Primary output |
+| Platform | Status | Application technology | Primary output |
 |---|---|---|---|
-| Android | ✅ Full | Jetpack Compose | APK / AAB |
-| iPhone / iPad | ✅ Full calculator client | Compose Multiplatform hosted by SwiftUI | Xcode app / IPA through normal Apple signing |
-| Windows | ✅ Full calculator client | Compose Desktop | MSI |
-| macOS | ✅ Full calculator client | Compose Desktop | DMG |
-| Linux | ✅ Full calculator client | Compose Desktop | DEB |
+| Android | ✅ Full Android client | Jetpack Compose | APK / AAB |
+| iPhone / iPad | ✅ Calculator client | Compose Multiplatform hosted by SwiftUI/UIKit | Xcode app; signed IPA via protected Apple signing |
+| Windows | ✅ Calculator client | Compose Desktop | MSI |
+| macOS | ✅ Calculator client | Compose Desktop | DMG |
+| Linux | ✅ Calculator client | Compose Desktop | DEB |
 | Web — WebAssembly | ✅ Supported | Compose Multiplatform Wasm | Browser distribution |
 | Web — JavaScript fallback | ✅ Supported | Compose Multiplatform JS | Browser distribution |
-| ChromeOS | ✅ Supported through Android where Android apps are available | Android app | APK / store install |
+| ChromeOS | ✅ Through Android where Android apps are supported | Android app | APK / store install |
 
-The Android client remains the most feature-complete platform-specific client: it additionally includes opt-in persistent history, retention controls, JSON backup/restore, Android dynamic color, and Android platform integrations. The new iOS, desktop, and web clients currently provide the shared adult-use gate plus metric/imperial BMI and waist-to-height calculator experience. Platform support and buildability are enforced by `.github/workflows/cross-platform.yml`; feature-parity work can continue independently without duplicating calculation rules.
+The Android client remains the most feature-complete platform-specific client. It additionally contains opt-in persistent history, configurable retention, JSON backup/restore, Android dynamic color, and Android document/share integrations. The iOS, desktop, and web clients provide the shared adult-use gate plus metric/imperial BMI and waist-to-height calculator experience backed by the same domain validation. This distinction is documented deliberately so platform support is not confused with identical feature parity.
 
-See **[`docs/cross-platform.md`](docs/cross-platform.md)** for the complete build, run, packaging, Xcode, browser, CI, and troubleshooting guide.
-
-## Why HealthMetric?
-
-HealthMetric is designed as a maintainable product rather than a one-screen calculator demo. The repository provides a deterministic shared domain, strict validation, adult-only safety gates, privacy-first defaults, accessible neutral presentation, Android local-data controls, reproducible builds, automated tests, security checks, and cross-platform CI.
+See **[`docs/cross-platform.md`](docs/cross-platform.md)** for the complete platform build, run, packaging, Xcode, browser, CI, release, and troubleshooting guide.
 
 ## Core features
 
@@ -47,18 +43,20 @@ HealthMetric is designed as a maintainable product rather than a one-screen calc
 - Versioned adult BMI reference metadata with reviewed evidence information.
 - Adult waist-to-height ratio calculation presented without appearance rankings or pressure-oriented goals.
 - Strict finite-number and plausible-range input validation.
-- Accurate metric/imperial conversions in the shared Kotlin Multiplatform domain.
-- Adult-use confirmation before adult reference calculators are available.
-- Offline/local calculation behavior with no ad SDK or advertising tracker requirement.
+- Shared metric/imperial conversion helpers.
+- Adult-use confirmation before adult reference calculators become available.
+- Local calculator execution without requiring a remote health API.
+- One Kotlin Multiplatform health domain reused across Android, iOS/iPadOS, desktop, JavaScript, and WebAssembly.
 - Shared Compose calculator UI for iOS, Windows, macOS, Linux, JavaScript web, and WebAssembly web.
-- Native SwiftUI host project for iPhone/iPad.
+- Native SwiftUI/Xcode host for iPhone and iPad.
 - Native desktop packaging for MSI, DMG, and DEB.
-- JavaScript and Wasm browser production builds.
+- Browser production builds for Wasm and JavaScript compatibility.
+- Cross-platform GitHub Actions build/packaging verification.
 
 ### Android-specific product features
 
 - Optional local calculation history, **disabled by default** until explicitly enabled.
-- Retention limits of 50, 100, 250, or 500 results.
+- History-retention limits of 50, 100, 250, or 500 results.
 - Per-entry deletion with immediate undo.
 - Accessible neutral measurement-history chart.
 - Confirmation before destructive erase-all, delete-all-data, and restore actions.
@@ -73,35 +71,36 @@ HealthMetric is designed as a maintainable product rather than a one-screen calc
 
 ```text
 HealthMetric/
-├── androidApp/                 # Mature Android app + Android persistence/integrations
+├── androidApp/                 # Mature Android UI + Android persistence/integrations
 ├── composeApp/                 # Shared iOS/Desktop/Web Compose application
-│   ├── src/commonMain/         # Cross-platform calculator UI and adult-use gate
+│   ├── src/commonMain/         # Cross-platform calculator UI + adult-use gate
 │   ├── src/desktopMain/        # Windows/macOS/Linux entry point
 │   ├── src/iosMain/            # UIKit controller bridge
-│   └── src/webMain/            # JS/Wasm browser entry point
+│   └── src/webMain/            # JS/Wasm browser entry point + web resources
 ├── iosApp/                     # SwiftUI host + Xcode project/scheme
-├── shared/                     # Kotlin Multiplatform domain and validation
-│   ├── src/commonMain/         # Calculators, units, reference model, validation
+├── shared/                     # Kotlin Multiplatform domain + validation
+│   ├── src/commonMain/         # Calculators, units, references, validation
 │   └── src/commonTest/         # Cross-platform domain tests
-├── docs/                       # Architecture, setup, testing, release and platform docs
+├── docs/                       # Architecture, setup, testing, release, platform docs
 ├── gradle/libs.versions.toml   # Central dependency/version catalog
-└── .github/workflows/          # Android, cross-platform, security and release CI
+└── .github/workflows/          # Android, cross-platform, security, release CI
 ```
 
-The `shared` module owns deterministic health calculation and validation rules. No platform reimplements BMI or waist-to-height math. `androidApp` owns the mature Android-specific product/data layer. `composeApp` provides a reusable UI for Apple, desktop, and browser targets, and `iosApp` is the native Apple host.
+The `shared` module owns deterministic calculation and validation rules; platform clients do not reimplement BMI or waist-to-height formulas. `androidApp` owns Android-specific product/data behavior. `composeApp` owns the reusable calculator presentation for Apple, desktop, and browser targets. `iosApp` is the native Apple host.
 
 ## Technology stack
 
-- Kotlin 2.2.20.
+- Kotlin **2.4.10**.
 - Kotlin Multiplatform.
-- Compose Multiplatform 1.11.1.
-- Jetpack Compose UI 1.9.2 for the existing Android app.
+- Compose Multiplatform **1.11.1**.
+- Jetpack Compose UI 1.9.2 for the existing Android application.
 - Material 3.
 - SwiftUI/UIKit host integration for iOS/iPadOS.
 - Android Gradle Plugin 8.13.2.
 - Gradle 8.13 in CI.
+- JDK 17.
 - AndroidX DataStore Preferences for Android local settings/history.
-- JUnit/Kotlin Test, Android instrumentation, Xcode simulator builds, desktop packaging checks, JS/Wasm browser compilation, CodeQL, dependency review, and secret scanning.
+- Kotlin Test/JUnit, Android instrumentation, Xcode simulator builds, desktop packaging checks, JS/Wasm browser compilation, CodeQL, dependency review, and secret scanning.
 
 Versions are centrally pinned in [`gradle/libs.versions.toml`](gradle/libs.versions.toml).
 
@@ -111,18 +110,11 @@ Versions are centrally pinned in [`gradle/libs.versions.toml`](gradle/libs.versi
 
 - Git.
 - JDK 17.
-- Gradle 8.13, unless an IDE-provided compatible Gradle launcher is being used.
-
-Clone once:
+- Gradle 8.13, unless an IDE-provided compatible Gradle launcher is used.
 
 ```bash
 git clone https://github.com/sanskarIN/healthmetric.git
 cd healthmetric
-```
-
-Verify the shared domain:
-
-```bash
 gradle :shared:desktopTest
 ```
 
@@ -130,53 +122,50 @@ gradle :shared:desktopTest
 
 Requirements: Android Studio, Android SDK Platform 36, Build Tools 35.0.0.
 
+Debug APK:
+
 ```bash
 gradle :androidApp:assembleDebug
 ```
 
-Debug APK:
+Unsigned release packages:
+
+```bash
+gradle :androidApp:assembleRelease :androidApp:bundleRelease
+```
+
+Outputs:
 
 ```text
-androidApp/build/outputs/apk/debug/
+androidApp/build/outputs/apk/
+androidApp/build/outputs/bundle/
 ```
 
-Unsigned release APK:
+### Windows, macOS, and Linux
 
-```bash
-gradle :androidApp:assembleRelease
-```
-
-Unsigned Android App Bundle:
-
-```bash
-gradle :androidApp:bundleRelease
-```
-
-### Windows, macOS, and Linux desktop
-
-Run the desktop application:
+Run:
 
 ```bash
 gradle :composeApp:run
 ```
 
-Build the installer/package appropriate for the current operating system:
+Build the native package for the current host OS:
 
 ```bash
 gradle :composeApp:packageDistributionForCurrentOS
 ```
 
-Configured formats are MSI on Windows, DMG on macOS, and DEB on Linux. Outputs are placed under `composeApp/build/compose/binaries/`.
+Configured formats are MSI on Windows, DMG on macOS, and DEB on Linux. Outputs are below `composeApp/build/compose/binaries/`.
 
 ### Web — WebAssembly
 
-Development server:
+Development:
 
 ```bash
 gradle :composeApp:wasmJsBrowserDevelopmentRun
 ```
 
-Production build:
+Production:
 
 ```bash
 gradle :composeApp:wasmJsBrowserProductionWebpack
@@ -184,19 +173,19 @@ gradle :composeApp:wasmJsBrowserProductionWebpack
 
 ### Web — JavaScript fallback
 
-Development server:
+Development:
 
 ```bash
 gradle :composeApp:jsBrowserDevelopmentRun
 ```
 
-Production build:
+Production:
 
 ```bash
 gradle :composeApp:jsBrowserProductionWebpack
 ```
 
-Build the compatibility distribution that can serve the Wasm path with a JS fallback:
+Compatibility distribution:
 
 ```bash
 gradle :composeApp:composeCompatibilityBrowserDistribution
@@ -204,65 +193,72 @@ gradle :composeApp:composeCompatibilityBrowserDistribution
 
 ### iOS / iPadOS
 
-Apple builds require macOS and Xcode. Open:
+Apple application builds require macOS and Xcode. Open:
 
 ```text
 iosApp/HealthMetric.xcodeproj
 ```
 
-Select the shared `HealthMetric` scheme and an iPhone/iPad simulator. The Xcode build phase invokes:
+Select the shared `HealthMetric` scheme and an iPhone/iPad simulator. The Xcode build phase invokes the Kotlin direct-integration task:
 
 ```bash
 gradle :composeApp:embedAndSignAppleFrameworkForXcode
 ```
 
-For a direct Kotlin simulator-framework build:
+Direct simulator framework build:
 
 ```bash
 gradle :composeApp:linkDebugFrameworkIosSimulatorArm64
 ```
 
-Production device/archive signing stays in Xcode and must use the developer's protected Apple signing identity; signing credentials are never committed to this repository.
+Production device/App Store signing stays in a protected Xcode/Apple distribution process; private signing material is never committed to the repository.
 
 ## Testing and verification
 
-Local common checks:
+Common local checks:
 
 ```bash
 gradle :shared:ktlintCheck :composeApp:ktlintCheck :androidApp:ktlintCheck
 gradle :shared:desktopTest
+gradle :composeApp:compileKotlinDesktop
+gradle :composeApp:jsBrowserProductionWebpack
+gradle :composeApp:wasmJsBrowserProductionWebpack
 gradle :androidApp:testDebugUnitTest
 gradle :androidApp:lintRelease
 ```
 
-Cross-platform build checks:
-
-```bash
-gradle :composeApp:compileKotlinDesktop
-gradle :composeApp:jsBrowserProductionWebpack
-gradle :composeApp:wasmJsBrowserProductionWebpack
-```
-
-Android instrumentation requires an Android device/emulator:
+Android instrumentation with a connected device/emulator:
 
 ```bash
 gradle :androidApp:connectedDebugAndroidTest
 ```
 
-On macOS, verify the iOS framework and Xcode host with:
+On macOS, verify the iOS framework and Xcode host:
 
 ```bash
 gradle :composeApp:linkDebugFrameworkIosSimulatorArm64
 xcodebuild -project iosApp/HealthMetric.xcodeproj -scheme HealthMetric -sdk iphonesimulator -configuration Debug CODE_SIGNING_ALLOWED=NO build
 ```
 
-Pull requests run separate standard Android, Android-emulator, cross-platform, CodeQL, dependency-review, secret-scan, and Apple/shared checks.
+Complete local verification helpers:
+
+```bash
+bash scripts/verify.sh
+```
+
+Windows PowerShell:
+
+```powershell
+.\scripts\verify.ps1
+```
+
+Pull requests run standard Android CI, Android emulator instrumentation, a Windows/macOS/Linux/Web/iOS cross-platform matrix, Apple shared-core compilation, CodeQL, dependency review, and repository-history secret scanning.
 
 See [`docs/testing.md`](docs/testing.md) and [`docs/cross-platform.md`](docs/cross-platform.md).
 
 ## Privacy and local data
 
-The shared calculators do not need an account, advertising SDK, or remote service. Android persistent measurement history is disabled by default. When Android history is explicitly enabled, HealthMetric stores calculated result metadata rather than raw weight/height/waist input fields.
+The shared calculators do not require an account, advertising SDK, remote service, or health-data backend. Android persistent measurement history is disabled by default. When Android history is explicitly enabled, HealthMetric stores calculated result metadata rather than raw weight/height/waist input fields.
 
 Android backup and restore are explicit user actions. Backup reads/writes are capped at 1 MiB. Portable backups exclude history opt-in, adult-use confirmation, and onboarding completion, so importing a file cannot silently enable local collection or bypass the adult-use gate.
 
@@ -270,18 +266,28 @@ See [`PRIVACY.md`](PRIVACY.md) and [`docs/backup-format.md`](docs/backup-format.
 
 ## Build and release
 
-Android tagged releases continue to produce unsigned Android artifacts that must be signed through a protected release process. Desktop packages are generated per host operating system. iOS distribution requires normal Apple signing/archive steps. Web production distributions can be deployed as static browser assets.
+Tags matching `v*` run the multi-platform release workflow. A successful tagged build prepares these GitHub Release assets:
 
-See [`docs/release.md`](docs/release.md) and [`docs/cross-platform.md`](docs/cross-platform.md) for platform-specific distribution commands.
+1. Android unsigned APK.
+2. Android unsigned AAB.
+3. Windows MSI.
+4. macOS DMG.
+5. Linux DEB.
+6. Web compatibility-distribution ZIP.
+7. iOS ARM64 developer framework ZIP.
+
+The iOS framework ZIP is a developer artifact, not a signed App Store IPA. Apple production archives/signing, Android store signing, desktop publisher signing/notarization where required, and deployment credentials remain outside source control in protected distribution environments.
+
+See [`docs/release.md`](docs/release.md) and [`docs/cross-platform.md`](docs/cross-platform.md).
 
 ## Documentation
 
 - [`docs/cross-platform.md`](docs/cross-platform.md) — complete platform build/run/package guide.
-- [`docs/setup.md`](docs/setup.md) — development environment setup.
+- [`docs/setup.md`](docs/setup.md) — environment setup.
 - [`docs/development.md`](docs/development.md) — development workflow.
 - [`docs/architecture.md`](docs/architecture.md) — architecture and boundaries.
 - [`docs/testing.md`](docs/testing.md) — test matrix and regression policy.
-- [`docs/release.md`](docs/release.md) — release process.
+- [`docs/release.md`](docs/release.md) — multi-platform release process.
 - [`docs/troubleshooting.md`](docs/troubleshooting.md) — common problems.
 - [`docs/accessibility.md`](docs/accessibility.md) — accessibility expectations.
 - [`docs/evidence.md`](docs/evidence.md) — health-reference evidence workflow.
