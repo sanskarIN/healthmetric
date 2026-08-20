@@ -5,101 +5,132 @@
 # HealthMetric
 
 [![CI](https://github.com/sanskarIN/healthmetric/actions/workflows/ci.yml/badge.svg)](https://github.com/sanskarIN/healthmetric/actions/workflows/ci.yml)
+[![Cross-platform](https://github.com/sanskarIN/healthmetric/actions/workflows/cross-platform.yml/badge.svg)](https://github.com/sanskarIN/healthmetric/actions/workflows/cross-platform.yml)
 [![Android instrumentation](https://github.com/sanskarIN/healthmetric/actions/workflows/android-instrumentation.yml/badge.svg)](https://github.com/sanskarIN/healthmetric/actions/workflows/android-instrumentation.yml)
-[![Apple shared core](https://github.com/sanskarIN/healthmetric/actions/workflows/apple-shared.yml/badge.svg)](https://github.com/sanskarIN/healthmetric/actions/workflows/apple-shared.yml)
+[![Apple](https://github.com/sanskarIN/healthmetric/actions/workflows/apple-shared.yml/badge.svg)](https://github.com/sanskarIN/healthmetric/actions/workflows/apple-shared.yml)
 [![CodeQL](https://github.com/sanskarIN/healthmetric/actions/workflows/codeql.yml/badge.svg)](https://github.com/sanskarIN/healthmetric/actions/workflows/codeql.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-sanskarIN-FFDD00?logo=buy-me-a-coffee&logoColor=000000)](https://buymeacoffee.com/sanskarIN)
 
-**HealthMetric** is an open-source, privacy-first **adult BMI and health measurement calculator** built with Kotlin, Jetpack Compose, and a Kotlin Multiplatform shared calculation core.
+**HealthMetric** is an open-source, privacy-first adult health-measurement toolkit built with Kotlin Multiplatform, Jetpack Compose, Compose Multiplatform, and SwiftUI.
 
 > [!IMPORTANT]
-> HealthMetric's BMI and waist-to-height tools are intended for adults age 18 or older. Results are educational screening information only. They are not medical diagnoses, appearance scores, or personal body targets.
+> HealthMetric's BMI and waist-to-height reference tools are intended for adults age 18 or older. Results are educational screening information only. They are not medical diagnoses, appearance scores, or personal body targets.
 
 **Made by the Sanskar**
 
-## Why HealthMetric?
+## What makes HealthMetric different?
 
-Health calculators are often tiny demos. HealthMetric is designed as a portfolio-quality product with a shared domain layer, strict validation, offline opt-in history, accessible neutral charts, bounded local retention, explicit file/share backup flows, locale-aware numeric handling, automated tests, emulator and Apple-target CI, security analysis, localization-ready resources, and complete project documentation.
+HealthMetric treats a small calculator as a real software product rather than a demo. The repository separates deterministic health-domain rules from platform UI, keeps Android history opt-in and local, applies bounded backup handling, verifies adult-use safety rules, supports locale-aware input, and now exposes the same adult-safe calculation engine across Android, desktop, web, and Apple targets.
 
-## Features
+The cross-platform clients deliberately stay simple: calculations execute locally in the running client, no analytics or advertising SDK is added, and no account or backend is required for the calculator experience.
 
-- Adult BMI calculation in metric and imperial units.
-- Configurable, versioned adult BMI reference metadata with source review information.
-- Adult waist-to-height ratio calculation presented without appearance rankings or pressure-oriented goals.
-- Strict finite-number and plausible-range validation.
-- Accurate metric/imperial conversion helpers in the shared Kotlin Multiplatform module.
-- Adult-only onboarding gate before reference calculators become available.
-- Privacy-first offline operation; no advertising SDKs or ad trackers.
-- Optional local calculation history that is **disabled by default** and requires explicit opt-in.
-- User-selectable local history retention limits of 50, 100, 250, or 500 results.
-- Per-entry history deletion with an immediate undo action.
-- Accessible measurement history chart with a screen-reader summary and no color-based health meaning.
-- Confirmation before destructive erase-all, delete-all-data, and restore operations.
-- JSON backup saved directly through Android's document picker or explicitly shared to another app.
-- JSON restore with schema validation, bounded file size, bounded history, malformed-record recovery, and duplicate-ID protection.
-- Portable backups cannot change the current device's history opt-in, adult-use confirmation, or onboarding safety state.
-- Locale-aware decimal input accepting the user's decimal separator plus dot/comma fallback, with locale-aware result/history formatting.
-- Full local-data deletion that returns the app to first-run privacy defaults.
-- Light, dark, and system theme modes with Android dynamic color where supported.
-- Branded splash screen, adaptive launcher icons, round icons, and Android 13+ themed icon support.
-- Shared typography, shape, spacing, elevation, and motion design tokens.
-- Android UI copy externalized to resources for localization readiness.
-- About screen with license, version, GitHub, support contacts, funding link, and project credit.
-- Settings update section linking to public GitHub releases.
-- Kotlin formatting checks, release lint, unit tests, emulator instrumentation tests, Apple shared-core compilation, CodeQL, dependency review, secret scanning, and Dependabot automation.
+## Platform support
 
-## Supported platforms
-
-| Platform | Status | Notes |
+| Platform | Status | Implementation |
 |---|---|---|
-| Android | Primary | Jetpack Compose app, min SDK 26, target/compile SDK 36 |
-| JVM/Desktop core | Ready | Shared calculation module exposes a JVM target and JVM test suite |
-| iOS shared core | Configured | Kotlin Multiplatform `iosArm64` and `iosSimulatorArm64` targets; macOS CI compiles both |
+| Android | Primary / feature-complete | Native Jetpack Compose app with opt-in DataStore history, backup/restore, settings, accessibility semantics, and instrumentation tests |
+| Windows | Beta client | Compose Desktop JVM app; native MSI packaging configured |
+| macOS | Beta client | Compose Desktop JVM app; native DMG packaging configured |
+| Linux | Beta client | Compose Desktop JVM app; native DEB packaging configured |
+| Web — Wasm | Beta client | Compose Multiplatform browser executable using `ComposeViewport` |
+| Web — JavaScript | Compatibility client | JavaScript browser executable built from the same shared UI |
+| iOS / iPadOS | Beta host | SwiftUI host generated with XcodeGen and backed by the reusable `HealthMetricUI` Kotlin framework |
+| Shared Kotlin core | Stable foundation | Android, JVM/Desktop, JS, Wasm, iOS device, Intel simulator, and Apple-silicon simulator targets |
 
-The repository does not currently ship a desktop or iOS user interface. The shared calculation core is intentionally reusable for those future clients.
+Android remains the richest client because local history, Android document-provider backup/restore, and platform settings are Android-specific today. Desktop, web, and iOS share the adult gate and calculator experience through `sharedUI`; persistence parity is intentionally tracked as future work rather than pretending platform-specific storage already exists.
+
+## Core features
+
+- Adult BMI calculation in metric and imperial units in the domain engine.
+- Adult waist-to-height ratio calculation with neutral educational output.
+- Stable `HealthMetricEngine` façade so platform clients use identical age eligibility and calculation routing.
+- Versioned adult BMI reference metadata with explicit evidence review date.
+- Strict finite-number and plausible-range validation.
+- Shared metric/imperial conversion helpers.
+- Adult-use eligibility gate before adult reference calculators are exposed.
+- No appearance scoring, body ranking, or pressure-oriented body targets.
+- No required account, backend, advertising SDK, or analytics tracker.
+
+### Android product features
+
+- Optional local calculation history, **disabled by default** until explicit opt-in.
+- User-selectable history retention limits: 50, 100, 250, or 500 results.
+- Per-entry deletion with immediate undo.
+- Accessible history chart whose meaning is not communicated by color alone.
+- JSON backup through Android's document picker and explicit share chooser.
+- Defensive restore: 1 MiB IO bound, schema validation, bounded records, malformed-record recovery, duplicate-ID protection, and restore confirmation.
+- Portable backups cannot alter current history opt-in, adult-use confirmation, or onboarding safety state.
+- Locale-aware decimal input plus locale-aware result/history formatting.
+- Full local-data deletion returning the app to first-run privacy defaults.
+- Light, dark, system, and supported Android dynamic-color presentation.
+- Branded splash, adaptive/round launcher icons, and Android 13+ themed icon support.
+- About/support/funding and update links.
+
+## Repository architecture
+
+```text
+HealthMetric/
+├── shared/          # Pure Kotlin Multiplatform health domain + tests
+├── sharedUI/        # Reusable Compose Multiplatform adult gate/calculator UI
+├── androidApp/      # Full Android product client and local persistence
+├── desktopApp/      # Windows/macOS/Linux Compose Desktop launcher + packaging
+├── webApp/          # JavaScript and Wasm browser launchers
+├── iosApp/          # SwiftUI host + reproducible XcodeGen project specification
+├── docs/            # Architecture, setup, testing, evidence, privacy, release docs
+├── scripts/         # Cross-platform local verification helpers
+└── .github/         # Build, emulator, Apple, security, and release automation
+```
+
+### Ownership boundaries
+
+- `shared` owns calculations, conversions, validation, adult eligibility, reference metadata, and primitive result summaries.
+- `sharedUI` owns only reusable presentation for desktop/web/iOS. It does not own storage or platform integrations.
+- `androidApp` owns Android persistence, locale presentation helpers, document/share intents, settings, and Android-specific UI flows.
+- `desktopApp`, `webApp`, and `iosApp` are intentionally thin hosts over `sharedUI`.
+
+See [`docs/architecture.md`](docs/architecture.md) and the [`docs/adr/`](docs/adr/) directory.
 
 ## Tech stack
 
-- Kotlin 2.2.20
-- Kotlin Multiplatform shared domain module
+- Kotlin 2.4.10
+- Kotlin Multiplatform
+- Compose Multiplatform 1.11.0
 - Android Gradle Plugin 8.13.2
-- Gradle 8.13 in CI
-- Jetpack Compose UI 1.9.2
+- Gradle 8.13 in CI and documented local setup
+- Jetpack Compose UI 1.9.2 for the Android client
 - Material 3 1.4.0
-- AndroidX Core SplashScreen 1.2.0
 - AndroidX DataStore Preferences 1.2.1
 - AndroidX Lifecycle 2.9.4
 - kotlinx.coroutines 1.10.2
-- ktlint Gradle plugin 14.2.0
-- JUnit, Compose UI testing, Android emulator instrumentation, and macOS Apple-target compilation
+- SwiftUI + XcodeGen for the iOS host
+- ktlint 14.2.0
+- JUnit, Compose UI tests, Android instrumentation, cross-platform compilation, CodeQL, dependency review, and secret scanning
 
 Versions are centrally pinned in [`gradle/libs.versions.toml`](gradle/libs.versions.toml).
 
-## Screenshots / demo
+## Requirements
 
-Real device screenshots remain a release-candidate task because the initial coding environment does not provide an Android emulator UI for capture. Capture guidance and the required screenshot set are tracked in [`docs/assets/screenshots/README.md`](docs/assets/screenshots/README.md).
+### Common / Android / desktop / web
 
-Planned captures:
+- Git
+- JDK 17
+- Gradle 8.13 available as `gradle`
+- Android SDK Platform 36 and Build Tools 35.0.0 because the multi-project build configures Android targets
 
-1. Adult-use onboarding notice.
-2. Metric BMI calculator and neutral educational result.
-3. Waist-to-height calculator.
-4. Local history with accessible chart and entry controls.
-5. Privacy/data settings with retention and backup options.
-6. Restore confirmation.
-7. About and support screen.
-8. Representative dark-theme screen.
+Android development additionally uses Android Studio. Desktop and web development can use IntelliJ IDEA or Android Studio with Kotlin support.
+
+### iOS
+
+- macOS
+- Xcode with iOS SDKs
+- JDK 17
+- Gradle 8.13
+- XcodeGen
+
+The repository currently uses system Gradle in development/CI. If a verified Gradle wrapper is added later, the iOS build phase automatically prefers `./gradlew`.
 
 ## Quick start
-
-### Requirements
-
-- JDK 17 or newer supported by the configured Gradle/Android toolchain.
-- Gradle 8.13 if you are not using an IDE-managed Gradle installation.
-- Android Studio with Android SDK Platform 36 and Build Tools 35.0.0.
-
-### Clone and verify the shared core
 
 ```bash
 git clone https://github.com/sanskarIN/healthmetric.git
@@ -107,166 +138,165 @@ cd healthmetric
 gradle :shared:desktopTest
 ```
 
-### Build the Android debug APK
+Run the complete non-device cross-platform verification suite:
+
+```bash
+bash scripts/verify.sh
+```
+
+Windows PowerShell:
+
+```powershell
+.\scripts\verify.ps1
+```
+
+Both scripts accept `GRADLE_BIN` when Gradle is installed under a non-default executable name.
+
+## Run Android
+
+Build a debug APK:
 
 ```bash
 gradle :androidApp:assembleDebug
 ```
 
-The APK is written under `androidApp/build/outputs/apk/debug/`.
+Run the `androidApp` configuration from Android Studio, or install the generated APK from:
 
-For Android Studio setup, see [`docs/setup.md`](docs/setup.md).
-
-## Development setup
-
-1. Clone the repository.
-2. Open the repository root in Android Studio.
-3. Use JDK 17 for Gradle.
-4. Install Android SDK Platform 36 and Build Tools 35.0.0.
-5. Allow Gradle sync to download dependencies.
-6. Run the `androidApp` configuration on an Android 8.0+ device/emulator.
-
-Full environment and troubleshooting notes:
-
-- [`docs/setup.md`](docs/setup.md)
-- [`docs/development.md`](docs/development.md)
-- [`docs/troubleshooting.md`](docs/troubleshooting.md)
-
-## Testing and verification
-
-Run the local quality suite:
-
-```bash
-gradle :shared:ktlintCheck :androidApp:ktlintCheck
-gradle :shared:desktopTest
-gradle :androidApp:testDebugUnitTest
-gradle :androidApp:lintRelease
-gradle :androidApp:assembleDebug
-gradle :androidApp:assembleRelease
+```text
+androidApp/build/outputs/apk/debug/
 ```
 
-Android instrumentation tests require a device/emulator:
+Connected tests:
 
 ```bash
 gradle :androidApp:connectedDebugAndroidTest
 ```
 
-On macOS, the configured Apple targets can be compiled with:
+## Run desktop
+
+```bash
+gradle :desktopApp:run
+```
+
+Build the native distribution supported by the current host OS:
+
+```bash
+gradle :desktopApp:packageDistributionForCurrentOS
+```
+
+The Gradle configuration declares DMG, MSI, and DEB formats. Native installer packaging should be performed on the corresponding operating system.
+
+## Run web
+
+Wasm development server:
+
+```bash
+gradle :webApp:wasmJsBrowserDevelopmentRun
+```
+
+JavaScript compatibility development server:
+
+```bash
+gradle :webApp:jsBrowserDevelopmentRun
+```
+
+Production bundles:
+
+```bash
+gradle :webApp:wasmJsBrowserProductionWebpack
+gradle :webApp:jsBrowserProductionWebpack
+```
+
+The browser clients calculate locally and do not add an application backend or telemetry SDK.
+
+## Run iOS / iPadOS
+
+Generate the Xcode project:
+
+```bash
+brew install xcodegen
+cd iosApp
+xcodegen generate
+open HealthMetricIOS.xcodeproj
+```
+
+Select the `HealthMetric` scheme and an iPhone/iPad simulator or configured device. The Xcode pre-build phase invokes `:sharedUI:embedAndSignAppleFrameworkForXcode`; it prefers `./gradlew` when present and otherwise uses the documented `gradle` executable.
+
+CI also regenerates the project and performs an unsigned simulator build.
+
+## Testing and CI
+
+Local cross-platform verification includes:
+
+```bash
+gradle :shared:desktopTest
+gradle :shared:compileKotlinJs :shared:compileKotlinWasmJs
+gradle :sharedUI:compileKotlinDesktop :sharedUI:compileKotlinJs :sharedUI:compileKotlinWasmJs
+gradle :desktopApp:compileKotlin
+gradle :webApp:jsBrowserProductionWebpack :webApp:wasmJsBrowserProductionWebpack
+gradle :androidApp:testDebugUnitTest :androidApp:lintRelease :androidApp:assembleDebug :androidApp:assembleRelease
+```
+
+On macOS:
 
 ```bash
 gradle :shared:compileKotlinIosSimulatorArm64 :shared:compileKotlinIosArm64
+gradle :sharedUI:linkDebugFrameworkIosSimulatorArm64 :sharedUI:linkDebugFrameworkIosArm64
 ```
 
-Pull requests run dedicated workflows for the standard quality suite, Android emulator instrumentation, Apple shared-core compilation, CodeQL, dependency review, and full-history secret scanning.
+Pull requests use separate workflows for:
 
-See [`docs/testing.md`](docs/testing.md) for the test matrix and regression policy.
+- standard Android/JVM quality checks;
+- desktop/JavaScript/Wasm compilation and web production artifacts;
+- Android emulator instrumentation;
+- iOS core/UI framework compilation plus generated SwiftUI-host build;
+- CodeQL;
+- dependency review;
+- full-history secret scanning.
 
-## Local data and backup behavior
+See [`docs/testing.md`](docs/testing.md).
 
-HealthMetric stores no measurement history until the user explicitly enables it. When history is enabled, only the calculated value, calculator type, timestamp, local identifier, and a short neutral summary are retained; raw weight, height, and waist inputs are not stored.
+## Privacy model
 
-The history retention setting caps stored results at 50, 100, 250, or 500 entries. Lowering the limit immediately trims older stored entries. Individual entries can be deleted and restored with the snackbar **Undo** action.
+HealthMetric is designed so core calculations require no account or application backend.
 
-Backup options are explicit user actions:
+### Android
 
-- **Save JSON backup to a file** uses Android's Storage Access Framework document picker.
-- **Share JSON backup** opens Android's chooser.
-- **Restore from JSON backup** reads a selected local document and asks for confirmation before replacing portable history/settings.
+- Android manifest requests no `INTERNET` permission.
+- Application backup is disabled.
+- Cleartext traffic is disabled.
+- Measurement history starts disabled and requires explicit opt-in.
+- History retention is bounded and user-controlled.
+- Raw weight, height, and waist values are not stored in history.
+- Export/import actions are explicit and bounded.
 
-Backup reads/writes are capped at 1 MiB. Restore accepts schema version 1, caps restored history, rejects invalid top-level schemas, ignores malformed history records, and keeps only the first valid record for duplicate IDs.
+### Desktop, web, and iOS
 
-Portable backups intentionally exclude three device-local decisions: whether future history saving is enabled, whether adult use was confirmed, and whether onboarding was completed. Restore cannot silently turn history saving on or enable adult-only reference screens.
+The current cross-platform calculator UI keeps form values and results in transient UI state only. It does not add history persistence, advertising, analytics, or cloud synchronization. Web assets of course must be delivered to the browser by whatever hosting environment the distributor chooses, but the calculator itself does not require a HealthMetric backend.
 
-See [`docs/backup-format.md`](docs/backup-format.md) for the exact schema and compatibility rules.
-
-## Build and release
-
-Debug:
-
-```bash
-gradle :androidApp:assembleDebug
-```
-
-Unsigned release candidate:
-
-```bash
-gradle :shared:desktopTest :shared:ktlintCheck :androidApp:ktlintCheck :androidApp:testDebugUnitTest :androidApp:lintRelease :androidApp:assembleRelease
-```
-
-Pushing a `v*` tag runs the release workflow, verifies the project, creates an unsigned release APK, and creates a GitHub Release. Store/distribution signing must be performed through a protected signing process; signing keys must never be committed.
-
-See [`docs/release.md`](docs/release.md).
-
-## Architecture
-
-```text
-HealthMetric/
-├── androidApp/                 # Android UI, DataStore persistence, platform integrations
-│   └── src/main/java/...       # Compose app, screens, components, ViewModel, local data layer
-├── shared/                     # Kotlin Multiplatform domain module
-│   ├── src/commonMain/...      # Calculators, reference model, validation, conversions
-│   └── src/commonTest/...      # Cross-platform domain tests
-├── docs/                       # Architecture, backup format, evidence, design, testing, release, ADRs
-├── gradle/libs.versions.toml   # Central dependency/version catalog
-└── .github/                    # CI, emulator/Apple tests, security, release automation, templates
-```
-
-The shared module owns deterministic calculation rules and input validation. The Android app owns presentation, local persistence, document intents, platform links, locale-aware display parsing/formatting, and UI state.
-
-Key architecture/design references:
-
-- [`docs/architecture.md`](docs/architecture.md)
-- [`docs/backup-format.md`](docs/backup-format.md)
-- [`docs/design-system.md`](docs/design-system.md)
-- [`docs/evidence.md`](docs/evidence.md)
-- [`docs/adr/`](docs/adr/)
-
-## Privacy and security
-
-HealthMetric is designed to work without an account and without network access for its core functionality.
-
-- No advertising trackers are included.
-- Android application backup is disabled.
-- Local history starts disabled and must be explicitly enabled.
-- Retention is bounded and user-selectable.
-- History can be disabled, selectively deleted, fully erased, or restored through undo.
-- Export/import are explicit and user-initiated.
-- Restore requires confirmation before portable data is replaced.
-- Backup IO is limited to 1 MiB and restore validates schema and individual records.
-- Portable backups cannot modify history opt-in or adult-use/onboarding safety state.
-- Cleartext network traffic is disabled in the Android manifest.
-- No Android Internet permission is requested.
-- CI includes CodeQL, dependency review, full-history secret scanning, emulator tests, and Apple target compilation.
-- Secrets and signing material are ignored by repository rules and must never be committed.
-
-Read [`PRIVACY.md`](PRIVACY.md) and [`SECURITY.md`](SECURITY.md).
+Read [`PRIVACY.md`](PRIVACY.md), [`SECURITY.md`](SECURITY.md), and [`docs/backup-format.md`](docs/backup-format.md).
 
 ## Accessibility
 
-HealthMetric targets WCAG-oriented mobile accessibility practices:
-
-- semantic headings and labels;
-- scalable system typography;
-- Material touch targets;
-- light/dark/system themes;
-- status information not conveyed by color alone;
-- chart content descriptions that summarize values;
-- accessible labels for per-entry deletion;
-- locale-aware numeric display;
-- neutral wording without appearance ranking;
-- centered bounded content width for wider Android windows.
+HealthMetric uses neutral, non-appearance-oriented copy and aims for semantic labels, scalable text, keyboard/touch compatibility, non-color-only meaning, and bounded responsive layouts. Android has the deepest current accessibility test coverage; manual platform accessibility verification remains part of release-candidate work.
 
 See [`docs/accessibility.md`](docs/accessibility.md).
+
+## Screenshots and release evidence
+
+Real release screenshots and final manual accessibility evidence remain release-candidate tasks. Use fictional/example measurements only in screenshots and bug reports. Capture requirements are documented in [`docs/assets/screenshots/README.md`](docs/assets/screenshots/README.md).
+
+## Release
+
+Android tagged releases remain the only automated public binary release path today. Desktop/web/iOS modules are buildable beta clients and should not be represented as store-published binaries until their platform-specific signing, manual accessibility, screenshots, and release validation are complete.
+
+See [`docs/release.md`](docs/release.md) and [`ROADMAP.md`](ROADMAP.md).
 
 ## Contributing
 
 Contributions are welcome. Start with [`CONTRIBUTING.md`](CONTRIBUTING.md), follow the Code of Conduct, and keep changes focused and testable.
 
-Use fictional/example measurement values in bug reports and screenshots. Do not submit private health information.
-
-## Roadmap
-
-See [`ROADMAP.md`](ROADMAP.md) for remaining release verification, screenshot/accessibility evidence, and optional future client/performance work.
+Do not submit private health information. Use fictional/example values in issues, screenshots, and tests.
 
 ## License
 
