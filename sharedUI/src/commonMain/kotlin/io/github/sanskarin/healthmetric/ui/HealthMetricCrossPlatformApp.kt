@@ -2,6 +2,7 @@ package io.github.sanskarin.healthmetric.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -12,6 +13,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -25,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.github.sanskarin.healthmetric.domain.HealthMetricEngine
+import io.github.sanskarin.healthmetric.domain.UnitSystem
 
 @Composable
 fun HealthMetricCrossPlatformApp() {
@@ -40,6 +43,7 @@ private fun HealthMetricContent() {
     var ageText by remember { mutableStateOf("") }
     var confirmedAge by remember { mutableStateOf<Int?>(null) }
     var gateMessage by remember { mutableStateOf<String?>(null) }
+    var unitSystem by remember { mutableStateOf(UnitSystem.METRIC) }
 
     Column(
         modifier = Modifier
@@ -70,7 +74,7 @@ private fun HealthMetricContent() {
                     ageText = ageText,
                     message = gateMessage,
                     onAgeChange = {
-                        ageText = it.filter(Char::isDigit).take(3)
+                        ageText = sanitizeWholeNumber(it, maxLength = 3)
                         gateMessage = null
                     },
                     onContinue = {
@@ -88,8 +92,22 @@ private fun HealthMetricContent() {
                     },
                 )
             } else {
-                MetricBmiCard(ageYears = adultAge)
-                MetricWaistToHeightCard(ageYears = adultAge)
+                UnitSystemSelector(
+                    selected = unitSystem,
+                    onSelected = { unitSystem = it },
+                )
+
+                when (unitSystem) {
+                    UnitSystem.METRIC -> {
+                        MetricBmiCard(ageYears = adultAge)
+                        MetricWaistToHeightCard(ageYears = adultAge)
+                    }
+                    UnitSystem.IMPERIAL -> {
+                        ImperialBmiCard(ageYears = adultAge)
+                        ImperialWaistToHeightCard(ageYears = adultAge)
+                    }
+                }
+
                 Button(
                     onClick = {
                         confirmedAge = null
@@ -104,6 +122,54 @@ private fun HealthMetricContent() {
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun UnitSystemSelector(
+    selected: UnitSystem,
+    onSelected: (UnitSystem) -> Unit,
+) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(
+                text = "Measurement units",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                UnitSystemButton(
+                    label = "Metric",
+                    selected = selected == UnitSystem.METRIC,
+                    onClick = { onSelected(UnitSystem.METRIC) },
+                )
+                UnitSystemButton(
+                    label = "Imperial",
+                    selected = selected == UnitSystem.IMPERIAL,
+                    onClick = { onSelected(UnitSystem.IMPERIAL) },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun UnitSystemButton(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    if (selected) {
+        Button(onClick = onClick) {
+            Text(label)
+        }
+    } else {
+        OutlinedButton(onClick = onClick) {
+            Text(label)
         }
     }
 }
@@ -198,16 +264,7 @@ private fun MetricBmiCard(ageYears: Int) {
                             )
                         }.onSuccess { summary ->
                             errorText = null
-                            resultText = buildString {
-                                append("BMI: ")
-                                append(summary.displayValue)
-                                append("\n")
-                                append(summary.referenceLabel)
-                                append("\n\n")
-                                append(summary.explanation)
-                                append("\n\n")
-                                append(summary.educationalNotice)
-                            }
+                            resultText = bmiSummaryText(summary.displayValue, summary.referenceLabel, summary.explanation, summary.educationalNotice)
                         }.onFailure { error ->
                             resultText = null
                             errorText = error.message ?: "Unable to calculate with these measurements."
@@ -218,16 +275,80 @@ private fun MetricBmiCard(ageYears: Int) {
             ) {
                 Text("Calculate BMI")
             }
-            errorText?.let {
-                Text(
-                    text = it,
-                    color = MaterialTheme.colorScheme.error,
-                )
+            CalculationFeedback(errorText = errorText, resultText = resultText)
+        }
+    }
+}
+
+@Composable
+private fun ImperialBmiCard(ageYears: Int) {
+    var weightText by remember { mutableStateOf("") }
+    var feetText by remember { mutableStateOf("") }
+    var inchesText by remember { mutableStateOf("") }
+    var resultText by remember { mutableStateOf<String?>(null) }
+    var errorText by remember { mutableStateOf<String?>(null) }
+
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(
+                text = "Adult BMI — imperial",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold,
+            )
+            OutlinedTextField(
+                value = weightText,
+                onValueChange = { weightText = sanitizeDecimal(it) },
+                label = { Text("Weight (lb)") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                value = feetText,
+                onValueChange = { feetText = sanitizeWholeNumber(it, maxLength = 2) },
+                label = { Text("Height (feet)") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                value = inchesText,
+                onValueChange = { inchesText = sanitizeDecimal(it) },
+                label = { Text("Additional height (inches)") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Button(
+                onClick = {
+                    val weight = weightText.toDoubleOrNull()
+                    val feet = feetText.toIntOrNull()
+                    val inches = inchesText.toDoubleOrNull()
+                    if (weight == null || feet == null || inches == null) {
+                        resultText = null
+                        errorText = "Enter valid numeric measurements."
+                    } else {
+                        runCatching {
+                            HealthMetricEngine.calculateAdultImperialBmi(
+                                ageYears = ageYears,
+                                weightLb = weight,
+                                heightFeet = feet,
+                                heightInches = inches,
+                            )
+                        }.onSuccess { summary ->
+                            errorText = null
+                            resultText = bmiSummaryText(summary.displayValue, summary.referenceLabel, summary.explanation, summary.educationalNotice)
+                        }.onFailure { error ->
+                            resultText = null
+                            errorText = error.message ?: "Unable to calculate with these measurements."
+                        }
+                    }
+                },
+                modifier = Modifier.align(Alignment.End),
+            ) {
+                Text("Calculate BMI")
             }
-            resultText?.let {
-                HorizontalDivider()
-                Text(it)
-            }
+            CalculationFeedback(errorText = errorText, resultText = resultText)
         }
     }
 }
@@ -279,7 +400,7 @@ private fun MetricWaistToHeightCard(ageYears: Int) {
                             )
                         }.onSuccess { summary ->
                             errorText = null
-                            resultText = "Ratio: ${summary.displayValue}\n\n${summary.educationalNotice}"
+                            resultText = waistSummaryText(summary.displayValue, summary.educationalNotice)
                         }.onFailure { error ->
                             resultText = null
                             errorText = error.message ?: "Unable to calculate with these measurements."
@@ -290,19 +411,124 @@ private fun MetricWaistToHeightCard(ageYears: Int) {
             ) {
                 Text("Calculate ratio")
             }
-            errorText?.let {
-                Text(
-                    text = it,
-                    color = MaterialTheme.colorScheme.error,
-                )
-            }
-            resultText?.let {
-                HorizontalDivider()
-                Text(it)
-            }
+            CalculationFeedback(errorText = errorText, resultText = resultText)
         }
     }
 }
+
+@Composable
+private fun ImperialWaistToHeightCard(ageYears: Int) {
+    var waistText by remember { mutableStateOf("") }
+    var feetText by remember { mutableStateOf("") }
+    var inchesText by remember { mutableStateOf("") }
+    var resultText by remember { mutableStateOf<String?>(null) }
+    var errorText by remember { mutableStateOf<String?>(null) }
+
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(
+                text = "Adult waist-to-height ratio — imperial",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold,
+            )
+            OutlinedTextField(
+                value = waistText,
+                onValueChange = { waistText = sanitizeDecimal(it) },
+                label = { Text("Waist (inches)") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                value = feetText,
+                onValueChange = { feetText = sanitizeWholeNumber(it, maxLength = 2) },
+                label = { Text("Height (feet)") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                value = inchesText,
+                onValueChange = { inchesText = sanitizeDecimal(it) },
+                label = { Text("Additional height (inches)") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Button(
+                onClick = {
+                    val waist = waistText.toDoubleOrNull()
+                    val feet = feetText.toIntOrNull()
+                    val inches = inchesText.toDoubleOrNull()
+                    if (waist == null || feet == null || inches == null) {
+                        resultText = null
+                        errorText = "Enter valid numeric measurements."
+                    } else {
+                        val totalHeightInches = (feet * 12.0) + inches
+                        runCatching {
+                            HealthMetricEngine.calculateAdultImperialWaistToHeight(
+                                ageYears = ageYears,
+                                waistInches = waist,
+                                heightInches = totalHeightInches,
+                            )
+                        }.onSuccess { summary ->
+                            errorText = null
+                            resultText = waistSummaryText(summary.displayValue, summary.educationalNotice)
+                        }.onFailure { error ->
+                            resultText = null
+                            errorText = error.message ?: "Unable to calculate with these measurements."
+                        }
+                    }
+                },
+                modifier = Modifier.align(Alignment.End),
+            ) {
+                Text("Calculate ratio")
+            }
+            CalculationFeedback(errorText = errorText, resultText = resultText)
+        }
+    }
+}
+
+@Composable
+private fun CalculationFeedback(
+    errorText: String?,
+    resultText: String?,
+) {
+    errorText?.let {
+        Text(
+            text = it,
+            color = MaterialTheme.colorScheme.error,
+        )
+    }
+    resultText?.let {
+        HorizontalDivider()
+        Text(it)
+    }
+}
+
+private fun bmiSummaryText(
+    displayValue: Double,
+    referenceLabel: String,
+    explanation: String,
+    educationalNotice: String,
+): String = buildString {
+    append("BMI: ")
+    append(displayValue)
+    append("\n")
+    append(referenceLabel)
+    append("\n\n")
+    append(explanation)
+    append("\n\n")
+    append(educationalNotice)
+}
+
+private fun waistSummaryText(
+    displayValue: Double,
+    educationalNotice: String,
+): String = "Ratio: $displayValue\n\n$educationalNotice"
+
+private fun sanitizeWholeNumber(value: String, maxLength: Int): String =
+    value.filter(Char::isDigit).take(maxLength)
 
 private fun sanitizeDecimal(value: String): String {
     var separatorSeen = false
