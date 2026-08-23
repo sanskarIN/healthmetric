@@ -11,6 +11,7 @@ GRADLE_BIN="${GRADLE_BIN:-gradle}"
   :webApp:ktlintCheck
 
 "${GRADLE_BIN}" :shared:desktopTest
+"${GRADLE_BIN}" :sharedUI:desktopTest
 "${GRADLE_BIN}" :shared:compileKotlinJs :shared:compileKotlinWasmJs
 "${GRADLE_BIN}" :sharedUI:compileKotlinDesktop :sharedUI:compileKotlinJs :sharedUI:compileKotlinWasmJs
 "${GRADLE_BIN}" :desktopApp:compileKotlin
