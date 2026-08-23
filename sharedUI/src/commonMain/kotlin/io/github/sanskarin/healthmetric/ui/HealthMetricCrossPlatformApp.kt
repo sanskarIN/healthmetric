@@ -74,7 +74,7 @@ private fun HealthMetricContent() {
                     ageText = ageText,
                     message = gateMessage,
                     onAgeChange = {
-                        ageText = sanitizeWholeNumber(it, maxLength = 3)
+                        ageText = MeasurementInput.sanitizeWholeNumber(it, maxLength = 3)
                         gateMessage = null
                     },
                     onContinue = {
@@ -236,14 +236,14 @@ private fun MetricBmiCard(ageYears: Int) {
             )
             OutlinedTextField(
                 value = weightText,
-                onValueChange = { weightText = sanitizeDecimal(it) },
+                onValueChange = { weightText = MeasurementInput.sanitizeDecimal(it) },
                 label = { Text("Weight (kg)") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(
                 value = heightText,
-                onValueChange = { heightText = sanitizeDecimal(it) },
+                onValueChange = { heightText = MeasurementInput.sanitizeDecimal(it) },
                 label = { Text("Height (cm)") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
@@ -264,7 +264,12 @@ private fun MetricBmiCard(ageYears: Int) {
                             )
                         }.onSuccess { summary ->
                             errorText = null
-                            resultText = bmiSummaryText(summary.displayValue, summary.referenceLabel, summary.explanation, summary.educationalNotice)
+                            resultText = bmiSummaryText(
+                                displayValue = summary.displayValue,
+                                referenceLabel = summary.referenceLabel,
+                                explanation = summary.explanation,
+                                educationalNotice = summary.educationalNotice,
+                            )
                         }.onFailure { error ->
                             resultText = null
                             errorText = error.message ?: "Unable to calculate with these measurements."
@@ -300,21 +305,23 @@ private fun ImperialBmiCard(ageYears: Int) {
             )
             OutlinedTextField(
                 value = weightText,
-                onValueChange = { weightText = sanitizeDecimal(it) },
+                onValueChange = { weightText = MeasurementInput.sanitizeDecimal(it) },
                 label = { Text("Weight (lb)") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(
                 value = feetText,
-                onValueChange = { feetText = sanitizeWholeNumber(it, maxLength = 2) },
+                onValueChange = {
+                    feetText = MeasurementInput.sanitizeWholeNumber(it, maxLength = 2)
+                },
                 label = { Text("Height (feet)") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(
                 value = inchesText,
-                onValueChange = { inchesText = sanitizeDecimal(it) },
+                onValueChange = { inchesText = MeasurementInput.sanitizeDecimal(it) },
                 label = { Text("Additional height (inches)") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
@@ -337,7 +344,12 @@ private fun ImperialBmiCard(ageYears: Int) {
                             )
                         }.onSuccess { summary ->
                             errorText = null
-                            resultText = bmiSummaryText(summary.displayValue, summary.referenceLabel, summary.explanation, summary.educationalNotice)
+                            resultText = bmiSummaryText(
+                                displayValue = summary.displayValue,
+                                referenceLabel = summary.referenceLabel,
+                                explanation = summary.explanation,
+                                educationalNotice = summary.educationalNotice,
+                            )
                         }.onFailure { error ->
                             resultText = null
                             errorText = error.message ?: "Unable to calculate with these measurements."
@@ -372,14 +384,14 @@ private fun MetricWaistToHeightCard(ageYears: Int) {
             )
             OutlinedTextField(
                 value = waistText,
-                onValueChange = { waistText = sanitizeDecimal(it) },
+                onValueChange = { waistText = MeasurementInput.sanitizeDecimal(it) },
                 label = { Text("Waist (cm)") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(
                 value = heightText,
-                onValueChange = { heightText = sanitizeDecimal(it) },
+                onValueChange = { heightText = MeasurementInput.sanitizeDecimal(it) },
                 label = { Text("Height (cm)") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
@@ -400,7 +412,10 @@ private fun MetricWaistToHeightCard(ageYears: Int) {
                             )
                         }.onSuccess { summary ->
                             errorText = null
-                            resultText = waistSummaryText(summary.displayValue, summary.educationalNotice)
+                            resultText = waistSummaryText(
+                                displayValue = summary.displayValue,
+                                educationalNotice = summary.educationalNotice,
+                            )
                         }.onFailure { error ->
                             resultText = null
                             errorText = error.message ?: "Unable to calculate with these measurements."
@@ -436,21 +451,23 @@ private fun ImperialWaistToHeightCard(ageYears: Int) {
             )
             OutlinedTextField(
                 value = waistText,
-                onValueChange = { waistText = sanitizeDecimal(it) },
+                onValueChange = { waistText = MeasurementInput.sanitizeDecimal(it) },
                 label = { Text("Waist (inches)") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(
                 value = feetText,
-                onValueChange = { feetText = sanitizeWholeNumber(it, maxLength = 2) },
+                onValueChange = {
+                    feetText = MeasurementInput.sanitizeWholeNumber(it, maxLength = 2)
+                },
                 label = { Text("Height (feet)") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(
                 value = inchesText,
-                onValueChange = { inchesText = sanitizeDecimal(it) },
+                onValueChange = { inchesText = MeasurementInput.sanitizeDecimal(it) },
                 label = { Text("Additional height (inches)") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
@@ -464,7 +481,10 @@ private fun ImperialWaistToHeightCard(ageYears: Int) {
                         resultText = null
                         errorText = "Enter valid numeric measurements."
                     } else {
-                        val totalHeightInches = (feet * 12.0) + inches
+                        val totalHeightInches = MeasurementInput.imperialHeightInches(
+                            feet = feet,
+                            additionalInches = inches,
+                        )
                         runCatching {
                             HealthMetricEngine.calculateAdultImperialWaistToHeight(
                                 ageYears = ageYears,
@@ -473,7 +493,10 @@ private fun ImperialWaistToHeightCard(ageYears: Int) {
                             )
                         }.onSuccess { summary ->
                             errorText = null
-                            resultText = waistSummaryText(summary.displayValue, summary.educationalNotice)
+                            resultText = waistSummaryText(
+                                displayValue = summary.displayValue,
+                                educationalNotice = summary.educationalNotice,
+                            )
                         }.onFailure { error ->
                             resultText = null
                             errorText = error.message ?: "Unable to calculate with these measurements."
@@ -526,21 +549,3 @@ private fun waistSummaryText(
     displayValue: Double,
     educationalNotice: String,
 ): String = "Ratio: $displayValue\n\n$educationalNotice"
-
-private fun sanitizeWholeNumber(value: String, maxLength: Int): String =
-    value.filter(Char::isDigit).take(maxLength)
-
-private fun sanitizeDecimal(value: String): String {
-    var separatorSeen = false
-    return buildString {
-        value.forEach { character ->
-            when {
-                character.isDigit() -> append(character)
-                (character == '.' || character == ',') && !separatorSeen -> {
-                    append('.')
-                    separatorSeen = true
-                }
-            }
-        }
-    }
-}
