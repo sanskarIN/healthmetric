@@ -55,22 +55,10 @@ jobs:
         with:
           gradle-version: "8.13"
 
-      - name: Set up Android command-line tools
-        uses: android-actions/setup-android@v3
-
-      - name: Install Android SDK packages
-        if: runner.os != 'Windows'
-        shell: bash
-        run: |
-          yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager "platforms;android-36" "build-tools;35.0.0"
-
-      - name: Install Android SDK packages on Windows
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          1..20 | ForEach-Object { "y" } | sdkmanager.bat --licenses | Out-Null
-          sdkmanager.bat "platforms;android-36" "build-tools;35.0.0"
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+        with:
+          packages: "platform-tools platforms;android-36 build-tools;35.0.0"
 
       - name: Verify desktop formatting
         run: gradle :desktopApp:ktlintCheck :sharedUI:ktlintCheck
