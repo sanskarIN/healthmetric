@@ -22,7 +22,12 @@ REQUIRED_PATHS = [
     ".gitattributes",
     ".env.example",
     "shared/build.gradle.kts",
+    "shared/src/commonMain/kotlin/io/github/sanskarin/healthmetric/domain/HealthMetricEngine.kt",
+    "shared/src/commonTest/kotlin/io/github/sanskarin/healthmetric/domain/HealthMetricEngineTest.kt",
     "sharedUI/build.gradle.kts",
+    "sharedUI/src/commonMain/kotlin/io/github/sanskarin/healthmetric/ui/HealthMetricCrossPlatformApp.kt",
+    "sharedUI/src/commonMain/kotlin/io/github/sanskarin/healthmetric/ui/MeasurementInput.kt",
+    "sharedUI/src/commonTest/kotlin/io/github/sanskarin/healthmetric/ui/MeasurementInputTest.kt",
     "androidApp/build.gradle.kts",
     "desktopApp/build.gradle.kts",
     "webApp/build.gradle.kts",
@@ -59,6 +64,16 @@ FORBIDDEN_PATHS = [
     "docs/.noop-probe",
 ]
 
+ANDROID_SETUP_WORKFLOWS = [
+    ".github/workflows/ci.yml",
+    ".github/workflows/android-instrumentation.yml",
+    ".github/workflows/apple-shared.yml",
+    ".github/workflows/cross-platform.yml",
+    ".github/workflows/desktop-packages.yml",
+    ".github/workflows/codeql.yml",
+    ".github/workflows/release.yml",
+]
+
 
 def read(relative: str) -> str:
     return (ROOT / relative).read_text(encoding="utf-8")
@@ -82,6 +97,12 @@ def main() -> int:
         failures.append("AndroidManifest.xml must keep android:allowBackup=\"false\"")
     if 'android:usesCleartextTraffic="false"' not in manifest:
         failures.append("AndroidManifest.xml must keep cleartext traffic disabled")
+
+    android_build = read("androidApp/build.gradle.kts")
+    if "kotlinOptions" in android_build:
+        failures.append("androidApp must use the typed Kotlin compilerOptions DSL")
+    if 'JvmTarget.fromTarget("17")' not in android_build:
+        failures.append("androidApp must keep the Kotlin JVM target aligned to Java 17")
 
     readme = read("README.md")
     required_readme_fragments = [
@@ -115,10 +136,40 @@ def main() -> int:
     )
     if "MINIMUM_SUPPORTED_AGE_YEARS: Int = 18" not in shared_engine:
         failures.append("HealthMetricEngine must keep the explicit adult 18+ eligibility boundary")
+    for route in [
+        "calculateAdultMetricBmi",
+        "calculateAdultImperialBmi",
+        "calculateAdultMetricWaistToHeight",
+        "calculateAdultImperialWaistToHeight",
+    ]:
+        if route not in shared_engine:
+            failures.append(f"HealthMetricEngine is missing required cross-platform route: {route}")
+
+    shared_ui = read(
+        "sharedUI/src/commonMain/kotlin/io/github/sanskarin/healthmetric/ui/HealthMetricCrossPlatformApp.kt"
+    )
+    for fragment in [
+        "UnitSystem.METRIC",
+        "UnitSystem.IMPERIAL",
+        "MeasurementInput.sanitizeDecimal",
+    ]:
+        if fragment not in shared_ui:
+            failures.append(f"sharedUI is missing required parity/input behavior: {fragment}")
 
     ios_project = read("iosApp/project.yml")
     if ":sharedUI:embedAndSignAppleFrameworkForXcode" not in ios_project:
         failures.append("iosApp/project.yml must build the sharedUI Apple framework")
+
+    for workflow_path in ANDROID_SETUP_WORKFLOWS:
+        workflow = read(workflow_path)
+        if "android-actions/setup-android@v4" not in workflow:
+            failures.append(
+                f"{workflow_path} must provision Android command-line tools with setup-android@v4"
+            )
+
+    cross_platform_workflow = read(".github/workflows/cross-platform.yml")
+    if ":sharedUI:desktopTest" not in cross_platform_workflow:
+        failures.append("cross-platform CI must execute sharedUI desktop helper tests")
 
     if failures:
         print("Repository invariant audit failed:")
