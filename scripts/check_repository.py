@@ -74,6 +74,13 @@ ANDROID_SETUP_WORKFLOWS = [
     ".github/workflows/release.yml",
 ]
 
+RELEASE_BUNDLE_PATHS = [
+    ".github/workflows/ci.yml",
+    ".github/workflows/release.yml",
+    "scripts/verify.sh",
+    "scripts/verify.ps1",
+]
+
 
 def read(relative: str) -> str:
     return (ROOT / relative).read_text(encoding="utf-8")
@@ -170,6 +177,19 @@ def main() -> int:
     cross_platform_workflow = read(".github/workflows/cross-platform.yml")
     if ":sharedUI:desktopTest" not in cross_platform_workflow:
         failures.append("cross-platform CI must execute sharedUI desktop helper tests")
+
+    for release_path in RELEASE_BUNDLE_PATHS:
+        release_content = read(release_path)
+        if ":androidApp:bundleRelease" not in release_content:
+            failures.append(f"{release_path} must verify the Android release App Bundle")
+
+    ci_workflow = read(".github/workflows/ci.yml")
+    if "androidApp/build/outputs/bundle/release/*.aab" not in ci_workflow:
+        failures.append("CI must upload the unsigned release App Bundle artifact")
+
+    release_workflow = read(".github/workflows/release.yml")
+    if "androidApp/build/outputs/bundle/release/*.aab" not in release_workflow:
+        failures.append("tagged release workflow must publish the unsigned App Bundle")
 
     if failures:
         print("Repository invariant audit failed:")
