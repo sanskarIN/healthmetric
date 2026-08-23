@@ -20,6 +20,20 @@ class HealthMetricEngineTest {
     }
 
     @Test
+    fun `adult imperial BMI routes through the shared converter`() {
+        val summary = HealthMetricEngine.calculateAdultImperialBmi(
+            ageYears = 18,
+            weightLb = 154.3,
+            heightFeet = 5,
+            heightInches = 9.0,
+        )
+
+        assertEquals(22.8, summary.displayValue)
+        assertEquals("Within adult reference range", summary.referenceLabel)
+        assertTrue(summary.educationalNotice.contains("For adults only"))
+    }
+
+    @Test
     fun `under eighteen requests are rejected before calculation`() {
         assertFailsWith<AdultOnlyUsageError> {
             HealthMetricEngine.calculateAdultMetricBmi(
@@ -39,6 +53,18 @@ class HealthMetricEngineTest {
         )
 
         assertEquals(0.44, summary.displayValue)
+        assertTrue(summary.educationalNotice.contains("screening"))
+    }
+
+    @Test
+    fun `adult imperial waist to height routes through the shared converter`() {
+        val summary = HealthMetricEngine.calculateAdultImperialWaistToHeight(
+            ageYears = 21,
+            waistInches = 32.0,
+            heightInches = 70.0,
+        )
+
+        assertEquals(0.46, summary.displayValue)
         assertTrue(summary.educationalNotice.contains("screening"))
     }
 
