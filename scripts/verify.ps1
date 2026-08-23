@@ -10,6 +10,7 @@ function Invoke-Gradle {
 
 Invoke-Gradle :shared:ktlintCheck :sharedUI:ktlintCheck :androidApp:ktlintCheck :desktopApp:ktlintCheck :webApp:ktlintCheck
 Invoke-Gradle :shared:desktopTest
+Invoke-Gradle :sharedUI:desktopTest
 Invoke-Gradle :shared:compileKotlinJs :shared:compileKotlinWasmJs
 Invoke-Gradle :sharedUI:compileKotlinDesktop :sharedUI:compileKotlinJs :sharedUI:compileKotlinWasmJs
 Invoke-Gradle :desktopApp:compileKotlin
