@@ -21,7 +21,7 @@
 
 ## What makes HealthMetric different?
 
-HealthMetric treats a small calculator as a real software product rather than a demo. The repository separates deterministic health-domain rules from platform UI, keeps Android history opt-in and local, applies bounded backup handling, verifies adult-use safety rules, supports locale-aware input, and now exposes the same adult-safe calculation engine across Android, desktop, web, and Apple targets.
+HealthMetric treats a small calculator as a real software product rather than a demo. The repository separates deterministic health-domain rules from platform UI, keeps Android history opt-in and local, applies bounded backup handling, verifies adult-use safety rules, supports locale-aware input, and exposes the same adult-safe calculation engine across Android, desktop, web, and Apple targets.
 
 The cross-platform clients deliberately stay simple: calculations execute locally in the running client, no analytics or advertising SDK is added, and no account or backend is required for the calculator experience.
 
@@ -38,12 +38,12 @@ The cross-platform clients deliberately stay simple: calculations execute locall
 | iOS / iPadOS | Beta host | SwiftUI host generated with XcodeGen and backed by the reusable `HealthMetricUI` Kotlin framework |
 | Shared Kotlin core | Stable foundation | Android, JVM/Desktop, JS, Wasm, iOS device, Intel simulator, and Apple-silicon simulator targets |
 
-Android remains the richest client because local history, Android document-provider backup/restore, and platform settings are Android-specific today. Desktop, web, and iOS share the adult gate and calculator experience through `sharedUI`; persistence parity is intentionally tracked as future work rather than pretending platform-specific storage already exists.
+Android remains the richest client because local history, Android document-provider backup/restore, and platform settings are Android-specific today. Desktop, web, and iOS share the adult gate plus metric/imperial calculator experience through `sharedUI`; persistence parity is intentionally tracked as future work rather than pretending platform-specific storage already exists.
 
 ## Core features
 
-- Adult BMI calculation in metric and imperial units in the domain engine.
-- Adult waist-to-height ratio calculation with neutral educational output.
+- Adult BMI calculation in metric and imperial units through the shared engine and reusable cross-platform UI.
+- Adult waist-to-height ratio calculation in metric and imperial units with neutral educational output.
 - Stable `HealthMetricEngine` façade so platform clients use identical age eligibility and calculation routing.
 - Versioned adult BMI reference metadata with explicit evidence review date.
 - Strict finite-number and plausible-range validation.
@@ -72,7 +72,7 @@ Android remains the richest client because local history, Android document-provi
 ```text
 HealthMetric/
 ├── shared/          # Pure Kotlin Multiplatform health domain + tests
-├── sharedUI/        # Reusable Compose Multiplatform adult gate/calculator UI
+├── sharedUI/        # Reusable Compose Multiplatform adult gate/calculator UI + helper tests
 ├── androidApp/      # Full Android product client and local persistence
 ├── desktopApp/      # Windows/macOS/Linux Compose Desktop launcher + packaging
 ├── webApp/          # JavaScript and Wasm browser launchers
@@ -85,7 +85,7 @@ HealthMetric/
 ### Ownership boundaries
 
 - `shared` owns calculations, conversions, validation, adult eligibility, reference metadata, and primitive result summaries.
-- `sharedUI` owns only reusable presentation for desktop/web/iOS. It does not own storage or platform integrations.
+- `sharedUI` owns only reusable presentation/input normalization for desktop/web/iOS. It does not own storage or platform integrations.
 - `androidApp` owns Android persistence, locale presentation helpers, document/share intents, settings, and Android-specific UI flows.
 - `desktopApp`, `webApp`, and `iosApp` are intentionally thin hosts over `sharedUI`.
 
@@ -136,6 +136,7 @@ The repository currently uses system Gradle in development/CI. If a verified Gra
 git clone https://github.com/sanskarIN/healthmetric.git
 cd healthmetric
 gradle :shared:desktopTest
+gradle :sharedUI:desktopTest
 ```
 
 Run the complete non-device cross-platform verification suite:
@@ -170,6 +171,12 @@ Connected tests:
 
 ```bash
 gradle :androidApp:connectedDebugAndroidTest
+```
+
+Build unsigned Android release artifacts:
+
+```bash
+gradle :androidApp:assembleRelease :androidApp:bundleRelease
 ```
 
 ## Run desktop
@@ -230,11 +237,12 @@ Local cross-platform verification includes:
 
 ```bash
 gradle :shared:desktopTest
+gradle :sharedUI:desktopTest
 gradle :shared:compileKotlinJs :shared:compileKotlinWasmJs
 gradle :sharedUI:compileKotlinDesktop :sharedUI:compileKotlinJs :sharedUI:compileKotlinWasmJs
 gradle :desktopApp:compileKotlin
 gradle :webApp:jsBrowserProductionWebpack :webApp:wasmJsBrowserProductionWebpack
-gradle :androidApp:testDebugUnitTest :androidApp:lintRelease :androidApp:assembleDebug :androidApp:assembleRelease
+gradle :androidApp:testDebugUnitTest :androidApp:lintRelease :androidApp:assembleDebug :androidApp:assembleRelease :androidApp:bundleRelease
 ```
 
 On macOS:
@@ -246,10 +254,11 @@ gradle :sharedUI:linkDebugFrameworkIosSimulatorArm64 :sharedUI:linkDebugFramewor
 
 Pull requests use separate workflows for:
 
-- standard Android/JVM quality checks;
-- desktop/JavaScript/Wasm compilation and web production artifacts;
+- standard Android/JVM quality checks plus APK/App Bundle artifacts;
+- shared UI helper tests, desktop/JavaScript/Wasm compilation, and web production artifacts;
 - Android emulator instrumentation;
 - iOS core/UI framework compilation plus generated SwiftUI-host build;
+- native MSI/DMG/DEB desktop package builds;
 - CodeQL;
 - dependency review;
 - full-history secret scanning.
@@ -288,7 +297,7 @@ Real release screenshots and final manual accessibility evidence remain release-
 
 ## Release
 
-Android tagged releases remain the only automated public binary release path today. Desktop/web/iOS modules are buildable beta clients and should not be represented as store-published binaries until their platform-specific signing, manual accessibility, screenshots, and release validation are complete.
+Android tagged releases remain the only automated public binary release path today. The release workflow publishes unsigned APK and App Bundle artifacts for release-candidate verification; protected production signing remains outside source control. Desktop/web/iOS modules are buildable beta clients and should not be represented as store-published binaries until their platform-specific signing, manual accessibility, screenshots, and release validation are complete.
 
 See [`docs/release.md`](docs/release.md) and [`ROADMAP.md`](ROADMAP.md).
 
