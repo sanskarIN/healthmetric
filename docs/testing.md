@@ -9,7 +9,7 @@ HealthMetric verification focuses on:
 - Android privacy-sensitive persistence behavior;
 - bounded Android backup handling;
 - locale-aware Android presentation;
-- reusable desktop/web/iOS UI compilation;
+- reusable desktop/web/iOS UI behavior and compilation;
 - native host integration;
 - primary adult user journeys;
 - security and repository integrity.
@@ -25,7 +25,7 @@ manual platform/accessibility/release review
                    ▲
  Android JVM policy + persistence tests
                    ▲
-     shared deterministic domain tests
+ shared UI helper + shared domain tests
 ```
 
 The calculation engine belongs at the bottom of the pyramid and should receive the broadest deterministic coverage. Platform UI tests should verify wiring and user journeys rather than duplicate every calculation case.
@@ -45,7 +45,7 @@ Coverage includes:
 - waist-to-height calculation;
 - deterministic property-style coverage over large valid input sets;
 - `HealthMetricEngine` adult eligibility boundary;
-- façade routing to the shared BMI and waist-to-height calculators.
+- façade routing to the shared metric and imperial BMI and waist-to-height calculators.
 
 Run:
 
@@ -67,9 +67,22 @@ gradle :shared:compileKotlinIosSimulatorArm64 :shared:compileKotlinIosArm64
 
 ## Shared UI verification
 
-`sharedUI` is primarily verified through compilation on every supported target plus native host builds.
+`sharedUI` is verified through deterministic common helper tests, compilation on every supported target, and native host builds.
 
-Linux/Windows/macOS-capable local checks:
+Run common helper tests on the desktop/JVM target:
+
+```bash
+gradle :sharedUI:desktopTest
+```
+
+The helper tests cover:
+
+- dot and comma decimal normalization;
+- removal of unrelated input characters and repeated separators;
+- bounded whole-number input normalization;
+- imperial feet-plus-inches composition.
+
+Linux/Windows/macOS-capable compile checks:
 
 ```bash
 gradle :sharedUI:compileKotlinDesktop
@@ -88,11 +101,12 @@ Current shared UI invariants:
 
 - an age value below 18 never enters the adult calculator content;
 - `HealthMetricEngine` independently repeats age eligibility;
+- metric and imperial calculator paths route through the same shared domain façade;
 - measurement values/results remain transient in desktop/web/iOS beta clients;
 - neutral educational copy is used;
 - no appearance scoring or body-target output is introduced.
 
-Future behavior-heavy common UI should receive Compose Multiplatform UI tests where the target APIs are stable and the tests add value beyond host/integration coverage.
+Behavior-heavy common UI should receive Compose Multiplatform UI tests where the target APIs are stable and the tests add value beyond host/integration coverage.
 
 ## Desktop verification
 
@@ -236,6 +250,7 @@ Examples:
 
 - calculation boundary defect → shared unit test;
 - age façade defect → `HealthMetricEngineTest`;
+- cross-platform measurement-input normalization defect → `MeasurementInputTest`;
 - malformed Android backup crash → DataStore instrumentation test;
 - backup size bypass → `BackupIoTest` plus restore test where relevant;
 - consent/adult-gate restore regression → DataStore instrumentation test;
@@ -316,6 +331,7 @@ Fails on:
 
 - cross-platform formatting failure;
 - shared JVM/domain test failure;
+- shared UI helper test failure;
 - shared JS/Wasm compilation failure;
 - sharedUI JVM/JS/Wasm compilation failure;
 - desktop application compilation failure;
@@ -353,6 +369,8 @@ Windows:
 ```powershell
 .\scripts\verify.ps1
 ```
+
+Both scripts run the shared domain tests, shared UI helper tests, cross-platform compile/bundle checks, and Android non-device quality gates.
 
 Then Android connected tests:
 
