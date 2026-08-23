@@ -45,6 +45,9 @@ jobs:
       - name: Run shared domain tests
         run: gradle :shared:desktopTest
 
+      - name: Run shared UI helper tests
+        run: gradle :sharedUI:desktopTest
+
       - name: Compile shared logic for JavaScript and Wasm
         run: gradle :shared:compileKotlinJs :shared:compileKotlinWasmJs
 
