@@ -81,6 +81,19 @@ Debug APK output:
 androidApp/build/outputs/apk/debug/
 ```
 
+Build unsigned release APK and App Bundle artifacts:
+
+```bash
+gradle :androidApp:assembleRelease :androidApp:bundleRelease
+```
+
+Release outputs:
+
+```text
+androidApp/build/outputs/apk/release/
+androidApp/build/outputs/bundle/release/
+```
+
 Connected tests:
 
 ```bash
@@ -90,14 +103,14 @@ gradle :androidApp:connectedDebugAndroidTest
 A CI-equivalent SDK package install is:
 
 ```bash
-sdkmanager "platforms;android-36" "build-tools;35.0.0"
+sdkmanager "platform-tools" "platforms;android-36" "build-tools;35.0.0"
 ```
 
-Accept Android SDK licenses through Android Studio or the Android SDK command-line tools as required by your environment.
+GitHub Actions provisions these packages through `android-actions/setup-android@v4`. Accept Android SDK licenses through Android Studio or the Android SDK command-line tools as required by your local environment.
 
 ## Desktop development
 
-The desktop client uses Compose Desktop/JVM and the reusable `sharedUI` module.
+The desktop client uses Compose Desktop/JVM and the reusable `sharedUI` module. The shared UI exposes both metric and imperial adult calculator flows.
 
 Run:
 
@@ -127,7 +140,7 @@ Native installers should be produced on their corresponding host operating syste
 
 ## Web development
 
-The web client is available as both Wasm and JavaScript executables.
+The web client is available as both Wasm and JavaScript executables and exposes the same metric/imperial shared calculator UI.
 
 ### Wasm development server
 
@@ -211,6 +224,12 @@ Run deterministic shared tests:
 gradle :shared:desktopTest
 ```
 
+Run reusable shared-UI helper tests:
+
+```bash
+gradle :sharedUI:desktopTest
+```
+
 Compile the pure domain for browser targets:
 
 ```bash
@@ -231,7 +250,7 @@ Windows PowerShell:
 .\scripts\verify.ps1
 ```
 
-These scripts run formatting, shared tests, shared browser compilation, shared UI compilation, desktop compilation, web production bundling, Android unit tests, Android release lint, and Android debug/release assembly.
+These scripts run formatting, shared domain tests, shared-UI helper tests, shared browser compilation, shared UI compilation, desktop compilation, web production bundling, Android unit tests, Android release lint, Android debug/release APK assembly, and release App Bundle generation.
 
 Both scripts use `gradle` by default. Override the executable when necessary:
 
