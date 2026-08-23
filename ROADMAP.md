@@ -54,6 +54,7 @@ The roadmap prioritizes correctness, privacy, accessibility, portability, and ma
 - [x] Add stable `HealthMetricEngine` façade with explicit 18+ eligibility enforcement.
 - [x] Add shared façade regression tests.
 - [x] Add reusable `sharedUI` Compose Multiplatform module.
+- [x] Expose metric and imperial calculator flows through the reusable `sharedUI` client.
 - [x] Add Windows/macOS/Linux Compose Desktop application host.
 - [x] Configure native MSI/DMG/DEB desktop packaging.
 - [x] Add JavaScript browser client.
@@ -74,7 +75,8 @@ The roadmap prioritizes correctness, privacy, accessibility, portability, and ma
 - [x] Privacy-default and retention-policy unit tests.
 - [x] Backup IO size/UTF-8 unit tests.
 - [x] Locale-aware numeric parsing/formatting unit tests.
-- [x] Shared cross-platform engine eligibility/routing tests.
+- [x] Shared cross-platform engine eligibility/routing tests, including metric and imperial paths.
+- [x] Shared UI measurement-input normalization tests executed in CI and local verification scripts.
 - [x] Initial Compose onboarding UI test.
 - [x] Under-18 adult-reference gate instrumentation coverage.
 - [x] Instrumentation coverage for BMI success/error journeys.
