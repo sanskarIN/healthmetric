@@ -58,7 +58,7 @@ Windows:
 .\scripts\verify.ps1
 ```
 
-The scripts cover formatting, shared domain tests, JS/Wasm domain compilation, shared UI JVM/JS/Wasm compilation, desktop compilation, web production bundling, Android unit tests/lint, and Android debug/release assembly.
+The scripts cover formatting, shared domain tests, shared UI helper tests, JS/Wasm domain compilation, shared UI JVM/JS/Wasm compilation, desktop compilation, web production bundling, Android unit tests/lint, Android debug/release APK assembly, and Android release App Bundle generation.
 
 ### Android connected tests
 
@@ -146,7 +146,7 @@ Before public desktop distribution:
 
 1. Confirm `desktop-packages.yml` is green on all three operating systems.
 2. Install/test each generated package on a clean representative machine/VM.
-3. Verify adult gate and both calculators.
+3. Verify adult gate and both calculators in metric and imperial modes.
 4. Verify keyboard focus/navigation and screen-reader behavior.
 5. Verify window resizing and HiDPI/scaling behavior.
 6. Confirm there is no unexpected persistence/network telemetry.
@@ -161,7 +161,7 @@ CI produces JavaScript and Wasm production artifacts.
 Before public hosting:
 
 1. Verify both production bundles load correctly.
-2. Test adult gating/calculation in representative current browsers.
+2. Test adult gating plus metric and imperial calculation in representative current browsers.
 3. Choose Wasm primary vs JavaScript compatibility routing based on tested browser support.
 4. Verify keyboard/screen-reader behavior and responsive layouts.
 5. Choose a hosting provider/process.
@@ -178,7 +178,7 @@ Before TestFlight/App Store or other signed distribution:
 2. Confirm Apple CI framework and simulator-host builds are green.
 3. Build/run on a current iPhone/iPad simulator.
 4. Build/run on a physical configured device.
-5. Verify adult gate and calculator flows.
+5. Verify adult gate plus metric and imperial calculator flows.
 6. Verify VoiceOver and Dynamic Type behavior.
 7. Configure Apple signing/team/provisioning outside Git source.
 8. Create store metadata/screenshots using fictional/example measurements.
@@ -235,11 +235,11 @@ Tags matching `v*` trigger `.github/workflows/release.yml`.
 The tagged workflow is Android-focused. It:
 
 1. sets up JDK 17 and Gradle 8.13;
-2. installs Android SDK packages;
+2. provisions Android command-line tools, Platform 36, and Build Tools 35.0.0 with `android-actions/setup-android@v4`;
 3. runs shared tests, Android unit tests, ktlint, and release lint;
-4. assembles unsigned Android release APK and App Bundle;
+4. assembles the unsigned Android release APK and App Bundle;
 5. uploads them as workflow artifacts;
-6. creates a GitHub Release with generated notes and unsigned artifacts.
+6. creates a GitHub Release with generated notes and both unsigned artifacts.
 
 Desktop/web/iOS pull-request/main workflows remain independent validation gates. A tag must be created only after the same release commit has passed them when those platforms are part of the claimed release scope.
 
