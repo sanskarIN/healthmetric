@@ -19,5 +19,6 @@ Invoke-Gradle :androidApp:testDebugUnitTest
 Invoke-Gradle :androidApp:lintRelease
 Invoke-Gradle :androidApp:assembleDebug
 Invoke-Gradle :androidApp:assembleRelease
+Invoke-Gradle :androidApp:bundleRelease
 
 Write-Host "`nHealthMetric cross-platform verification completed successfully."
