@@ -1,8 +1,9 @@
 package io.github.sanskarin.healthmetric.domain
 
-class AdultOnlyUsageError : IllegalArgumentException(
-    "HealthMetric reference calculators are intended for adults age 18 or older.",
-)
+class AdultOnlyUsageError :
+    IllegalArgumentException(
+        "HealthMetric reference calculators are intended for adults age 18 or older.",
+    )
 
 data class BmiSummary(
     val displayValue: Double,
@@ -79,21 +80,24 @@ object HealthMetricEngine {
         ).toSummary()
     }
 
-    fun isAdultAgeEligible(ageYears: Int): Boolean = ageYears >= MINIMUM_SUPPORTED_AGE_YEARS
+    fun isAdultAgeEligible(ageYears: Int): Boolean =
+        ageYears >= MINIMUM_SUPPORTED_AGE_YEARS
 
     private fun requireAdult(ageYears: Int) {
         if (!isAdultAgeEligible(ageYears)) throw AdultOnlyUsageError()
     }
 }
 
-private fun BmiResult.toSummary(): BmiSummary = BmiSummary(
-    displayValue = displayBmi,
-    referenceLabel = band.label,
-    explanation = band.explanation,
-    educationalNotice = educationalNotice,
-)
+private fun BmiResult.toSummary(): BmiSummary =
+    BmiSummary(
+        displayValue = displayBmi,
+        referenceLabel = band.label,
+        explanation = band.explanation,
+        educationalNotice = educationalNotice,
+    )
 
-private fun WaistToHeightResult.toSummary(): WaistToHeightSummary = WaistToHeightSummary(
-    displayValue = displayRatio,
-    educationalNotice = educationalNotice,
-)
+private fun WaistToHeightResult.toSummary(): WaistToHeightSummary =
+    WaistToHeightSummary(
+        displayValue = displayRatio,
+        educationalNotice = educationalNotice,
+    )
