@@ -25,6 +25,9 @@ jobs:
       - name: Audit repository invariants
         run: python3 scripts/check_repository.py
 
+      - name: Verify release version metadata
+        run: python3 scripts/check_release_version.py
+
       - name: Verify internal Markdown links
         run: python3 scripts/check_markdown_links.py
 
