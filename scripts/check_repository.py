@@ -49,6 +49,7 @@ REQUIRED_PATHS = [
     "docs/adr/0002-local-privacy-first-persistence.md",
     "docs/adr/0003-versioned-adult-reference-profiles.md",
     "docs/adr/0004-bounded-user-controlled-local-data.md",
+    "scripts/check_release_version.py",
     ".github/workflows/ci.yml",
     ".github/workflows/android-instrumentation.yml",
     ".github/workflows/apple-shared.yml",
@@ -186,10 +187,14 @@ def main() -> int:
     ci_workflow = read(".github/workflows/ci.yml")
     if "androidApp/build/outputs/bundle/release/*.aab" not in ci_workflow:
         failures.append("CI must upload the unsigned release App Bundle artifact")
+    if "python3 scripts/check_release_version.py" not in ci_workflow:
+        failures.append("CI must validate release version metadata")
 
     release_workflow = read(".github/workflows/release.yml")
     if "androidApp/build/outputs/bundle/release/*.aab" not in release_workflow:
         failures.append("tagged release workflow must publish the unsigned App Bundle")
+    if 'python3 scripts/check_release_version.py "${GITHUB_REF_NAME}"' not in release_workflow:
+        failures.append("tagged release workflow must reject version/tag mismatches")
 
     if failures:
         print("Repository invariant audit failed:")
