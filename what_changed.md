@@ -1,6 +1,6 @@
 # HealthMetric — Work Handoff
 
-Last updated: 2026-08-23
+Last updated: 2026-08-24
 
 ## Current milestone
 
@@ -21,9 +21,9 @@ PR base commit:
 
 Code/documentation head immediately before this handoff commit:
 
-`e75257e7d20fb3a46983436a2e46ac86eb8672a6` (`docs(development): align contributor workflow with all platforms`)
+`afc3c28f5398d4f8ef7d95bf3078985122b29448` (`docs(release): document cross-platform version gate`)
 
-GitHub reports PR #16 as open, non-draft, and mergeable. Immediately before this handoff update it contained 71 commits, 42 changed files, 2,781 additions, and 539 deletions. This handoff update adds another meaningful documentation commit.
+GitHub reports PR #16 as open, non-draft, and mergeable. Immediately before this handoff update it contained 90 commits, 49 changed files, 3,462 additions, and 984 deletions. This handoff update adds another meaningful documentation commit.
 
 The previous Phase-2 handoff that referenced PR #12 is obsolete. The privacy/data-control work from that phase is already part of the base history; the active continuation is PR #16.
 
@@ -34,12 +34,12 @@ The previous Phase-2 handoff that referenced PR #12 is obsolete. The privacy/dat
 - Phase 2 Android product completeness: implemented except release-candidate screenshots/manual device evidence.
 - Phase 3 cross-platform foundation: implemented for shared domain, reusable shared UI, Windows/macOS/Linux desktop hosts, JavaScript/Wasm web hosts, and iOS/iPadOS SwiftUI host.
 - Phase 4 automated verification depth: substantially implemented across shared domain, shared UI helpers, Android JVM/instrumentation, browser compilation/bundling, Apple framework/host build, and native desktop packaging workflows.
-- Phase 5 release readiness: unsigned Android APK and App Bundle pipelines are implemented; manual platform validation and protected production signing remain release tasks.
-- Phase 6 final audit: repository/document invariants are automated, but final release status cannot be marked complete until the final GitHub Actions group finishes successfully and manual release evidence is completed.
+- Phase 5 release readiness: unsigned Android APK and App Bundle pipelines are implemented; release-version consistency gates and `v0.1.0` candidate notes are implemented; manual platform validation and protected production signing remain release tasks.
+- Phase 6 final audit: repository/document/version invariants are automated, but final release status cannot be marked complete until the final GitHub Actions group finishes successfully and manual release evidence is completed.
 
 ## Continuation objective
 
-This continuation took the existing cross-platform branch, audited its real GitHub Actions failures, fixed the underlying toolchain/configuration defects, filled missing metric/imperial parity in the reusable UI, added regression coverage, completed the Android App Bundle release path, strengthened executable repository invariants, and aligned public/contributor/release documentation with the implementation.
+This continuation took the existing cross-platform branch, audited its real GitHub Actions failures, fixed the underlying toolchain/configuration defects, filled missing metric/imperial parity in the reusable UI, added regression coverage, completed the Android App Bundle release path, strengthened executable repository invariants, aligned public/contributor/release documentation with the implementation, fixed the remaining Kotlin/iOS bridge style failures exposed by CI, and added cross-platform release-version safeguards for the first release candidate.
 
 The work deliberately used many small, coherent commits instead of one large commit.
 
@@ -163,7 +163,7 @@ Cross-platform CI and both local verification scripts execute `:sharedUI:desktop
 
 ## CI failures found and fixed
 
-The previous PR head had six failing workflow families. The failures were configuration/toolchain failures, not product-domain test failures.
+The previous PR heads exposed configuration/toolchain/style failures before the full product verification matrix could complete. The concrete failures inspected so far were fixed rather than bypassed.
 
 ### Root cause 1 — Android SDK command-line tools were not provisioned
 
@@ -205,6 +205,22 @@ inside `kotlin.compilerOptions`.
 
 Java source/target compatibility remains Java 17.
 
+### Root cause 3 — Kotlin formatting/style gate failures
+
+A later CI head reached the Kotlin style gate and reported deterministic formatting issues in the shared domain sources plus the iOS controller factory naming rule.
+
+The continuation formatted:
+
+- `Bmi.kt`;
+- `HealthMetricEngine.kt`;
+- `Units.kt`;
+- `Validation.kt`;
+- `WaistToHeight.kt`.
+
+The iOS Kotlin bridge factory was renamed from `MainViewController()` to idiomatic `mainViewController()`, and `iosApp/HealthMetric/ContentView.swift` was updated to call the new exported Kotlin symbol. No lint suppression was added.
+
+An older Apple log also referenced `KeyboardOptions` symbols in a shared UI snapshot, but the inspected source for the relevant branch/commit no longer contained those symbols. No speculative source change was made for a stale/non-reproducible log; fresh exact-head Apple CI remains the authoritative check.
+
 ## Android release artifact completion
 
 The documentation/roadmap claimed Android App Bundle verification, but the actual CI/release workflows were only building APKs. This mismatch was fixed in the implementation rather than hiding it in documentation.
@@ -225,11 +241,13 @@ It uploads all applicable build/lint artifacts, including:
 
 `release.yml` now:
 
-1. verifies shared tests, Android unit tests, ktlint, and release lint;
-2. assembles the unsigned release APK;
-3. builds the unsigned release App Bundle;
-4. uploads APK and AAB workflow artifacts;
-5. attaches both unsigned artifacts to the generated GitHub Release.
+1. audits repository invariants and internal Markdown links;
+2. validates release/tag metadata;
+3. verifies shared tests, Android unit tests, ktlint, and release lint;
+4. assembles the unsigned release APK;
+5. builds the unsigned release App Bundle;
+6. uploads APK and AAB workflow artifacts;
+7. attaches both unsigned artifacts to the generated GitHub Release.
 
 Production signing remains intentionally outside source control.
 
@@ -272,9 +290,42 @@ The audit now guards, among other existing requirements:
 - `android-actions/setup-android@v4` in every workflow that configures Android targets;
 - `:sharedUI:desktopTest` in cross-platform CI;
 - `:androidApp:bundleRelease` in CI, tagged release, and both local verification scripts;
-- AAB artifact publication paths in CI and tagged release.
+- AAB artifact publication paths in CI and tagged release;
+- presence of the release-version validation script;
+- release-version validation in normal CI;
+- exact tag/version validation in tagged release CI.
 
-The existing internal Markdown link audit remains part of main CI.
+The existing internal Markdown link audit remains part of main CI and is also run before tagged release packaging.
+
+## Cross-platform version/release safeguards added on 2026-08-24
+
+Added `scripts/check_release_version.py` as an executable metadata gate.
+
+Normal CI now validates that:
+
+- Android `versionName` is valid Semantic Versioning;
+- Android `versionCode` is positive;
+- desktop `packageVersion` matches the Android user-facing version;
+- iOS `MARKETING_VERSION` matches the Android user-facing version;
+- iOS `CURRENT_PROJECT_VERSION` matches the Android build number;
+- `CHANGELOG.md` contains the configured release section;
+- `docs/releases/v<version>.md` exists.
+
+Tagged release CI additionally validates that:
+
+- the Git tag is a valid `v`-prefixed Semantic Versioning tag;
+- the tag matches the configured cross-platform version;
+- the changelog release heading has been finalized to a `YYYY-MM-DD` date rather than remaining `Planned`.
+
+The current aligned metadata is:
+
+- Android `versionName`: `0.1.0`;
+- Android `versionCode`: `1`;
+- desktop `packageVersion`: `0.1.0`;
+- iOS `MARKETING_VERSION`: `0.1.0`;
+- iOS `CURRENT_PROJECT_VERSION`: `1`.
+
+`docs/releases/v0.1.0.md` now records the intended scope, automated gates, manual gates, distribution boundaries, and tagging rule for the first candidate. The release is intentionally not tagged while the changelog remains `## [0.1.0] - Planned` and required automated/manual evidence is incomplete.
 
 ## Android privacy/safety behavior preserved
 
@@ -306,8 +357,10 @@ Updated to match the actual cross-platform and release implementation:
 - `ROADMAP.md`;
 - `docs/testing.md`;
 - `docs/release.md`;
+- `docs/releases/v0.1.0.md`;
 - `docs/setup.md`;
 - `docs/development.md`;
+- PR #16 description;
 - this `what_changed.md`.
 
 Key corrections include:
@@ -319,11 +372,13 @@ Key corrections include:
 - native desktop packages are documented;
 - Android AAB generation/upload is documented and implemented;
 - workflow Android SDK provisioning uses setup-android v4;
-- protected signing/manual validation are clearly separated from repository build readiness.
+- protected signing/manual validation are clearly separated from repository build readiness;
+- first-candidate version metadata is aligned and automatically checked across Android, desktop, and iOS;
+- tag publication is blocked until the changelog section is finalized with a real release date.
 
-## Commits made during this continuation before this handoff
+## Commits made during the earlier 2026-08-23 continuation before its handoff
 
-This continuation added 30 meaningful commits before the current handoff commit:
+That continuation added 30 meaningful commits before the previous handoff commit:
 
 1. `150699ba` — `fix(android): migrate JVM target to compilerOptions`
 2. `d4b27cdc` — `ci: provision Android SDK before verification`
@@ -358,15 +413,38 @@ This continuation added 30 meaningful commits before the current handoff commit:
 
 No empty commits were created solely to inflate the count.
 
-## Verification state at this handoff
+## Commits made during the 2026-08-24 continuation before this handoff
 
-The latest code/documentation head before this handoff is:
+This continuation added 18 focused commits before the current handoff commit:
+
+1. `69482b62` — `style(shared): format BMI domain model`
+2. `93fa059a` — `style(shared): format platform engine facade`
+3. `d2ebe080` — `style(shared): align chained summary calls`
+4. `4b680070` — `style(shared): format unit converter signature`
+5. `0ae9909a` — `style(shared): format validation declarations`
+6. `0d8fbc20` — `style(shared): format waist-to-height calculator`
+7. `a302f9f3` — `style(ios): use idiomatic controller factory name`
+8. `fe25d288` — `fix(ios): update Swift controller bridge`
+9. `36f1ee8a` — `ci(release): add version metadata consistency check`
+10. `f1617f45` — `ci: validate release metadata on every change`
+11. `62882713` — `ci(release): reject mismatched version tags`
+12. `e5e4760b` — `ci: lock release version gate invariants`
+13. `acfa4647` — `docs(release): prepare v0.1.0 candidate notes`
+14. `ddc13ac9` — `ci(release): audit repository before publishing`
+15. `48e6c2a8` — `docs(changelog): record release version safeguards`
+16. `f4ebd4fe` — `ci(release): require finalized changelog before tagging`
+17. `bc415e0f` — `ci(release): enforce cross-platform version alignment`
+18. `afc3c28f` — `docs(release): document cross-platform version gate`
+
+No empty commits were created solely to inflate the count.
+
+## Verification state at the 2026-08-23 handoff
+
+The code/documentation head before the previous handoff was:
 
 `e75257e7d20fb3a46983436a2e46ac86eb8672a6`
 
-PR #16 remains mergeable according to GitHub.
-
-The workflow group observed for that head is not complete yet; GitHub-hosted jobs are queued/pending rather than reporting a pass/fail conclusion:
+The workflow group observed for that head was queued/pending at the time of that handoff:
 
 - Dependency Review — run `32627871583` — queued;
 - CodeQL — run `32627871604` — queued;
@@ -377,15 +455,36 @@ The workflow group observed for that head is not complete yet; GitHub-hosted job
 - Apple shared core and UI — run `32627871577` — pending;
 - CI — run `32627871584` — queued.
 
-Earlier failing runs on the branch were inspected and produced the two concrete root causes documented above: missing `sdkmanager` provisioning and the removed Kotlin `kotlinOptions.jvmTarget` API. Those root causes are now fixed and guarded by repository invariants.
+Subsequent runs reached the Kotlin formatting/style gate and exposed the additional source/bridge issues fixed in the 2026-08-24 commits listed above.
 
-Because this handoff file itself changes the PR head, GitHub will schedule another final check group for this documentation commit. The final PR must not be called green or release-ready until the checks for the actual merge/release head complete successfully.
+## Verification state immediately before this handoff commit
+
+The stable code/documentation head immediately before this handoff update is:
+
+`afc3c28f5398d4f8ef7d95bf3078985122b29448`
+
+GitHub reports PR #16 as open, non-draft, and mergeable.
+
+Fresh workflow runs for that exact head were inspected and all eight were queued rather than reporting a pass/fail conclusion:
+
+- Android instrumentation — run `32732620373` — queued;
+- Apple shared core and UI — run `32732620467` — queued;
+- CI — run `32732620544` — queued;
+- Cross-platform clients — run `32732620378` — queued;
+- Dependency Review — run `32732620367` — queued;
+- CodeQL — run `32732620451` — queued;
+- Secret Scan — run `32732620459` — queued;
+- Desktop native packages — run `32732620402` — queued.
+
+Because this `what_changed.md` update creates a new PR head, GitHub will schedule a new exact-head check group for this documentation commit. The PR must not be described as fully green or release-ready until the checks for the actual merge/release head complete successfully.
 
 ## Execution-environment limitation
 
 The coding container cannot perform an authoritative local clone/build of the repository because outbound GitHub hostname resolution is unavailable and it does not provide the complete Android/Apple toolchains needed for this project.
 
 That is an execution-environment limitation, not evidence that the repository fails to build. GitHub-hosted workflows are the authoritative automated build/test/package runners for this continuation.
+
+The repository itself does not currently include a Gradle wrapper; CI pins Gradle 8.13 through `gradle/actions/setup-gradle`, while local/Xcode setup documentation requires an installed compatible Gradle when `./gradlew` is unavailable. Adding a repository wrapper remains a future reproducibility improvement if binary wrapper material is intentionally adopted and reviewed.
 
 ## Known external/manual release blockers
 
@@ -400,18 +499,21 @@ These are intentionally left open rather than falsely marked complete:
 7. Android production signing material must remain outside source control and be configured in a protected distribution environment.
 8. Apple signing/provisioning must remain outside source control.
 9. Web hosting and production security headers/privacy behavior must be selected and documented before public deployment.
-10. `v0.1.0` must not be tagged until the automated and manual release checklist is satisfied.
+10. `CHANGELOG.md` must be changed from `[0.1.0] - Planned` to the actual `YYYY-MM-DD` release date only when the candidate is truly ready to tag.
+11. `v0.1.0` must not be tagged until the automated and manual release checklist is satisfied.
 
 These are release/environment tasks rather than missing core calculation implementation.
 
 ## Next exact tasks
 
-1. Inspect the GitHub Actions group for the final PR head after this handoff commit.
+1. Inspect the GitHub Actions group for the exact head created by this handoff commit.
 2. If any job fails, inspect its job logs and fix the root cause with a focused regression/verification commit.
 3. Repeat until CI, cross-platform clients, desktop packages, Android instrumentation, Apple host build, CodeQL, dependency review, and secret scan are green on one stable head.
-4. Update this file with exact successful run IDs only when that stable green head exists.
-5. Merge PR #16 into `main` only after the automated branch gate is green.
-6. Run the remaining manual/device/browser/accessibility/signing checklist before tagging `v0.1.0`.
+4. Run the remaining manual device/browser/accessibility checks for each platform intended to be claimed in `v0.1.0`.
+5. Configure protected Android/Apple signing only in the external distribution environments that require it.
+6. Finalize the `[0.1.0]` changelog heading with the actual release date only after the release checklist is satisfied.
+7. Merge PR #16 into `main` only after the automated branch gate is green.
+8. Tag `v0.1.0` only from the reviewed release commit after the required manual gates for the claimed release scope are complete.
 
 ## Release principle
 
