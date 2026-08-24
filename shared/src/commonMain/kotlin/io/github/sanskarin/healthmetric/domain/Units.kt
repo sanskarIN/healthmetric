@@ -28,6 +28,8 @@ object UnitConverter {
 
     fun centimetersToInches(centimeters: Double): Double = centimeters / CM_PER_INCH
 
-    fun imperialHeightToCentimeters(feet: Int, inches: Double): Double =
-        inchesToCentimeters((feet * 12.0) + inches)
+    fun imperialHeightToCentimeters(
+        feet: Int,
+        inches: Double,
+    ): Double = inchesToCentimeters((feet * 12.0) + inches)
 }
