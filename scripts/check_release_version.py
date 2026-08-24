@@ -8,6 +8,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 ANDROID_BUILD = ROOT / "androidApp" / "build.gradle.kts"
 CHANGELOG = ROOT / "CHANGELOG.md"
+RELEASE_NOTES_DIR = ROOT / "docs" / "releases"
 
 SEMVER_PATTERN = re.compile(
     r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)"
@@ -16,6 +17,7 @@ SEMVER_PATTERN = re.compile(
 )
 VERSION_NAME_PATTERN = re.compile(r'versionName\s*=\s*"([^"]+)"')
 VERSION_CODE_PATTERN = re.compile(r"versionCode\s*=\s*(\d+)")
+RELEASE_DATE_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 
 def fail(message: str) -> int:
@@ -30,6 +32,14 @@ def normalize_tag(tag: str) -> str | None:
     if not SEMVER_PATTERN.fullmatch(version):
         return None
     return version
+
+
+def changelog_release_label(changelog: str, version: str) -> str | None:
+    pattern = re.compile(rf"^## \[{re.escape(version)}\](?: - (.+))?$", re.MULTILINE)
+    match = pattern.search(changelog)
+    if match is None:
+        return None
+    return match.group(1)
 
 
 def main() -> int:
@@ -52,8 +62,13 @@ def main() -> int:
     if version_code < 1:
         return fail("Android versionCode must be a positive integer")
 
-    if f"## [{version_name}]" not in changelog:
+    release_label = changelog_release_label(changelog, version_name)
+    if release_label is None:
         return fail(f"CHANGELOG.md does not contain a [{version_name}] release section")
+
+    release_notes = RELEASE_NOTES_DIR / f"v{version_name}.md"
+    if not release_notes.is_file():
+        return fail(f"missing release candidate notes: {release_notes.relative_to(ROOT)}")
 
     if len(sys.argv) > 2:
         return fail("usage: check_release_version.py [v<semver>]")
@@ -66,10 +81,14 @@ def main() -> int:
             return fail(
                 f'tag version "{tag_version}" does not match Android versionName "{version_name}"'
             )
+        if release_label is None or not RELEASE_DATE_PATTERN.fullmatch(release_label):
+            return fail(
+                f"CHANGELOG.md [{version_name}] must use a finalized YYYY-MM-DD date before tagging"
+            )
 
     print(
         "Release version check passed "
-        f"(versionName={version_name}, versionCode={version_code}, changelog section present)."
+        f"(versionName={version_name}, versionCode={version_code}, changelog section and notes present)."
     )
     return 0
 
