@@ -25,51 +25,65 @@ data class BmiReferenceProfile(
     val bands: List<BmiReferenceBand>,
     val source: EvidenceSource,
 ) {
-    fun bandFor(bmi: Double): BmiReferenceBand = bands.first { band ->
-        val aboveMinimum = band.minInclusive?.let { bmi >= it } ?: true
-        val belowMaximum = band.maxExclusive?.let { bmi < it } ?: true
-        aboveMinimum && belowMaximum
-    }
+    fun bandFor(bmi: Double): BmiReferenceBand =
+        bands.first { band ->
+            val aboveMinimum = band.minInclusive?.let { bmi >= it } ?: true
+            val belowMaximum = band.maxExclusive?.let { bmi < it } ?: true
+            aboveMinimum && belowMaximum
+        }
 
     companion object {
-        val AdultGeneralReference = BmiReferenceProfile(
-            id = "adult-general-v1",
-            displayName = "General adult BMI reference",
-            adultOnly = true,
-            bands = listOf(
-                BmiReferenceBand(
-                    minInclusive = null,
-                    maxExclusive = 18.5,
-                    label = "Below adult reference range",
-                    explanation = "This result is below the commonly used adult population reference band. BMI is only a screening measure and does not describe overall health on its own.",
-                ),
-                BmiReferenceBand(
-                    minInclusive = 18.5,
-                    maxExclusive = 25.0,
-                    label = "Within adult reference range",
-                    explanation = "This result is within a commonly used adult population reference band. It is not a diagnosis or a personal appearance target.",
-                ),
-                BmiReferenceBand(
-                    minInclusive = 25.0,
-                    maxExclusive = 30.0,
-                    label = "Above adult reference range",
-                    explanation = "This result is above a commonly used adult population reference band. Individual health context can differ substantially from BMI alone.",
-                ),
-                BmiReferenceBand(
-                    minInclusive = 30.0,
-                    maxExclusive = null,
-                    label = "Well above adult reference range",
-                    explanation = "This result is well above a commonly used adult population reference band. BMI alone cannot determine a person's health status.",
-                ),
-            ),
-            source = EvidenceSource(
-                title = "Body mass index (BMI)",
-                publisher = "World Health Organization",
-                url = "https://www.who.int/data/gho/data/themes/topics/topic-details/GHO/body-mass-index",
-                note = "Population-level adult BMI reference information. HealthMetric presents this for education, not diagnosis.",
-                reviewedOnIsoDate = "2026-08-19",
-            ),
-        )
+        val AdultGeneralReference =
+            BmiReferenceProfile(
+                id = "adult-general-v1",
+                displayName = "General adult BMI reference",
+                adultOnly = true,
+                bands =
+                    listOf(
+                        BmiReferenceBand(
+                            minInclusive = null,
+                            maxExclusive = 18.5,
+                            label = "Below adult reference range",
+                            explanation =
+                                "This result is below the commonly used adult population reference band. " +
+                                    "BMI is only a screening measure and does not describe overall health on its own.",
+                        ),
+                        BmiReferenceBand(
+                            minInclusive = 18.5,
+                            maxExclusive = 25.0,
+                            label = "Within adult reference range",
+                            explanation =
+                                "This result is within a commonly used adult population reference band. " +
+                                    "It is not a diagnosis or a personal appearance target.",
+                        ),
+                        BmiReferenceBand(
+                            minInclusive = 25.0,
+                            maxExclusive = 30.0,
+                            label = "Above adult reference range",
+                            explanation =
+                                "This result is above a commonly used adult population reference band. " +
+                                    "Individual health context can differ substantially from BMI alone.",
+                        ),
+                        BmiReferenceBand(
+                            minInclusive = 30.0,
+                            maxExclusive = null,
+                            label = "Well above adult reference range",
+                            explanation =
+                                "This result is well above a commonly used adult population reference band. " +
+                                    "BMI alone cannot determine a person's health status.",
+                        ),
+                    ),
+                source =
+                    EvidenceSource(
+                        title = "Body mass index (BMI)",
+                        publisher = "World Health Organization",
+                        url = "https://www.who.int/data/gho/data/themes/topics/topic-details/GHO/body-mass-index",
+                        note =
+                            "Population-level adult BMI reference information. " +
+                                "HealthMetric presents this for education, not diagnosis.",
+                        reviewedOnIsoDate = "2026-08-19",
+                    ),
+            )
     }
 }
 
@@ -82,7 +96,8 @@ data class BmiResult(
 ) {
     companion object {
         const val EDUCATIONAL_NOTICE: String =
-            "For adults only. BMI is a population screening measure, not a diagnosis or an appearance goal. If you have health concerns, discuss them with a qualified healthcare professional."
+            "For adults only. BMI is a population screening measure, not a diagnosis or an appearance goal. " +
+                "If you have health concerns, discuss them with a qualified healthcare professional."
     }
 }
 
@@ -107,7 +122,10 @@ object BmiCalculator {
         return calculateMetric(MetricBodyInput(kilograms, centimeters), reference)
     }
 
-    private fun resultFor(bmi: Double, reference: BmiReferenceProfile): BmiResult {
+    private fun resultFor(
+        bmi: Double,
+        reference: BmiReferenceProfile,
+    ): BmiResult {
         val display = round(bmi * 10.0) / 10.0
         return BmiResult(
             bmi = bmi,

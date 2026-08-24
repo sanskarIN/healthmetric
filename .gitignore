@@ -17,6 +17,12 @@ captures/
 .externalNativeBuild/
 .cxx/
 
+# Xcode / XcodeGen
+DerivedData/
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+iosApp/HealthMetricIOS.xcodeproj/
+
 # macOS / Windows
 .DS_Store
 Thumbs.db

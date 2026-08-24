@@ -25,6 +25,9 @@ jobs:
       - name: Audit repository invariants
         run: python3 scripts/check_repository.py
 
+      - name: Verify release version metadata
+        run: python3 scripts/check_release_version.py
+
       - name: Verify internal Markdown links
         run: python3 scripts/check_markdown_links.py
 
@@ -39,11 +42,10 @@ jobs:
         with:
           gradle-version: "8.13"
 
-      - name: Install Android SDK packages
-        shell: bash
-        run: |
-          yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager "platforms;android-36" "build-tools;35.0.0"
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+        with:
+          packages: "platform-tools platforms;android-36 build-tools;35.0.0"
 
       - name: Verify Kotlin formatting and style
         run: gradle :shared:ktlintCheck :androidApp:ktlintCheck
@@ -62,6 +64,9 @@ jobs:
 
       - name: Assemble unsigned release candidate
         run: gradle :androidApp:assembleRelease
+
+      - name: Build unsigned release App Bundle
+        run: gradle :androidApp:bundleRelease
 
       - name: Upload lint reports
         if: always()
@@ -87,5 +92,14 @@ jobs:
         with:
           name: healthmetric-unsigned-release-apk
           path: androidApp/build/outputs/apk/release/*.apk
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload unsigned release App Bundle
+        if: success()
+        uses: actions/upload-artifact@v7
+        with:
+          name: healthmetric-unsigned-release-aab
+          path: androidApp/build/outputs/bundle/release/*.aab
           if-no-files-found: error
           retention-days: 14
