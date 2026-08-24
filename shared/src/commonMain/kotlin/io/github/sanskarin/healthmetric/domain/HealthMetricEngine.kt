@@ -37,7 +37,8 @@ object HealthMetricEngine {
                 weightKg = weightKg,
                 heightCm = heightCm,
             ),
-        ).toSummary()
+        )
+            .toSummary()
     }
 
     fun calculateAdultImperialBmi(
@@ -53,7 +54,8 @@ object HealthMetricEngine {
                 heightFeet = heightFeet,
                 heightInches = heightInches,
             ),
-        ).toSummary()
+        )
+            .toSummary()
     }
 
     fun calculateAdultMetricWaistToHeight(
@@ -65,7 +67,8 @@ object HealthMetricEngine {
         return WaistToHeightCalculator.calculateMetric(
             waistCm = waistCm,
             heightCm = heightCm,
-        ).toSummary()
+        )
+            .toSummary()
     }
 
     fun calculateAdultImperialWaistToHeight(
@@ -77,7 +80,8 @@ object HealthMetricEngine {
         return WaistToHeightCalculator.calculateImperial(
             waistInches = waistInches,
             heightInches = heightInches,
-        ).toSummary()
+        )
+            .toSummary()
     }
 
     fun isAdultAgeEligible(ageYears: Int): Boolean =
