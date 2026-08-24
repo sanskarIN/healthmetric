@@ -43,6 +43,8 @@ All notable HealthMetric changes are documented here. The project follows Semant
 - Domain unit, boundary, conversion, validation, deterministic property, onboarding UI, adult-gate, privacy-default, retention-policy, locale-number, bounded backup IO, engine façade, and shared UI helper tests.
 - Instrumentation tests for BMI/ratio success and error journeys, privacy settings, history controls, retention, DataStore export/restore, malformed backups, consent/safety boundaries, and deletion/restore behavior.
 - Repository community, security, support, privacy, design-system, evidence, architecture, cross-platform setup/testing, and contribution documentation.
+- Version-specific `v0.1.0` release-candidate notes with automated/manual gate and distribution-status boundaries.
+- Release-version metadata validation for Semantic Versioning, Android `versionName`/`versionCode`, changelog presence, and tag-to-artifact consistency.
 
 ### Changed
 
@@ -52,13 +54,15 @@ All notable HealthMetric changes are documented here. The project follows Semant
 - Release CI now runs Android unit tests and release lint before creating unsigned APK/App Bundle artifacts.
 - Main CI now builds and uploads the unsigned release App Bundle in addition to APK artifacts.
 - Tagged releases now attach both unsigned APK and App Bundle outputs.
+- Tagged releases now reject mismatched `v*` tags and run repository-invariant and Markdown-link audits before packaging.
+- Main CI validates release metadata on every change so invalid version/changelog state is caught before tagging.
 - Local Unix and Windows verification scripts now run shared UI helper tests and `:androidApp:bundleRelease`.
 - Cross-platform CI now runs shared UI helper tests before platform compilation and packaging work.
 - Desktop, web, and iOS shared UI now exposes both metric and imperial calculation paths instead of metric-only forms.
 - Lowering the local Android history retention limit immediately trims older entries beyond the newly selected limit.
 - Portable Android backups now contain only portable settings/history; current history opt-in and adult-use/onboarding state remain device-local.
 - File export generates backup content after the user selects the destination document, avoiding reliance on transient pre-launch payload state.
-- Repository invariant checks now guard the Kotlin compiler DSL, Android SDK setup action, cross-platform unit routes, shared UI tests, and Android App Bundle release path.
+- Repository invariant checks now guard the Kotlin compiler DSL, Android SDK setup action, cross-platform unit routes, shared UI tests, Android App Bundle release path, and release-version gate.
 
 ### Security
 
