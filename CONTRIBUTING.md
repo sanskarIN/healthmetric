@@ -9,8 +9,10 @@ Thank you for helping improve HealthMetric. Contributions should preserve the pr
 - Keep shared-domain changes compatible with Android, JVM/Desktop, iOS device, and iOS simulator targets.
 - Do not add appearance-shaming language, rankings, pressure-oriented goals, forced sign-in, advertising trackers, or unnecessary network dependencies.
 - Never commit real personal health data. Use clearly fictional/example measurements in tests, screenshots, and issues.
-- Treat backup files as untrusted input and preserve their documented size/schema/record bounds.
+- Treat backup files as untrusted input and preserve their documented size/schema/record/order bounds.
 - Keep history opt-in and adult-use/onboarding state device-local; portable backups must not silently change consent or adult-only eligibility.
+- Keep local/imported history canonical newest-first before applying retention; delete/undo must restore chronological position.
+- Use collision-resistant identifiers for newly recorded local history and continue validating/deduplicating imported IDs.
 - Prefer small, atomic changes with tests and documentation.
 
 ## Local setup
@@ -31,7 +33,7 @@ or on Windows PowerShell:
 .\scripts\verify.ps1
 ```
 
-Equivalent commands include formatting, shared JVM tests, Android JVM tests, release lint, debug assembly, and release assembly.
+Equivalent commands include formatting, shared JVM tests, Android JVM tests, release lint, debug APK assembly, unsigned release APK assembly, and unsigned release App Bundle assembly.
 
 Also run repository/document integrity checks when documentation/configuration changes:
 
@@ -45,6 +47,8 @@ For UI/persistence changes, run instrumentation tests on a device/emulator:
 ```bash
 gradle :androidApp:connectedDebugAndroidTest
 ```
+
+The GitHub emulator workflow also produces the `android-release-screenshots` artifact from the real app. Release-critical UI changes must preserve or deliberately update that evidence journey.
 
 For shared-domain changes on macOS:
 
@@ -79,9 +83,9 @@ Do not rewrite other contributors' identity metadata.
 - Keep each PR focused.
 - Explain user-visible behavior changes.
 - Add regression tests for bug fixes.
-- Update docs when setup, architecture, privacy, backup schema, behavior, or release steps change.
-- Include UI evidence for visual changes using fictional/example data only.
-- Resolve formatting, test, lint, build, emulator, Apple-target, documentation-integrity, and security failures before merge.
+- Update docs when setup, architecture, privacy, backup schema, behavior, release packaging/evidence, or release steps change.
+- Include UI evidence for visual changes using fictional/example data only; prefer the CI-generated release screenshot artifact for release-critical review.
+- Resolve formatting, test, lint, APK/AAB build, emulator, screenshot-evidence, Apple-target, documentation-integrity, and security failures before merge.
 - Complete the repository PR checklist rather than deleting privacy/safety items as “not applicable” without explanation.
 
 ## Calculation and evidence changes
@@ -104,11 +108,31 @@ A change must retain or deliberately replace, with review:
 - 1 MiB bounded IO;
 - supported schema validation;
 - bounded history retention;
+- canonical newest-first ordering before retention;
 - per-record validation;
 - duplicate-ID protection;
+- collision-resistant IDs for new local entries;
 - device-local history consent/adult-gate/onboarding state;
 - explicit restore confirmation;
 - regression coverage for migrations/compatibility.
+
+## Navigation and accessibility changes
+
+Secondary destinations must remain escapable with explicit and/or system back behavior. If a destination hides bottom navigation, add a regression test proving the expected return path.
+
+Stable automation tags may be added for release-critical journeys, but they supplement rather than replace user-facing accessibility semantics.
+
+## Release screenshot changes
+
+If the required screenshot set or capture flow changes, update together:
+
+- `ReleaseScreenshotCaptureTest`;
+- `.github/workflows/android-instrumentation.yml`;
+- `docs/assets/screenshots/README.md`;
+- `scripts/check_repository.py`;
+- release/testing documentation.
+
+Never replace missing real-app evidence with fabricated/mock screenshots.
 
 ## Locale changes
 

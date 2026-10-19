@@ -40,15 +40,17 @@ HealthMetric intentionally minimizes attack surface:
 - cleartext network traffic is disabled in the Android manifest;
 - Android application backup is disabled;
 - local history is disabled by default, explicitly opt-in, bounded, selectively deletable, and fully erasable;
+- new local history records use collision-resistant UUID identifiers;
+- history is normalized newest-first before retention is applied, including import and delete/undo restoration;
 - export/restore is explicit and user-initiated;
 - restore requires confirmation before portable local data is replaced;
 - backup reads/writes are limited to 1 MiB;
-- restored JSON is schema-checked, record-validated, deduplicated, and history-bounded;
+- restored JSON is schema-checked, record-validated, deduplicated, chronologically normalized, and history-bounded;
 - portable backup restore cannot change current history opt-in, adult-use confirmation, or onboarding safety state;
 - raw weight, height, and waist inputs are not persisted in history;
 - backup contents and measurement values are not intentionally written to logs;
 - signing keys and secrets are excluded from source control;
-- CodeQL, dependency review, full-history secret scanning, Android instrumentation, and standard build/test checks run in GitHub Actions;
+- CodeQL, dependency review, full-history secret scanning, Android instrumentation, repository invariants, and standard build/test checks run in GitHub Actions;
 - Dependabot monitors Gradle and GitHub Actions dependencies.
 
 See [`docs/backup-format.md`](docs/backup-format.md) and [`docs/adr/0004-bounded-user-controlled-local-data.md`](docs/adr/0004-bounded-user-controlled-local-data.md) for the backup trust boundary.
@@ -66,6 +68,7 @@ HealthMetric therefore:
 - rejects invalid/blank IDs, negative timestamps, non-finite numeric values, and unknown calculator kinds;
 - caps record field lengths;
 - deduplicates record IDs before they reach Compose list keys;
+- sorts accepted records by timestamp descending before retention is applied;
 - caps final restored history;
 - keeps consent/safety state device-local;
 - performs the DataStore mutation only after user confirmation.
@@ -95,16 +98,20 @@ Prefer maintained dependencies from trusted sources. Dependency upgrades should 
 
 ## Release security gates
 
-Before tagging, the release commit should have successful:
+Before tagging, the exact release commit should have successful:
 
-- CI formatting, JVM tests, Android unit tests, release lint, and debug/release assembly;
-- Android emulator instrumentation;
+- repository invariant and internal Markdown-link audits;
+- formatting, shared JVM tests, Android unit tests, and Android release lint;
+- debug APK, unsigned release APK, and unsigned release App Bundle assembly with expected artifacts present;
+- Android emulator instrumentation, including the required real-app release screenshot artifact;
 - Apple shared-core compilation;
 - CodeQL analysis;
 - dependency review where applicable;
 - repository-history secret scanning.
 
-Production signing must remain outside source control.
+The CI-generated screenshot artifact must receive human privacy/visual review before permanent publication, and physical-device/manual accessibility checks remain release gates even though they are not automated security scans.
+
+Production signing must remain outside source control. Repository-produced APK/AAB artifacts are intentionally unsigned and must never be represented as store-signed production binaries.
 
 ## Disclosure process
 

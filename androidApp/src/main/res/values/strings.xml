@@ -19,6 +19,7 @@
     <string name="screen_about">About</string>
     <string name="top_bar_title">HealthMetric · %1$s</string>
     <string name="about_content_description">About</string>
+    <string name="navigate_back">Back</string>
     <string name="nav_ratio">Ratio</string>
 
     <string name="bmi_title">Adult BMI calculator</string>

@@ -47,7 +47,13 @@ class HealthMetricDataStoreTest {
         dataStore.setHistoryRetentionLimit(50)
 
         repeat(55) { index ->
-            dataStore.addHistory(entry(id = "entry-$index", value = 20.0 + index / 100.0))
+            dataStore.addHistory(
+                entry(
+                    id = "entry-$index",
+                    value = 20.0 + index / 100.0,
+                    timestampEpochMillis = 1_700_000_000_000L + index,
+                ),
+            )
         }
 
         val history = dataStore.history.first()
@@ -107,7 +113,38 @@ class HealthMetricDataStoreTest {
     }
 
     @Test
-    fun restoreSalvagesValidEntriesAndDeduplicatesIds() = runBlocking {
+    fun restoringDeletedOlderEntryPreservesChronologicalOrder() = runBlocking {
+        dataStore.setHistoryEnabled(true)
+        val oldest = entry(
+            id = "oldest",
+            value = 21.0,
+            timestampEpochMillis = 1_700_000_000_000L,
+        )
+        val middle = entry(
+            id = "middle",
+            value = 22.0,
+            timestampEpochMillis = 1_700_000_001_000L,
+        )
+        val newest = entry(
+            id = "newest",
+            value = 23.0,
+            timestampEpochMillis = 1_700_000_002_000L,
+        )
+        dataStore.addHistory(oldest)
+        dataStore.addHistory(middle)
+        dataStore.addHistory(newest)
+
+        dataStore.deleteHistoryEntry(middle.id)
+        dataStore.restoreHistoryEntry(middle)
+
+        assertEquals(
+            listOf("newest", "middle", "oldest"),
+            dataStore.history.first().map(HistoryEntry::id),
+        )
+    }
+
+    @Test
+    fun restoreSalvagesValidEntriesDeduplicatesIdsAndOrdersNewestFirst() = runBlocking {
         val backup = """
             {
               "schemaVersion": 1,
@@ -161,8 +198,8 @@ class HealthMetricDataStoreTest {
         val history = dataStore.history.first()
         val preferences = dataStore.preferences.first()
         assertEquals(2, history.size)
-        assertEquals(listOf("same-id", "second-valid"), history.map { it.id })
-        assertEquals(22.1, history.first().value, 0.0001)
+        assertEquals(listOf("second-valid", "same-id"), history.map { it.id })
+        assertEquals(0.47, history.first().value, 0.0001)
         assertFalse(preferences.historyEnabled)
         assertFalse(preferences.adultUseConfirmed)
         assertFalse(preferences.onboardingComplete)
@@ -199,9 +236,13 @@ class HealthMetricDataStoreTest {
         dataStore.addHistory(entry(id = " ", value = 22.0))
     }
 
-    private fun entry(id: String, value: Double): HistoryEntry = HistoryEntry(
+    private fun entry(
+        id: String,
+        value: Double,
+        timestampEpochMillis: Long = 1_700_000_000_000L,
+    ): HistoryEntry = HistoryEntry(
         id = id,
-        timestampEpochMillis = 1_700_000_000_000L,
+        timestampEpochMillis = timestampEpochMillis,
         calculator = CalculatorKind.BMI,
         value = value,
         summary = "Neutral test entry",

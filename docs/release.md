@@ -21,18 +21,19 @@ Keep `androidApp` `versionCode` monotonic and update `versionName` to the releas
 1. Update `CHANGELOG.md`.
 2. Update `ROADMAP.md` and `what_changed.md`.
 3. Verify reference source metadata, `reviewedOnIsoDate`, and adult-only copy.
-4. Run formatting, shared tests, Android unit tests, release lint, debug assembly, release APK assembly, and release App Bundle assembly.
+4. Run repository/link audits, formatting, shared tests, Android unit tests, release lint, debug assembly, release APK assembly, and release App Bundle assembly.
 5. Run the connected Android instrumentation suite.
-6. Compile the iOS shared-core targets on macOS.
-7. Confirm GitHub CI, Android instrumentation, Apple shared core, CodeQL, dependency review, and secret scanning are green for the release commit/PR.
-8. Manually test onboarding, under-18 gate, BMI, ratio, history disabled/enabled, retention changes, entry deletion/undo, erase-all confirmation, file backup, share backup, restore confirmation, restore, delete-all-data, themes, release link, About links, and large text.
-9. Test one valid backup round trip and confirm malformed/unsupported/oversized files produce safe errors rather than partial uncontrolled writes.
-10. Confirm imported legacy fields cannot alter history opt-in, adult-use confirmation, or onboarding state.
-11. Check numeric input/display in at least one dot-decimal and one comma-decimal locale.
-12. Capture release screenshots with fictional/example data only.
-13. Complete the manual TalkBack/accessibility checklist and record evidence.
-14. Confirm no secrets/signing material are in Git history.
-15. Configure production signing only in the protected distribution environment.
+6. Confirm the instrumentation run produced all eight PNG files in the `android-release-screenshots` artifact and visually/privacy-review them.
+7. Compile the iOS shared-core targets on macOS.
+8. Confirm GitHub CI, Android instrumentation, Apple shared core, CodeQL, dependency review, and secret scanning are green for the exact release commit/PR.
+9. Manually test onboarding, under-18 gate, BMI, ratio, history disabled/enabled, retention changes, chronological history ordering, entry deletion/undo, erase-all confirmation, file backup, share backup, restore confirmation, restore, delete-all-data, About return navigation, themes, release link, About links, and large text.
+10. Test one valid backup round trip and confirm malformed/unsupported/oversized files produce safe errors rather than partial uncontrolled writes.
+11. Confirm imported legacy fields cannot alter history opt-in, adult-use confirmation, or onboarding state.
+12. Confirm imported history is normalized newest-first before retention is applied and an older deleted entry returns to its chronological position after Undo.
+13. Check numeric input/display in at least one dot-decimal and one comma-decimal locale.
+14. Complete the manual TalkBack/accessibility checklist and record evidence.
+15. Confirm no secrets/signing material are in Git history.
+16. Configure production signing only in the protected distribution environment.
 
 ## Verification commands
 
@@ -51,6 +52,8 @@ or on Windows PowerShell:
 Equivalent commands:
 
 ```bash
+python3 scripts/check_repository.py
+python3 scripts/check_markdown_links.py
 gradle :shared:ktlintCheck :androidApp:ktlintCheck
 gradle :shared:desktopTest
 gradle :androidApp:testDebugUnitTest
@@ -72,7 +75,7 @@ On macOS:
 gradle :shared:compileKotlinIosSimulatorArm64 :shared:compileKotlinIosArm64
 ```
 
-The repository's `android-instrumentation.yml` workflow performs connected Android tests on an API 35 emulator. `apple-shared.yml` runs shared JVM tests and compiles both configured iOS targets on macOS.
+The repository's `android-instrumentation.yml` workflow performs connected Android tests on an API 35 Pixel 7 emulator and uploads the required real-app screenshot evidence. `apple-shared.yml` runs shared JVM tests and compiles both configured iOS targets on macOS.
 
 ## Android release artifacts
 
@@ -85,6 +88,21 @@ The App Bundle is the preferred artifact for a future Google Play protected sign
 
 Neither repository artifact should be represented as a production-store-signed binary. Production signing must be performed through a protected process outside Git source.
 
+## Release screenshot evidence
+
+The connected instrumentation suite captures:
+
+- `01-onboarding.png`;
+- `02-bmi-metric.png`;
+- `03-bmi-result.png`;
+- `04-waist-ratio.png`;
+- `05-history.png`;
+- `06-settings.png`;
+- `07-about.png`;
+- `08-dark-theme.png`.
+
+GitHub Actions pulls the files from app-scoped external storage and uploads the `android-release-screenshots` artifact. Missing files fail the upload step. Before publication, inspect every screenshot for clipping, overlays, accidental personal data, readability, neutral adult-only wording, and visual consistency. See [`assets/screenshots/README.md`](assets/screenshots/README.md).
+
 ## Release data/privacy checks
 
 Before tagging, verify:
@@ -92,7 +110,9 @@ Before tagging, verify:
 - fresh install history is disabled;
 - selecting 50/100/250/500 retention trims history as documented;
 - raw weight, height, and waist fields do not appear in persisted history/export;
+- new local history IDs use collision-resistant UUID values;
 - individual deletion can be undone without enabling future history saving;
+- Undo restores chronological position rather than moving an older entry to the top;
 - erase-all requires confirmation;
 - delete-all returns to onboarding/privacy defaults;
 - file backup uses Android's document picker;
@@ -101,7 +121,7 @@ Before tagging, verify:
 - restore rejects unsupported schema versions and oversized payloads;
 - malformed history records are skipped independently;
 - duplicate IDs cannot become duplicate Compose list keys;
-- imported history never exceeds the selected supported retention limit;
+- imported history is ordered newest-first and never exceeds the selected supported retention limit;
 - portable backup JSON omits `historyEnabled`, `adultUseConfirmed`, and `onboardingComplete`;
 - legacy backups containing those fields cannot change current device-local consent/safety state;
 - app manifest still has no Internet permission and keeps Android backup disabled.
@@ -140,7 +160,7 @@ The workflow:
 5. uploads the unsigned APK and App Bundle as workflow artifacts;
 6. creates a GitHub Release with generated notes and both unsigned artifacts.
 
-The tagged release workflow intentionally does not replace pull-request emulator, Apple-target, and security gates. A tag should be created only after the release commit has already passed those checks.
+The tagged release workflow intentionally does not replace pull-request emulator, screenshot-evidence, Apple-target, and security gates. A tag should be created only after the exact release commit has already passed those checks.
 
 ## Signing
 
@@ -172,6 +192,7 @@ Include:
 - accessibility improvements;
 - platform/shared-core target changes;
 - Android APK/App Bundle packaging changes;
+- screenshot-evidence status;
 - fixed defects;
 - known limitations;
 - verification status.

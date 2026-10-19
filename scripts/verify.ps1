@@ -20,4 +20,7 @@ if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 & $GradleBin :androidApp:assembleRelease
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+& $GradleBin :androidApp:bundleRelease
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
 Write-Host "`nHealthMetric verification completed successfully."

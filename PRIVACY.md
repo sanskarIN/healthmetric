@@ -18,7 +18,7 @@ These inputs are processed locally on the device.
 
 Local history is optional and **disabled by default**. A user must explicitly enable it in Settings before new calculation results are stored. When enabled, HealthMetric stores a bounded history containing:
 
-- a locally generated entry identifier;
+- a locally generated collision-resistant UUID identifier for new records;
 - timestamp;
 - calculator type;
 - calculated value;
@@ -26,7 +26,9 @@ Local history is optional and **disabled by default**. A user must explicitly en
 
 Raw weight, height, and waist inputs are not stored in history by the current implementation.
 
-Users can choose a maximum retention of 50, 100, 250, or 500 saved results. The default retention limit is 100. Lowering the limit immediately removes older entries beyond the selected maximum. Individual history entries can be deleted, with an immediate in-app undo action, or all history can be erased after confirmation.
+Users can choose a maximum retention of 50, 100, 250, or 500 saved results. The default retention limit is 100. History is normalized newest-first by timestamp before the retention limit is applied. Lowering the limit immediately removes older entries beyond the selected maximum. Individual history entries can be deleted, with an immediate in-app undo action that restores the entry to chronological position, or all history can be erased after confirmation.
+
+Imported schema-v1 identifiers are not required to be UUIDs; they remain bounded, validated, and deduplicated before reaching application history.
 
 ## Device-local consent and safety state
 
@@ -53,12 +55,15 @@ The user can restore a HealthMetric JSON backup by selecting a local document. A
 
 - only backup schema version 1 is accepted;
 - backup reads and writes are limited to 1 MiB;
-- restored history is capped by the selected supported retention limit and never exceeds 500 entries;
 - malformed individual history records are ignored rather than crashing the app;
 - blank/invalid identifiers, negative timestamps, non-finite values, and unknown calculator types are rejected at record level;
 - duplicate history identifiers are deduplicated;
+- accepted records are sorted newest-first by timestamp before retention is applied;
+- restored history is capped by the selected supported retention limit and never exceeds 500 entries;
 - unsupported retention values fall back to the privacy-conscious default of 100;
 - current history opt-in and adult-use/onboarding state are preserved rather than imported.
+
+Because chronological sorting occurs before retention, arbitrary JSON array order does not decide which valid recent records survive a bounded restore.
 
 ## Deletion controls
 
@@ -83,6 +88,12 @@ Android application backup is disabled (`android:allowBackup="false"`) to reduce
 ## Logging
 
 HealthMetric uses a small structured logger for operational events such as deletion, retention changes, and export/restore/link failures. It accepts fixed event names and a sanitized exception type only. It does not accept raw measurements, backup contents, email addresses, tokens, credentials, or arbitrary user-provided text.
+
+## Release screenshot evidence
+
+The Android instrumentation workflow can capture a fixed release-evidence screenshot set from the real app on an emulator. The automated journey uses fictional/example measurements only and writes the images to app-scoped external storage before GitHub Actions uploads them as a workflow artifact.
+
+Release screenshots are not automatic telemetry and are not generated or uploaded during normal user operation. The capture code runs only as part of the repository's Android instrumentation test suite. Any screenshot selected for permanent publication must receive human visual/privacy review first.
 
 ## Children and teens
 

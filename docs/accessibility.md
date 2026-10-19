@@ -7,6 +7,7 @@ HealthMetric treats accessibility as a product requirement, not a release polish
 - Semantic headings are used on primary screens.
 - Navigation items include text labels.
 - Interactive icons have content descriptions where the icon has standalone meaning.
+- About exposes an explicit accessible back action and Android system back returns to the originating screen.
 - Per-entry history delete buttons expose explicit accessible names.
 - Material components provide touch targets and focus behavior.
 - Text uses scalable Compose typography rather than fixed pixel sizes.
@@ -30,6 +31,7 @@ Verify:
 - onboarding is read in a logical order;
 - all input labels are announced;
 - bottom navigation destinations are distinct;
+- About open/back controls are announced clearly and return to the expected originating screen;
 - result text is understandable without visual layout;
 - chart description is announced once and is meaningful;
 - each history entry's delete action is clearly associated with the entry;
@@ -39,7 +41,7 @@ Verify:
 
 ### Text scaling
 
-Test at large system font/display sizes. Inputs, buttons, cards, chips, history rows, snackbars, and dialogs must remain usable without clipped critical text.
+Test at large system font/display sizes. Inputs, buttons, cards, chips, history rows, snackbars, top-bar navigation, and dialogs must remain usable without clipped critical text.
 
 Retention choices and bottom navigation should be checked at the largest supported font/display combinations because compact multi-control rows are more likely to need layout adjustment.
 
@@ -51,7 +53,7 @@ Do not assign health meaning solely through chart or status color.
 
 ### Keyboard/DPAD
 
-Where a hardware keyboard or DPAD is available, verify logical focus traversal through fields, buttons, chips, navigation, history delete actions, snackbars, and dialogs.
+Where a hardware keyboard or DPAD is available, verify logical focus traversal through fields, buttons, chips, navigation, About back, history delete actions, snackbars, and dialogs.
 
 ### Locale/numeric presentation
 
@@ -85,9 +87,11 @@ Prefer factual adult reference descriptions with clear non-diagnostic context.
 
 ## Automated coverage
 
-Current Compose instrumentation covers onboarding/adult gating, BMI and ratio success/error flows, settings actions, history deletion/confirmation, and persistence/backup behavior. Stable automation tags supplement—but never replace—user-facing accessibility semantics.
+Current Compose instrumentation covers onboarding/adult gating, BMI and ratio success/error flows, settings actions, About return navigation, history deletion/confirmation, persistence/backup behavior, chronological history restoration, and deterministic release-screenshot capture. Stable automation tags supplement—but never replace—user-facing accessibility semantics.
 
-Automated tests cannot replace manual TalkBack, large-text, contrast, keyboard/DPAD, and device checks.
+The `android-release-screenshots` workflow artifact provides real-app visual evidence for onboarding, calculators, history, settings, About, and dark theme. Those images are useful for visual regression/release review but do not replace manual assistive-technology testing.
+
+Automated tests cannot replace manual TalkBack, large-text, contrast, keyboard/DPAD, and physical-device checks.
 
 ## Release evidence still required
 
@@ -97,7 +101,8 @@ Before the first public release candidate, record:
 - large-font/display result;
 - light/dark/dynamic-color review result;
 - keyboard/DPAD review where available;
-- representative screenshot evidence using fictional measurements only.
+- physical-device result;
+- visual/privacy approval of the CI-generated representative screenshot evidence.
 
 ## Reporting accessibility issues
 

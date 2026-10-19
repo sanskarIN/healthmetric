@@ -47,7 +47,7 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
-      - name: Run connected Android tests
+      - name: Run connected Android tests and collect release screenshots
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
@@ -55,7 +55,19 @@ jobs:
           arch: x86_64
           profile: pixel_7
           disable-animations: true
-          script: gradle :androidApp:connectedDebugAndroidTest
+          script: |
+            gradle :androidApp:connectedDebugAndroidTest
+            mkdir -p build/release-screenshots
+            adb pull /sdcard/Android/data/io.github.sanskarin.healthmetric/files/release-screenshots/. build/release-screenshots/
+
+      - name: Upload release screenshot evidence
+        if: success()
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-release-screenshots
+          path: build/release-screenshots/*.png
+          if-no-files-found: error
+          retention-days: 30
 
       - name: Upload instrumentation reports
         if: always()

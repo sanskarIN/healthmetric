@@ -21,6 +21,36 @@ REQUIRED_PATHS = [
     ".editorconfig",
     ".gitattributes",
     ".env.example",
+    "build.gradle.kts",
+    "settings.gradle.kts",
+    "gradle.properties",
+    "gradle/libs.versions.toml",
+    "androidApp/build.gradle.kts",
+    "androidApp/proguard-rules.pro",
+    "androidApp/src/main/AndroidManifest.xml",
+    "androidApp/src/main/res/drawable/ic_healthmetric.xml",
+    "androidApp/src/main/res/drawable/ic_healthmetric_foreground.xml",
+    "androidApp/src/main/res/mipmap-anydpi-v26/ic_launcher.xml",
+    "androidApp/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml",
+    "androidApp/src/main/res/mipmap-anydpi-v33/ic_launcher.xml",
+    "androidApp/src/main/res/mipmap-anydpi-v33/ic_launcher_round.xml",
+    "androidApp/src/main/res/values/launcher_colors.xml",
+    "androidApp/src/main/res/values/strings.xml",
+    "androidApp/src/main/res/values/themes.xml",
+    "androidApp/src/main/java/io/github/sanskarin/healthmetric/MainActivity.kt",
+    "androidApp/src/main/java/io/github/sanskarin/healthmetric/data/BackupIo.kt",
+    "androidApp/src/main/java/io/github/sanskarin/healthmetric/data/HealthMetricDataStore.kt",
+    "androidApp/src/main/java/io/github/sanskarin/healthmetric/ui/HealthMetricApp.kt",
+    "androidApp/src/main/java/io/github/sanskarin/healthmetric/ui/HealthMetricViewModel.kt",
+    "androidApp/src/main/java/io/github/sanskarin/healthmetric/ui/testing/HealthMetricTestTags.kt",
+    "androidApp/src/androidTest/java/io/github/sanskarin/healthmetric/AboutNavigationUiTest.kt",
+    "androidApp/src/androidTest/java/io/github/sanskarin/healthmetric/HealthMetricDataStoreTest.kt",
+    "androidApp/src/androidTest/java/io/github/sanskarin/healthmetric/ReleaseScreenshotCaptureTest.kt",
+    "shared/build.gradle.kts",
+    "shared/src/commonMain/kotlin/io/github/sanskarin/healthmetric/domain/Bmi.kt",
+    "shared/src/commonMain/kotlin/io/github/sanskarin/healthmetric/domain/Units.kt",
+    "shared/src/commonMain/kotlin/io/github/sanskarin/healthmetric/domain/Validation.kt",
+    "shared/src/commonMain/kotlin/io/github/sanskarin/healthmetric/domain/WaistToHeight.kt",
     "docs/architecture.md",
     "docs/backup-format.md",
     "docs/setup.md",
@@ -32,10 +62,24 @@ REQUIRED_PATHS = [
     "docs/performance.md",
     "docs/evidence.md",
     "docs/design-system.md",
+    "docs/github-governance.md",
+    "docs/assets/logo.svg",
+    "docs/assets/screenshots/README.md",
     "docs/adr/0001-shared-domain-kmp.md",
     "docs/adr/0002-local-privacy-first-persistence.md",
     "docs/adr/0003-versioned-adult-reference-profiles.md",
     "docs/adr/0004-bounded-user-controlled-local-data.md",
+    "scripts/check_repository.py",
+    "scripts/check_markdown_links.py",
+    "scripts/verify.sh",
+    "scripts/verify.ps1",
+    ".github/FUNDING.yml",
+    ".github/dependabot.yml",
+    ".github/PULL_REQUEST_TEMPLATE.md",
+    ".github/RELEASE_TEMPLATE.md",
+    ".github/ISSUE_TEMPLATE/bug_report.yml",
+    ".github/ISSUE_TEMPLATE/config.yml",
+    ".github/ISSUE_TEMPLATE/feature_request.yml",
     ".github/workflows/ci.yml",
     ".github/workflows/android-instrumentation.yml",
     ".github/workflows/apple-shared.yml",
@@ -45,9 +89,23 @@ REQUIRED_PATHS = [
     ".github/workflows/release.yml",
 ]
 
+FORBIDDEN_PATHS = [
+    "docs/.noop-probe",
+]
+
 
 def read(relative: str) -> str:
     return (ROOT / relative).read_text(encoding="utf-8")
+
+
+def require_fragment(
+    failures: list[str],
+    relative: str,
+    fragment: str,
+    description: str,
+) -> None:
+    if fragment not in read(relative):
+        failures.append(f"{relative} must contain {description}: {fragment}")
 
 
 def main() -> int:
@@ -56,6 +114,10 @@ def main() -> int:
     for relative in REQUIRED_PATHS:
         if not (ROOT / relative).exists():
             failures.append(f"missing required path: {relative}")
+
+    for relative in FORBIDDEN_PATHS:
+        if (ROOT / relative).exists():
+            failures.append(f"forbidden temporary path is committed: {relative}")
 
     manifest = read("androidApp/src/main/AndroidManifest.xml")
     if "android.permission.INTERNET" in manifest:
@@ -78,14 +140,49 @@ def main() -> int:
         if fragment not in readme:
             failures.append(f"README.md is missing required metadata: {fragment}")
 
-    privacy = read("PRIVACY.md")
+    privacy_lower = read("PRIVACY.md").lower()
     for phrase in [
         "disabled by default",
         "adult-use confirmation",
-        "1 MiB",
+        "1 mib",
     ]:
-        if phrase not in privacy:
+        if phrase not in privacy_lower:
             failures.append(f"PRIVACY.md is missing required privacy invariant text: {phrase}")
+
+    aab_requirements = [
+        (".github/workflows/ci.yml", ":androidApp:bundleRelease", "App Bundle build task"),
+        (".github/workflows/ci.yml", "androidApp/build/outputs/bundle/release/*.aab", "App Bundle artifact"),
+        (".github/workflows/release.yml", ":androidApp:bundleRelease", "App Bundle build task"),
+        (".github/workflows/release.yml", "androidApp/build/outputs/bundle/release/*.aab", "App Bundle release attachment"),
+        ("scripts/verify.sh", ":androidApp:bundleRelease", "App Bundle verification task"),
+        ("scripts/verify.ps1", ":androidApp:bundleRelease", "App Bundle verification task"),
+    ]
+    for relative, fragment, description in aab_requirements:
+        require_fragment(failures, relative, fragment, description)
+
+    screenshot_workflow = ".github/workflows/android-instrumentation.yml"
+    for fragment in [
+        "android-release-screenshots",
+        "build/release-screenshots/*.png",
+        "adb pull",
+    ]:
+        require_fragment(failures, screenshot_workflow, fragment, "release screenshot evidence")
+
+    screenshot_test = read(
+        "androidApp/src/androidTest/java/io/github/sanskarin/healthmetric/ReleaseScreenshotCaptureTest.kt",
+    )
+    for file_name in [
+        "01-onboarding.png",
+        "02-bmi-metric.png",
+        "03-bmi-result.png",
+        "04-waist-ratio.png",
+        "05-history.png",
+        "06-settings.png",
+        "07-about.png",
+        "08-dark-theme.png",
+    ]:
+        if file_name not in screenshot_test:
+            failures.append(f"release screenshot test is missing required capture: {file_name}")
 
     if failures:
         print("Repository invariant audit failed:")
@@ -93,7 +190,10 @@ def main() -> int:
             print(f"- {failure}")
         return 1
 
-    print(f"Repository invariant audit passed ({len(REQUIRED_PATHS)} required paths checked).")
+    print(
+        "Repository invariant audit passed "
+        f"({len(REQUIRED_PATHS)} required paths, {len(FORBIDDEN_PATHS)} forbidden paths checked).",
+    )
     return 0
 
 

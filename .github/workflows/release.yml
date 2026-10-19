@@ -40,11 +40,16 @@ jobs:
       - name: Assemble unsigned release APK
         run: gradle :androidApp:assembleRelease
 
-      - name: Upload release artifact
+      - name: Assemble unsigned release App Bundle
+        run: gradle :androidApp:bundleRelease
+
+      - name: Upload unsigned Android release artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: healthmetric-${{ github.ref_name }}-unsigned-apk
-          path: androidApp/build/outputs/apk/release/*-unsigned.apk
+          name: healthmetric-${{ github.ref_name }}-unsigned-android
+          path: |
+            androidApp/build/outputs/apk/release/*-unsigned.apk
+            androidApp/build/outputs/bundle/release/*.aab
           if-no-files-found: error
           retention-days: 30
 
@@ -55,6 +60,7 @@ jobs:
         run: |
           gh release create "${GITHUB_REF_NAME}" \
             androidApp/build/outputs/apk/release/*-unsigned.apk \
+            androidApp/build/outputs/bundle/release/*.aab \
             --repo "${GITHUB_REPOSITORY}" \
             --generate-notes \
             --title "HealthMetric ${GITHUB_REF_NAME}"
